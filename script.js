@@ -62,8 +62,8 @@ class Piece {
     this.img = img;
     this.sx = sx;
     this.sy = sy;
-    this.x = x;
-    this.y = y;
+    this.x = x + canvasXSize / 2;
+    this.y = y + canvasYSize / 2;
     this.vx = 0;
     this.vy = 0;
     this.group = [this];
@@ -79,8 +79,8 @@ class Piece {
       this.sy,
       pieceXSize,
       pieceYSize,
-      this.x + canvasXSize / 2,
-      this.y + canvasYSize / 2,
+      this.x,
+      this.y,
       pieceXSize,
       pieceYSize
     );
@@ -127,10 +127,10 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
 function drawPuzzle(idx) {
   const { pieces } = puzzles[idx];
   ctxs[idx].clearRect(
-    canvasXSize / 2,
-    canvasYSize / 2,
-    canvasXSize * 1.5,
-    canvasYSize * 1.5
+    0,
+    0,
+    canvasXSize * 2,
+    canvasYSize * 2
   );
   for (const piece of pieces) {
     piece.draw(ctxs[idx]);
@@ -140,8 +140,8 @@ function drawPuzzle(idx) {
 function scatterPieces(idx) {
   const { pieces } = puzzles[idx];
   for (const piece of pieces) {
-    piece.x = Math.random() * (canvasXSize - pieceXSize);
-    piece.y = Math.random() * (canvasYSize - pieceYSize);
+    piece.x = Math.random() * (2*canvasXSize - pieceXSize);
+    piece.y = Math.random() * (2*canvasYSize - pieceYSize);
     piece.vx = (Math.random() - 0.5) * 4;
     piece.vy = (Math.random() - 0.5) * 4;
   }
@@ -155,10 +155,10 @@ function animatePuzzle(idx) {
     piece.x += piece.vx;
     piece.y += piece.vy;
     // Bounce
-    if (piece.x < 0 || piece.x > canvasXSize - pieceXSize) piece.vx *= -1;
-    if (piece.y < 0 || piece.y > canvasYSize - pieceYSize) piece.vy *= -1;
-    piece.x = Math.max(0, Math.min(piece.x, canvasXSize - pieceXSize));
-    piece.y = Math.max(0, Math.min(piece.y, canvasYSize - pieceYSize));
+    if (piece.x < 0 || piece.x > 2*canvasXSize - pieceXSize) piece.vx *= -1;
+    if (piece.y < 0 || piece.y > 2*canvasYSize - pieceYSize) piece.vy *= -1;
+    piece.x = Math.max(0, Math.min(piece.x, 2*canvasXSize - pieceXSize));
+    piece.y = Math.max(0, Math.min(piece.y, 2*canvasYSize - pieceYSize));
   }
   drawPuzzle(idx);
   if (!puzzles[idx].solved) requestAnimationFrame(() => animatePuzzle(idx));
@@ -167,8 +167,8 @@ function animatePuzzle(idx) {
 function onMouseDown(idx, e) {
   if (!puzzles[idx].started) return;
   const rect = canvases[idx].getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const mx = 2 * (e.clientX - rect.left);
+  const my = 2 * (e.clientY - rect.top);
   const { pieces } = puzzles[idx];
   for (let i = pieces.length - 1; i >= 0; i--) {
     const piece = pieces[i];
@@ -188,8 +188,8 @@ function onMouseMove(idx, e) {
   const piece = puzzles[idx].draggingPiece;
   if (!piece) return;
   const rect = canvases[idx].getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const mx = 2 * (e.clientX - rect.left);
+  const my = 2 * (e.clientY - rect.top);
   piece.x = mx - piece.offsetX;
   piece.y = my - piece.offsetY;
   drawPuzzle(idx);
@@ -252,6 +252,7 @@ function checkSolved(idx) {
 
 document.getElementById("startBtn").onclick = () => {
   document.getElementById("startBtn").disabled = true;
+  document.getElementById("stopBtn").disabled = false;
   document.getElementById("confirmBtn").disabled = true;
   allSolved = [false, false, false];
   for (let i = 0; i < 3; i++) {
@@ -265,9 +266,22 @@ document.getElementById("startBtn").onclick = () => {
 
 document.getElementById("confirmBtn").onclick = () => {
   document.getElementById("startBtn").disabled = false;
+  document.getElementById("stopBtn").disabled = true;
   document.getElementById("confirmBtn").disabled = true;
   stopTimer();
 };
+
+document.getElementById("stopBtn").onclick = () => {
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("confirmBtn").disabled = true;
+  document.getElementById("stopBtn").disabled = true;
+  stopTimer();
+  for (let i = 0; i < 3; i++) {
+    puzzles[i].started = true;
+    puzzles[i].solved = false;
+    setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
+  }
+}
 
 for (let i = 0; i < 3; i++) {
   canvases[i].addEventListener("mousedown", (e) => onMouseDown(i, e));

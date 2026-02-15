@@ -16,6 +16,7 @@ main {
 button {
     padding: 0.5em 1em;
     font-size: 1em;
+    align-items: center;
 }
 canvas {
     width: 1344px;
