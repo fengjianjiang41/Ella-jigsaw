@@ -8,24 +8,25 @@
 
 const imagePaths = [
   "images/apple.png",
-  "images/eureka.png",
-  "images/hongbao.png",
+  // "images/eureka.png",
+  // "images/hongbao.png",
 ];
-const gridSize = 4;
+const gridSize = 2;
 const canvasXSize = 1344;
 const canvasYSize = 768;
 const pieceXSize = canvasXSize / gridSize;
 const pieceYSize = canvasYSize / gridSize;
 const canvases = [
   document.getElementById("jigsaw1"),
-  document.getElementById("jigsaw2"),
-  document.getElementById("jigsaw3"),
+  // document.getElementById("jigsaw2"),
+  // document.getElementById("jigsaw3"),
 ];
 const ctxs = canvases.map((c) => c.getContext("2d"));
 let puzzles = [];
 let timer = 0,
   timerInterval = null;
-let allSolved = [false, false, false];
+let allSolved = [false];
+// , false, false];
 
 function formatTime(ms) {
   let s = Math.floor(ms / 1000);
@@ -126,12 +127,7 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
 
 function drawPuzzle(idx) {
   const { pieces } = puzzles[idx];
-  ctxs[idx].clearRect(
-    0,
-    0,
-    canvasXSize * 2,
-    canvasYSize * 2
-  );
+  ctxs[idx].clearRect(0, 0, canvasXSize * 2, canvasYSize * 2);
   for (const piece of pieces) {
     piece.draw(ctxs[idx]);
   }
@@ -140,8 +136,8 @@ function drawPuzzle(idx) {
 function scatterPieces(idx) {
   const { pieces } = puzzles[idx];
   for (const piece of pieces) {
-    piece.x = Math.random() * (2*canvasXSize - pieceXSize);
-    piece.y = Math.random() * (2*canvasYSize - pieceYSize);
+    piece.x = Math.random() * (2 * canvasXSize - pieceXSize);
+    piece.y = Math.random() * (2 * canvasYSize - pieceYSize);
     piece.vx = (Math.random() - 0.5) * 4;
     piece.vy = (Math.random() - 0.5) * 4;
   }
@@ -152,13 +148,33 @@ function animatePuzzle(idx) {
   const { pieces, draggingPiece } = puzzles[idx];
   for (const piece of pieces) {
     if (piece.dragging) continue;
+    // Bounce
     piece.x += piece.vx;
     piece.y += piece.vy;
-    // Bounce
-    if (piece.x < 0 || piece.x > 2*canvasXSize - pieceXSize) piece.vx *= -1;
-    if (piece.y < 0 || piece.y > 2*canvasYSize - pieceYSize) piece.vy *= -1;
-    piece.x = Math.max(0, Math.min(piece.x, 2*canvasXSize - pieceXSize));
-    piece.y = Math.max(0, Math.min(piece.y, 2*canvasYSize - pieceYSize));
+    if (piece.x < 0 || piece.x > 2 * canvasXSize - pieceXSize) {
+      piece.vx *= -1;
+      piece.x = Math.max(0, Math.min(piece.x, 2 * canvasXSize - pieceXSize));
+      // Bounce as a bulk
+      piece.group.forEach((groupPiece) => {
+        if (groupPiece != piece) {
+          groupPiece.vx *= -1;
+          groupPiece.x =
+            piece.x + ((groupPiece.idx - piece.idx) % gridSize) * pieceXSize;
+        }
+      });
+    }
+    if (piece.y < 0 || piece.y > 2 * canvasYSize - pieceYSize) {
+      piece.vy *= -1;
+      piece.y = Math.max(0, Math.min(piece.y, 2 * canvasYSize - pieceYSize));
+      piece.group.forEach((groupPiece) => {
+        if (groupPiece != piece) {
+          groupPiece.vy *= -1;
+          groupPiece.y =
+            piece.y +
+            Math.floor((groupPiece.idx - piece.idx) / gridSize) * pieceYSize;
+        }
+      });
+    }
   }
   drawPuzzle(idx);
   if (!puzzles[idx].solved) requestAnimationFrame(() => animatePuzzle(idx));
@@ -175,6 +191,13 @@ function onMouseDown(idx, e) {
     if (piece.contains(mx, my)) {
       piece.dragging = true;
       puzzles[idx].draggingPiece = piece;
+      piece.group.forEach((groupPiece) => {
+        if (groupPiece != piece) {
+          groupPiece.group = groupPiece.group.filter(gp => gp !== piece);
+        }else{
+          piece.group = [piece];
+        }
+      })
       piece.offsetX = mx - piece.x;
       piece.offsetY = my - piece.y;
       // Bring to front
@@ -220,11 +243,16 @@ function tryMerge(idx, piece) {
         Math.abs(other.y - piece.y - dy * pieceYSize) < 20
       ) {
         // Merge: align positions
-        other.x = piece.x + dx * pieceXSize;
-        other.y = piece.y + dy * pieceYSize;
+        piece.x = other.x - dx * pieceXSize;
+        piece.y = other.y - dy * pieceYSize;
+        // Merge: align velocities
+        other.vx = 0;
+        other.vy = 0;
+        piece.vx = 0;
+        piece.vy = 0;
         // Merge groups
         piece.group = piece.group.concat(other.group);
-        other.group = piece.group;
+        other.group.forEach((groupPiece) => {groupPiece.group = piece.group;});
       }
     }
   }
@@ -234,12 +262,12 @@ function checkSolved(idx) {
   const { pieces } = puzzles[idx];
   // All pieces in one group and at correct positions
   if (
-    pieces.every((p) => p.group === pieces[0].group) &&
-    pieces.every(
-      (p) =>
-        Math.abs(p.x - (p.idx % gridSize) * pieceXSize) < 5 &&
-        Math.abs(p.y - Math.floor(p.idx / gridSize) * pieceYSize) < 5
-    )
+    pieces.every((p) => p.group === pieces[0].group)
+    // pieces.every(
+    //   (p) =>
+    //     Math.abs(p.x - (p.idx % gridSize) * pieceXSize) < 5 &&
+    //     Math.abs(p.y - Math.floor(p.idx / gridSize) * pieceYSize) < 5
+    // )
   ) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
@@ -254,8 +282,9 @@ document.getElementById("startBtn").onclick = () => {
   document.getElementById("startBtn").disabled = true;
   document.getElementById("stopBtn").disabled = false;
   document.getElementById("confirmBtn").disabled = true;
-  allSolved = [false, false, false];
-  for (let i = 0; i < 3; i++) {
+  allSolved = [false]
+  // , false, false];
+  for (let i = 0; i < imagePaths.length; i++) {
     puzzles[i].started = true;
     puzzles[i].solved = false;
     scatterPieces(i);
@@ -276,14 +305,14 @@ document.getElementById("stopBtn").onclick = () => {
   document.getElementById("confirmBtn").disabled = true;
   document.getElementById("stopBtn").disabled = true;
   stopTimer();
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < imagePaths.length; i++) {
     puzzles[i].started = true;
     puzzles[i].solved = false;
     setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
   }
-}
+};
 
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < imagePaths.length; i++) {
   canvases[i].addEventListener("mousedown", (e) => onMouseDown(i, e));
   canvases[i].addEventListener("mousemove", (e) => onMouseMove(i, e));
   canvases[i].addEventListener("mouseup", (e) => onMouseUp(i, e));
