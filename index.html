@@ -1,15 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh"></html>
 <head>
     <meta charset="UTF-8">
-    <title>Jigsaw Puzzle Game</title>
+    <title>旦妹的拼图游戏</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="nickname-block" style="text-align: center; margin-top: 1em;">
+        <input type="text" id="nicknameInput" placeholder="输入昵称" style="width: 120px;">
+        <button id="okBtn">OK!</button>
+    </div>
     <div class="controls">
-        <button id="startBtn">Start</button>
+        <button id="startBtn">开始</button>
         <span id="timer">00:00.00</span>
-        <button id="stopBtn" disabled>Stop</button>
+        <button id="stopBtn" disabled>停止</button>
     </div>
     <div class="jigsaw-container">
         <canvas class="jigsaw" id="jigsaw1" width="2688" height="1536"></canvas>
@@ -17,7 +21,18 @@
         <canvas class="jigsaw" id="jigsaw3" width="2688" height="1536"></canvas> -->
     </div>
     <div class="result" style="text-align: center;">
-        <button id="confirmBtn" disabled>Confirm</button>
+        <button id="confirmBtn" disabled>确认</button>
+        <button id="restartBtn" disabled>重新开始</button>
+    </div>
+    <div class="ranking-block" style="display: flex; justify-content: center; gap: 2em; margin-top: 1em;">
+        <div class="personal-ranking">
+            <h3>个人历史成绩</h3>
+            <ol id="personalList"></ol>
+        </div>
+        <div class="global-ranking">
+            <h3>全服最佳</h3>
+            <ol id="globalList"></ol>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

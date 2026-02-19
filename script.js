@@ -25,7 +25,7 @@ const ctxs = canvases.map((c) => c.getContext("2d"));
 let puzzles = [];
 let timer = 0,
   timerInterval = null;
-let allSolved = [false];
+let allSolved = [false]
 // , false, false];
 
 function formatTime(ms) {
@@ -279,9 +279,11 @@ function checkSolved(idx) {
 }
 
 document.getElementById("startBtn").onclick = () => {
+  if (!nickname) return alert('请先输入昵称并点击OK!');
   document.getElementById("startBtn").disabled = true;
   document.getElementById("stopBtn").disabled = false;
   document.getElementById("confirmBtn").disabled = true;
+  document.getElementById('restartBtn').disabled = true;
   allSolved = [false]
   // , false, false];
   for (let i = 0; i < imagePaths.length; i++) {
@@ -297,6 +299,7 @@ document.getElementById("confirmBtn").onclick = () => {
   document.getElementById("startBtn").disabled = false;
   document.getElementById("stopBtn").disabled = true;
   document.getElementById("confirmBtn").disabled = true;
+  document.getElementById('restartBtn').disabled = false;
   stopTimer();
 };
 
@@ -304,6 +307,7 @@ document.getElementById("stopBtn").onclick = () => {
   document.getElementById("startBtn").disabled = false;
   document.getElementById("confirmBtn").disabled = true;
   document.getElementById("stopBtn").disabled = true;
+  document.getElementById('restartBtn').disabled = true;
   stopTimer();
   for (let i = 0; i < imagePaths.length; i++) {
     puzzles[i].started = true;
@@ -319,3 +323,99 @@ for (let i = 0; i < imagePaths.length; i++) {
   canvases[i].addEventListener("mouseleave", (e) => onMouseUp(i, e));
   setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
 }
+
+// Hardcoded global bests (edit as needed)
+const globalBests = [
+    { nickname: "Alice", time: 45.23 },
+    { nickname: "Bob", time: 47.11 },
+    { nickname: "Carol", time: 49.87 },
+    { nickname: "Dave", time: 51.02 },
+    { nickname: "Eve", time: 52.34 }
+];
+
+let nickname = localStorage.getItem('jigsaw_nickname') || '';
+document.getElementById('nicknameInput').value = ''; // Clear the input
+document.getElementById('nicknameInput').value = nickname;
+
+// Save nickname on OK
+document.getElementById('okBtn').onclick = function() {
+    nickname = document.getElementById('nicknameInput').value.trim();
+    localStorage.setItem('jigsaw_nickname', nickname);
+};
+
+// Save result on confirm
+document.getElementById('confirmBtn').onclick = function() {
+  const timerText = document.getElementById('timer').textContent;
+  const [minutes, seconds] = timerText.split(':').map(Number);
+  const time = (minutes * 60) + seconds; // Convert to seconds
+  let records = JSON.parse(localStorage.getItem('jigsaw_records') || '{}');
+  // Save the current nickname's time
+  if (!records[nickname]) records[nickname] = [];
+  records[nickname].push(time);
+  records[nickname].sort((a, b) => a - b);
+  records[nickname] = records[nickname].slice(0, 5);
+  // Save all records back to local storage
+  localStorage.setItem('jigsaw_records', JSON.stringify(records));
+  // Update personal list
+  updatePersonalList();
+  // Update global ranking list based on all records
+  const allRecords = Object.entries(records).map(([name, times]) => {
+    return { nickname: name, bestTime: Math.min(...times) };
+  });
+  allRecords.sort((a, b) => a.bestTime - b.bestTime);
+  // Update global list with sorted records
+  const ol = document.getElementById('globalList');
+  ol.innerHTML = '';
+  allRecords.slice(0, 5).forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = `${item.nickname}: ${item.bestTime.toFixed(2)} 秒`;
+    ol.appendChild(li);
+  });
+  document.getElementById("confirmBtn").disabled = true;
+  document.getElementById("stopBtn").disabled = true;
+  document.getElementById("restartBtn").disabled = false;
+};
+
+document.getElementById("restartBtn").onclick = () => {
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("confirmBtn").disabled = true;
+  document.getElementById("stopBtn").disabled = true;
+  document.getElementById('restartBtn').disabled = true;
+  stopTimer();
+  for (let i = 0; i < imagePaths.length; i++) {
+    puzzles[i].started = true;
+    puzzles[i].solved = false;
+    setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
+  }
+};
+
+// Update personal ranking list
+function updatePersonalList() {
+    let records = JSON.parse(localStorage.getItem('jigsaw_records') || '{}');
+    let list = records[nickname] || [];
+    const ol = document.getElementById('personalList');
+    ol.innerHTML = '';
+    list.forEach((t, i) => {
+        const li = document.createElement('li');
+        li.textContent = `${t.toFixed(2)} 秒`;
+        ol.appendChild(li);
+    });
+}
+
+// Update global ranking list
+function updateGlobalList() {
+    const ol = document.getElementById('globalList');
+    ol.innerHTML = '';
+    globalBests.slice(0, 5).forEach((item, i) => {
+        const li = document.createElement('li');
+        li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒`;
+        ol.appendChild(li);
+    });
+}
+
+// Initial update
+// Clear local storage and update lists
+localStorage.removeItem('jigsaw_nickname');
+localStorage.removeItem('jigsaw_records');
+updatePersonalList();
+updateGlobalList();
