@@ -8,9 +8,11 @@
 
 const imagePaths = [
   "images/apple.png",
-  // "images/eureka.png",
-  // "images/hongbao.png",
+  "images/eureka.png",
+  "images/hongbao.png",
 ];
+const audioFiles = ["audio/emo.m4a", "audio/ua.m4a", "audio/ui.m4a"];
+
 const gridSize = 2;
 const canvasXSize = 1344;
 const canvasYSize = 768;
@@ -18,15 +20,14 @@ const pieceXSize = canvasXSize / gridSize;
 const pieceYSize = canvasYSize / gridSize;
 const canvases = [
   document.getElementById("jigsaw1"),
-  // document.getElementById("jigsaw2"),
-  // document.getElementById("jigsaw3"),
+  document.getElementById("jigsaw2"),
+  document.getElementById("jigsaw3"),
 ];
 const ctxs = canvases.map((c) => c.getContext("2d"));
 let puzzles = [];
 let timer = 0,
   timerInterval = null;
-let allSolved = [false]
-// , false, false];
+let allSolved = [false, false, false];
 
 function formatTime(ms) {
   let s = Math.floor(ms / 1000);
@@ -40,10 +41,10 @@ function formatTime(ms) {
 
 function startTimer() {
   timer = 0;
-  document.getElementById("timer").textContent = formatTime(timer);
+  document.getElementById("floatingTimer").textContent = formatTime(timer);
   timerInterval = setInterval(() => {
     timer += 10;
-    document.getElementById("timer").textContent = formatTime(timer);
+    document.getElementById("floatingTimer").textContent = formatTime(timer);
   }, 10);
 }
 function stopTimer() {
@@ -193,11 +194,11 @@ function onMouseDown(idx, e) {
       puzzles[idx].draggingPiece = piece;
       piece.group.forEach((groupPiece) => {
         if (groupPiece != piece) {
-          groupPiece.group = groupPiece.group.filter(gp => gp !== piece);
-        }else{
+          groupPiece.group = groupPiece.group.filter((gp) => gp !== piece);
+        } else {
           piece.group = [piece];
         }
-      })
+      });
       piece.offsetX = mx - piece.x;
       piece.offsetY = my - piece.y;
       // Bring to front
@@ -252,7 +253,9 @@ function tryMerge(idx, piece) {
         piece.vy = 0;
         // Merge groups
         piece.group = piece.group.concat(other.group);
-        other.group.forEach((groupPiece) => {groupPiece.group = piece.group;});
+        other.group.forEach((groupPiece) => {
+          groupPiece.group = piece.group;
+        });
       }
     }
   }
@@ -279,13 +282,12 @@ function checkSolved(idx) {
 }
 
 document.getElementById("startBtn").onclick = () => {
-  if (!nickname) return alert('请先输入昵称并点击OK!');
+  if (!nickname) return alert("请先输入昵称并点击OK!");
   document.getElementById("startBtn").disabled = true;
   document.getElementById("stopBtn").disabled = false;
   document.getElementById("confirmBtn").disabled = true;
-  document.getElementById('restartBtn').disabled = true;
-  allSolved = [false]
-  // , false, false];
+  document.getElementById("restartBtn").disabled = true;
+  allSolved = [false, false, false];
   for (let i = 0; i < imagePaths.length; i++) {
     puzzles[i].started = true;
     puzzles[i].solved = false;
@@ -299,7 +301,7 @@ document.getElementById("confirmBtn").onclick = () => {
   document.getElementById("startBtn").disabled = false;
   document.getElementById("stopBtn").disabled = true;
   document.getElementById("confirmBtn").disabled = true;
-  document.getElementById('restartBtn').disabled = false;
+  document.getElementById("restartBtn").disabled = false;
   stopTimer();
 };
 
@@ -307,7 +309,7 @@ document.getElementById("stopBtn").onclick = () => {
   document.getElementById("startBtn").disabled = false;
   document.getElementById("confirmBtn").disabled = true;
   document.getElementById("stopBtn").disabled = true;
-  document.getElementById('restartBtn').disabled = true;
+  document.getElementById("restartBtn").disabled = true;
   stopTimer();
   for (let i = 0; i < imagePaths.length; i++) {
     puzzles[i].started = true;
@@ -326,51 +328,53 @@ for (let i = 0; i < imagePaths.length; i++) {
 
 // Hardcoded global bests (edit as needed)
 const globalBests = [
-    { nickname: "Alice", time: 45.23 },
-    { nickname: "Bob", time: 47.11 },
-    { nickname: "Carol", time: 49.87 },
-    { nickname: "Dave", time: 51.02 },
-    { nickname: "Eve", time: 52.34 }
+  { nickname: "阿见", time: 45.23 },
+  // { nickname: "Bob", time: 47.11 },
+  // { nickname: "Carol", time: 49.87 },
+  // { nickname: "Dave", time: 51.02 },
+  // { nickname: "Eve", time: 52.34 }
 ];
 
-let nickname = localStorage.getItem('jigsaw_nickname') || '';
-document.getElementById('nicknameInput').value = ''; // Clear the input
-document.getElementById('nicknameInput').value = nickname;
+let nickname = localStorage.getItem("jigsaw_nickname") || "";
+document.getElementById("nicknameInput").value = ""; // Clear the input
+document.getElementById("nicknameInput").value = nickname;
 
 // Save nickname on OK
-document.getElementById('okBtn').onclick = function() {
-    nickname = document.getElementById('nicknameInput').value.trim();
-    localStorage.setItem('jigsaw_nickname', nickname);
+document.getElementById("okBtn").onclick = function () {
+  nickname = document.getElementById("nicknameInput").value.trim();
+  localStorage.setItem("jigsaw_nickname", nickname);
+  document.getElementById("okBtn").disabled = true;
+  document.getElementById("startBtn").disabled = false;
 };
 
 // Save result on confirm
-document.getElementById('confirmBtn').onclick = function() {
-  const timerText = document.getElementById('timer').textContent;
-  const [minutes, seconds] = timerText.split(':').map(Number);
-  const time = (minutes * 60) + seconds; // Convert to seconds
-  let records = JSON.parse(localStorage.getItem('jigsaw_records') || '{}');
+document.getElementById("confirmBtn").onclick = function () {
+  const timerText = document.getElementById("floatingTimer").textContent;
+  const [minutes, seconds] = timerText.split(":").map(Number);
+  const time = minutes * 60 + seconds; // Convert to seconds
+  let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
   // Save the current nickname's time
   if (!records[nickname]) records[nickname] = [];
   records[nickname].push(time);
   records[nickname].sort((a, b) => a - b);
   records[nickname] = records[nickname].slice(0, 5);
   // Save all records back to local storage
-  localStorage.setItem('jigsaw_records', JSON.stringify(records));
+  localStorage.setItem("jigsaw_records", JSON.stringify(records));
   // Update personal list
   updatePersonalList();
   // Update global ranking list based on all records
-  const allRecords = Object.entries(records).map(([name, times]) => {
-    return { nickname: name, bestTime: Math.min(...times) };
-  });
-  allRecords.sort((a, b) => a.bestTime - b.bestTime);
-  // Update global list with sorted records
-  const ol = document.getElementById('globalList');
-  ol.innerHTML = '';
-  allRecords.slice(0, 5).forEach((item) => {
-    const li = document.createElement('li');
-    li.textContent = `${item.nickname}: ${item.bestTime.toFixed(2)} 秒`;
-    ol.appendChild(li);
-  });
+  // const allRecords = Object.entries(records).map(([name, times]) => {
+  //   return { nickname: name, bestTime: Math.min(...times) };
+  // });
+  // allRecords.sort((a, b) => a.bestTime - b.bestTime);
+  // // Update global list with sorted records
+  // const ol = document.getElementById('globalList');
+  // ol.innerHTML = '';
+  // allRecords.slice(0, 5).forEach((item) => {
+  //   const li = document.createElement('li');
+  //   li.textContent = `${item.nickname}: ${item.bestTime.toFixed(2)} 秒`;
+  //   ol.appendChild(li);
+  // });
   document.getElementById("confirmBtn").disabled = true;
   document.getElementById("stopBtn").disabled = true;
   document.getElementById("restartBtn").disabled = false;
@@ -380,7 +384,7 @@ document.getElementById("restartBtn").onclick = () => {
   document.getElementById("startBtn").disabled = false;
   document.getElementById("confirmBtn").disabled = true;
   document.getElementById("stopBtn").disabled = true;
-  document.getElementById('restartBtn').disabled = true;
+  document.getElementById("restartBtn").disabled = true;
   stopTimer();
   for (let i = 0; i < imagePaths.length; i++) {
     puzzles[i].started = true;
@@ -391,31 +395,218 @@ document.getElementById("restartBtn").onclick = () => {
 
 // Update personal ranking list
 function updatePersonalList() {
-    let records = JSON.parse(localStorage.getItem('jigsaw_records') || '{}');
-    let list = records[nickname] || [];
-    const ol = document.getElementById('personalList');
-    ol.innerHTML = '';
-    list.forEach((t, i) => {
-        const li = document.createElement('li');
-        li.textContent = `${t.toFixed(2)} 秒`;
-        ol.appendChild(li);
-    });
+  let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
+  let list = records[nickname] || [];
+  const ol = document.getElementById("personalList");
+  ol.innerHTML = "";
+  list.forEach((t, i) => {
+    const li = document.createElement("li");
+    li.textContent = `${t.toFixed(2)} 秒`;
+    ol.appendChild(li);
+  });
 }
 
 // Update global ranking list
 function updateGlobalList() {
-    const ol = document.getElementById('globalList');
-    ol.innerHTML = '';
-    globalBests.slice(0, 5).forEach((item, i) => {
-        const li = document.createElement('li');
-        li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒`;
-        ol.appendChild(li);
-    });
+  const ol = document.getElementById("globalList");
+  ol.innerHTML = "";
+  globalBests.slice(0, 5).forEach((item, i) => {
+    const li = document.createElement("li");
+    li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒`;
+    ol.appendChild(li);
+  });
 }
 
 // Initial update
 // Clear local storage and update lists
-localStorage.removeItem('jigsaw_nickname');
-localStorage.removeItem('jigsaw_records');
+document.getElementById("okBtn").disabled = false;
+document.getElementById("startBtn").disabled = true;
+document.getElementById("confirmBtn").disabled = true;
+document.getElementById("stopBtn").disabled = true;
+document.getElementById("restartBtn").disabled = true;
+localStorage.removeItem("jigsaw_nickname");
+localStorage.removeItem("jigsaw_records");
 updatePersonalList();
 updateGlobalList();
+
+const bunImg = document.getElementById("bun-img");
+
+bunImg.addEventListener("mousedown", function () {
+  this.classList.add("shrink");
+});
+
+bunImg.addEventListener("mouseup", function () {
+  this.classList.remove("shrink");
+});
+
+bunImg.addEventListener("mouseleave", function () {
+  this.classList.remove("shrink");
+});
+
+function showFloatingText(options = {}) {
+  // Default style parameters
+  const {
+    text = "Hello!",
+    fontSize = "24px",
+    color = "#ff69b4",
+    fontWeight = "bold",
+    duration = 1200,
+    riseDistance = 60,
+    leftOffset = 0,
+    topOffset = -40,
+    zIndex = 1000,
+    fontFamily = "Arial, sans-serif",
+    letterSpacing = "2px",
+    textShadow = "0 2px 8px rgba(0,0,0,0.2)",
+  } = options;
+
+  const bunRect = bunImg.getBoundingClientRect();
+  const container = document.body;
+
+  const floating = document.createElement("div");
+  floating.textContent = text;
+  floating.style.position = "fixed";
+  floating.style.left = `${bunRect.left + bunRect.width / 2 + leftOffset}px`;
+  floating.style.top = `${bunRect.top + topOffset}px`;
+  floating.style.transform = "translateX(-50%)";
+  floating.style.fontSize = fontSize;
+  floating.style.color = color;
+  floating.style.fontWeight = fontWeight;
+  floating.style.fontFamily = fontFamily;
+  floating.style.letterSpacing = letterSpacing;
+  floating.style.textShadow = textShadow;
+  floating.style.opacity = "1";
+  floating.style.zIndex = zIndex;
+  floating.style.pointerEvents = "none";
+  container.appendChild(floating);
+
+  // Animate
+  let start = null;
+  function animate(ts) {
+    if (!start) start = ts;
+    const progress = ts - start;
+    const percent = Math.min(progress / duration, 1);
+    floating.style.top = `${
+      bunRect.top + topOffset - percent * riseDistance
+    }px`;
+    floating.style.opacity = `${1 - percent}`;
+    if (percent < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      container.removeChild(floating);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// Update bunImg click event:
+bunImg.addEventListener("click", function () {
+  const randomIndex = Math.floor(Math.random() * audioFiles.length);
+  const audio = new Audio(audioFiles[randomIndex]);
+  audio.play();
+
+  showFloatingText({
+    text: "功德+1",
+    fontSize: "28px",
+    color: "#000000",
+    fontWeight: "bold",
+    duration: 1500,
+    riseDistance: 80,
+    topOffset: -50,
+    fontFamily: "Microsoft YaHei, sans-serif",
+    // textShadow: "0 4px 12px rgba(0,0,0,0.3)",
+  });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const pagesContainer = document.getElementById("pagesContainer");
+  const pageNav = document.getElementById("pageNav");
+  const pageBtns = document.querySelectorAll(".page-btn");
+  const startText = document.getElementById("startText");
+  const pages = document.querySelectorAll(".page");
+
+  // 禁用鼠标滚轮
+  pagesContainer.addEventListener(
+    "wheel",
+    function (e) {
+      e.preventDefault();
+    },
+    { passive: false }
+  );
+
+  // 按下任意键后：文字消失，显示导航按钮，跳转到第二页
+  document.addEventListener("keydown", function onFirstKey(e) {
+    // 确保只在首页且文字可见时触发
+    if (startText && !startText.classList.contains("hidden")) {
+      // 隐藏"按任意键开始"文字
+      startText.classList.add("hidden");
+
+      // 显示分页导航按钮
+      pageNav.style.display = "flex";
+
+      // 跳转到第二页（快速滑动）
+      const secondPage = document.getElementById("page2");
+      if (secondPage) {
+        secondPage.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        // 更新按钮状态
+        pageBtns.forEach((btn) => {
+          btn.classList.remove("active");
+          if (btn.dataset.page === "page2") {
+            btn.classList.add("active");
+          }
+        });
+      }
+
+      // 移除事件监听，只触发一次
+      document.removeEventListener("keydown", onFirstKey);
+    }
+  });
+
+  // 点击分页按钮跳转到对应页面
+  pageBtns.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const targetPageId = this.dataset.page;
+      const targetPage = document.getElementById(targetPageId);
+
+      if (targetPage) {
+        // 快速滑动到目标页面
+        targetPage.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        // 更新按钮激活状态
+        pageBtns.forEach((b) => b.classList.remove("active"));
+        this.classList.add("active");
+      }
+    });
+  });
+
+  // 监听滚动结束，更新按钮状态（为了兼容手动滚动的情况，虽然我们禁用了滚轮）
+  let scrollTimeout;
+  pagesContainer.addEventListener("scroll", function () {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      // 检测当前可见的页面
+      const containerRect = pagesContainer.getBoundingClientRect();
+      let currentPageId = "page1"; // 默认第一页
+
+      pages.forEach((page) => {
+        const pageRect = page.getBoundingClientRect();
+        // 检查页面是否在视口中（粗略判断）
+        if (
+          pageRect.top < containerRect.bottom &&
+          pageRect.bottom > containerRect.top
+        ) {
+          currentPageId = page.id;
+        }
+      });
+
+      // 更新按钮状态
+      pageBtns.forEach((btn) => {
+        btn.classList.remove("active");
+        if (btn.dataset.page === currentPageId) {
+          btn.classList.add("active");
+        }
+      });
+    }, 50);
+  });
+});

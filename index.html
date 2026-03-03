@@ -1,24 +1,87 @@
 <!DOCTYPE html>
-<html lang="zh"></html>
+<html lang="zh">
+
+</html>
+
 <head>
     <meta charset="UTF-8">
     <title>旦妹的拼图游戏</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div class="nickname-block" style="text-align: center; margin-top: 1em;">
-        <input type="text" id="nicknameInput" placeholder="输入昵称" style="width: 120px;">
-        <button id="okBtn">OK!</button>
+    <!-- 分页导航按钮容器 -->
+    <div class="page-nav" id="pageNav">
+        <div class="page-btn active" data-page="page1" style="background-image: url('images/icon1.png');" title="首页">
+        </div>
+        <div class="page-btn" data-page="page2" style="background-image: url('images/icon2.png');" title="注册页"></div>
+        <!-- 后续分页按钮可以在这里添加 -->
+    </div>
+
+    <!-- 所有分页内容的容器 -->
+    <div class="pages-container" id="pagesContainer">
+        <!-- 第一页：首页 -->
+        <div class="page" id="page1">
+            <div class="top-images-container">
+                <div class="left-images">
+                    <img src="images/bun.png" alt="bun" class="bun-img" id="bun-img">
+                    <img src="images/pink.png" alt="pink" class="left-bottom-img">
+                </div>
+                <img src="images/sis.png" alt="sis" class="sis-img">
+            </div>
+            <div class="game-image">
+                <img src="images/game.png" alt="拼图游戏" style="max-width: 20%; height: auto;">
+            </div>
+            <div class="flicker-text" style="font-size: 32px; letter-spacing: 4px" id="startText">
+                按任意键开始
+            </div>
+        </div>
+
+        <!-- 第二页：注册页 -->
+        <div class="page" id="page2">
+            <div class="text-row"
+                style="text-align: center; margin: 1em; padding: 0px; background-color: #ffffff; border: 0px solid #ccc; border-radius: 1px;">
+                <p style="font-size: 48px; color: #000000; font-weight: bold; margin: 0;">1 注 册 页</p>
+                <img src="images/1.gif" alt="注册"
+                    style="max-width: 100%; height: auto; margin-top: 1em; border-radius: 8px;">
+                <p style="font-size: 18px; color: #666; margin: 10; padding-top: 5px;">有请各位拼图大侠留下芳名供后人仰慕</p>
+            </div>
+            <div class="nickname-block" style="text-align: center; margin-top: 1em;">
+                <input type="text" id="nicknameInput" placeholder="输入昵称"
+                    style="width: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; text-align: center;">
+                <button id="okBtn">OK!</button>
+            </div>
+        </div>
+        <!-- 后续分页可以继续添加，如：
+        <div class="page" id="page3">
+            ... 拼图页内容 ...
+        </div>
+        <div class="page" id="page4">
+            ... 排名页内容 ...
+        </div>
+        -->
+    </div>
+    <div style="margin: 5em;"></div>
+    <div class="text-row"
+        style="text-align: center; margin: 1em; padding: 0px; background-color: #ffffff; border: 0px solid #ccc; border-radius: 1px;">
+        <p style="font-size: 48px; color: #000000; font-weight: bold; margin: 0;">2 拼 图 页</p>
+        <!-- <img src="images/2.gif" alt="演示" style="max-width: 100%; height: auto; margin-top: 1em; border-radius: 8px;"> -->
+        <p style="font-size: 18px; color: #666; margin: 10; padding-top: 5px;">按下"开始"看看实力</p>
     </div>
     <div class="controls">
         <button id="startBtn">开始</button>
-        <span id="timer">00:00.00</span>
+        <!-- <span id="timer">00:00.00</span> -->
+        <div id="floatingTimer"
+            style="position: fixed; bottom: 20px; right: 20px; background-color: rgba(255, 255, 255, 0.8); border: 1px solid #ccc; border-radius: 5px; padding: 10px; font-size: 20px; color: #000; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);">
+            <span id="timer">00:00.00</span>
+        </div>
         <button id="stopBtn" disabled>停止</button>
     </div>
     <div class="jigsaw-container">
+        <p style="font-size: 18px; color: #666; margin: 0; padding-top: 5px;">图1</p>
         <canvas class="jigsaw" id="jigsaw1" width="2688" height="1536"></canvas>
-        <!-- <canvas class="jigsaw" id="jigsaw2" width="2688" height="1536"></canvas>
-        <canvas class="jigsaw" id="jigsaw3" width="2688" height="1536"></canvas> -->
+        <canvas class="jigsaw" id="jigsaw2" width="2688" height="1536"></canvas>
+        <canvas class="jigsaw" id="jigsaw3" width="2688" height="1536"></canvas>
     </div>
     <div class="result" style="text-align: center;">
         <button id="confirmBtn" disabled>确认</button>
@@ -36,4 +99,5 @@
     </div>
     <script src="script.js"></script>
 </body>
+
 </html>
