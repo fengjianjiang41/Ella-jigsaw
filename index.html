@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+</html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>旦妹的拼图游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- 分页导航按钮容器 -->
+    <div class="page-nav" id="pageNav">
+        <div class="page-btn active" data-page="page1" style="background-image: url('images/icon1.png');" title="首页"></div>
+        <div class="page-btn" data-page="page2" style="background-image: url('images/icon2.png');" title="注册页"></div>
+        <div class="page-btn" data-page="page3" style="background-image: url('images/icon3.png');" title="拼图1"></div>
+        <div class="page-btn" data-page="page4" style="background-image: url('images/icon4.png');" title="拼图2"></div>
+        <div class="page-btn" data-page="page5" style="background-image: url('images/icon5.png');" title="拼图3"></div>
+        <div class="page-btn" data-page="page6" style="background-image: url('images/icon6.png');" title="结果/排行"></div>
+    </div>
+
+    <!-- 所有分页内容的容器 -->
+    <div class="pages-container" id="pagesContainer">
+        <!-- 第一页：首页 -->
+        <div class="page" id="page1">
+            <div class="top-images-container">
+                <div class="left-images">
+                    <img src="images/bun.png" alt="bun" class="bun-img" id="bun-img">
+                    <img src="images/pink.png" alt="pink" class="left-bottom-img">
+                </div>
+                <img src="images/sis.png" alt="sis" class="sis-img">
+            </div>
+            <div class="game-image">
+                <img src="images/game.png" alt="拼图游戏" style="max-width: 20%; height: auto;">
+            </div>
+            <div class="flicker-text" style="font-size: 32px; letter-spacing: 4px" id="startText">
+                按任意键开始
+            </div>
+        </div>
+
+        <!-- 第二页：注册页（昵称 + Start 在此页底部） -->
+        <div class="page" id="page2">
+            <div class="text-row"
+                style="text-align: center; margin: 1em; padding: 0px; background-color: #ffffff; border: 0px solid #ccc; border-radius: 1px;">
+                <p style="font-size: 48px; color: #000000; font-weight: bold; margin: 0;">1 注 册 页</p>
+                <img src="images/1.gif" alt="注册"
+                    style="max-width: 100%; height: auto; margin-top: 1em; border-radius: 8px;">
+                <p style="font-size: 18px; color: #666; margin: 10; padding-top: 5px;">有请各位拼图大侠留下芳名供后人仰慕</p>
+            </div>
+            <div class="nickname-block" style="text-align: center; margin-top: 1em;">
+                <input type="text" id="nicknameInput" placeholder="输入昵称"
+                    style="width: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; text-align: center;">
+                <button id="okBtn">OK!</button>
+            </div>
+
+            <!-- Start 放到注册页底部 -->
+            <div style="height: 2em;"></div>
+            <div style="text-align: center; margin-top: 3em; padding-bottom: 3em;">
+                <button id="startBtn" disabled>开始</button>
+            </div>
+        </div>
+
+        <!-- 第3页：拼图1 -->
+        <div class="page" id="page3">
+            <div class="text-row" style="text-align:center; margin-top:1em;">
+                <p style="font-size: 24px; margin:0;">图1</p>
+            </div>
+            <canvas class="jigsaw" id="jigsaw1" width="2688" height="1536"></canvas>
+        </div>
+
+        <!-- 第4页：拼图2 -->
+        <div class="page" id="page4">
+            <div class="text-row" style="text-align:center; margin-top:1em;">
+                <p style="font-size: 24px; margin:0;">图2</p>
+            </div>
+            <canvas class="jigsaw" id="jigsaw2" width="2688" height="1536"></canvas>
+        </div>
+
+        <!-- 第5页：拼图3 -->
+        <div class="page" id="page5">
+            <div class="text-row" style="text-align:center; margin-top:1em;">
+                <p style="font-size: 24px; margin:0;">图3</p>
+            </div>
+            <canvas class="jigsaw" id="jigsaw3" width="2688" height="1536"></canvas>
+        </div>
+
+        <!-- 第6页：结果与排名 -->
+        <div class="page" id="page6">
+            <div style="text-align:center; margin-top:1em;">
+                <h2>结果与排名</h2>
+            </div>
+            <div class="result" style="text-align: center; margin-top: 1em;">
+                <button id="confirmBtn" disabled>确认</button>
+                <button id="restartBtn" disabled>重新开始</button>
+            </div>
+            <div class="ranking-block" style="display: flex; justify-content: center; gap: 2em; margin-top: 1em;">
+                <div class="personal-ranking">
+                    <h3>个人历史成绩</h3>
+                    <ol id="personalList"></ol>
+                </div>
+                <div class="global-ranking">
+                    <h3>全服最佳</h3>
+                    <ol id="globalList"></ol>
+                </div>
+            </div>
+
+            <!-- 最底部：快速回到首页 -->
+            <div style="height:4em;"></div>
+            <div style="text-align:center; margin-bottom:3em;">
+                <button id="topBtn">回到首页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮动控制块：只在拼图页(3-5)显示 -->
+    <div id="floatingControls" class="floating-controls" style="display:none;">
+        <div id="floatingTimer">00:00.00</div>
+        <div style="display:flex; gap:8px; margin-left:12px;">
+            <button id="stopBtn" disabled>停止</button>
+            <button id="restartBtnFloat" disabled>重新开始</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

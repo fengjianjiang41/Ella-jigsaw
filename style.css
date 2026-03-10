@@ -1,0 +1,300 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+}
+
+header,
+footer {
+    background: #333;
+    color: #fff;
+    padding: 1em;
+    text-align: center;
+}
+
+main {
+    padding: 2em;
+}
+
+.top-images-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 13em;
+    position: relative;
+    height: 250px;
+    /* Adjust as needed */
+}
+
+.left-images {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin-right: 30px;
+}
+
+.bun-img {
+    width: 180px;
+    /* Adjust as needed */
+    height: auto;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.bun-img.shrink {
+    transform: scale(0.7);
+}
+
+.left-bottom-img {
+    width: 180px;
+    /* Adjust as needed */
+    height: auto;
+    margin-top: 0;
+}
+
+.sis-img {
+    width: 320px;
+    /* Adjust as needed */
+    height: auto;
+    align-self: flex-start;
+}
+
+.game-image {
+    display: flex;
+    justify-content: center;
+    /* 水平居中 */
+    align-items: center;
+    /* 垂直居中（如果需要） */
+    width: 100%;
+    /* 确保容器占满宽度 */
+    margin-top: 3em;
+    margin-bottom: 3em;
+}
+
+@keyframes flicker {
+    0% {
+        color: #ffb3c2;
+        /* 几乎透明 */
+    }
+
+    50% {
+        color: rgba(0, 0, 0, 1);
+        /* 纯黑色 */
+    }
+
+    100% {
+        color: #ffb3c2;
+        /* 几乎透明 */
+    }
+}
+
+.flicker-text {
+    animation: flicker 3s infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-top: 3em;
+    margin-bottom: 3em;
+    -webkit-animation: flicker 3s infinite;
+}
+
+button {
+    padding: 0.5em 1em;
+    font-size: 1em;
+    align-items: center;
+    background-color: #ffffff;
+    /* Button background color */
+    color: #000000;
+    /* Text color */
+    border: none;
+    /* Remove default border */
+    border-radius: 5px;
+    /* Rounded corners */
+    cursor: pointer;
+    /* Pointer cursor on hover */
+    transition: background-color 0.3s;
+    /* Smooth transition for hover effect */
+}
+
+button:hover:not(:disabled) {
+    background-color: #ffb3c2;
+    /* Darker background on hover */
+    color: #000000;
+    /* Text color */
+}
+
+button:disabled {
+    color: #808080;
+    /* Grey text color when disabled */
+    cursor: not-allowed;
+    /* Not-allowed cursor when disabled */
+}
+
+canvas {
+    width: 1344px;
+    height: 768px;
+    display: block;
+    border: 2px solid #333;
+}
+
+.jigsaw-container {
+    display: flex;
+    flex-direction: column;
+    /* Stack vertically */
+    justify-content: center;
+    align-items: center;
+    gap: 2em;
+    margin-top: 2em;
+}
+
+.jigsaw {
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #333;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+    margin-top: 2em;
+}
+
+#floatingTimer {
+    font-size: 1.5em;
+    font-family: monospace;
+}
+
+.ranking-block {
+    background: #f8f8f8;
+    border-radius: 8px;
+    padding: 1em 2em;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.ranking-block>div {
+    width: 220px;
+}
+
+.ranking-block h3 {
+    margin-bottom: 0.5em;
+    font-size: 1.1em;
+}
+
+/* 分页容器样式 - 固定定位在右侧 */
+.page-nav {
+    position: fixed;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+    /* 初始隐藏，按下任意键后显示 */
+    flex-direction: column;
+    gap: 20px;
+    z-index: 1000;
+}
+
+/* 分页按钮样式 - 小图 */
+.page-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+/* 选中状态 - 放大 */
+.page-btn.active {
+    transform: scale(1.2);
+    border-color: #ff6b6b;
+    box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4);
+    z-index: 1001;
+}
+
+/* 分页内容区域 */
+.page {
+    min-height: 100vh;
+    /* 每个分页占满视口高度 */
+    width: 100%;
+    opacity: 1;
+    transition: opacity 0.1s ease;
+    scroll-margin-top: 0;
+}
+
+/* 平滑滚动到分页 */
+html {
+    scroll-behavior: smooth;
+}
+
+/* 禁用鼠标滚轮滚动 */
+body {
+    overflow-y: hidden;
+    /* 隐藏滚动条，但保留滚动功能 */
+    height: 100vh;
+    position: relative;
+}
+
+.pages-container {
+    height: 100vh;
+    overflow-y: scroll;
+    /* 保留滚动功能但隐藏滚动条 */
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    /* IE和Edge隐藏滚动条 */
+    scrollbar-width: none;
+    /* Firefox隐藏滚动条 */
+}
+
+.pages-container::-webkit-scrollbar {
+    display: none;
+    /* Chrome、Safari和Opera隐藏滚动条 */
+}
+
+/* 浮动控制块样式（拼图页显示） */
+.floating-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2000;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* 首页特定样式 */
+.flicker-text {
+    font-size: 32px;
+    letter-spacing: 4px;
+    transition: opacity 0.3s ease;
+}
+
+.flicker-text.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 第二页样式调整 */
+.second-page .game-image {
+    margin-top: 2em;
+}
