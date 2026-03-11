@@ -429,95 +429,6 @@
 // updatePersonalList();
 // updateGlobalList();
 
-// const bunImg = document.getElementById("bun-img");
-
-// bunImg.addEventListener("mousedown", function () {
-//   this.classList.add("shrink");
-// });
-
-// bunImg.addEventListener("mouseup", function () {
-//   this.classList.remove("shrink");
-// });
-
-// bunImg.addEventListener("mouseleave", function () {
-//   this.classList.remove("shrink");
-// });
-
-// function showFloatingText(options = {}) {
-//   // Default style parameters
-//   const {
-//     text = "Hello!",
-//     fontSize = "24px",
-//     color = "#ff69b4",
-//     fontWeight = "bold",
-//     duration = 1200,
-//     riseDistance = 60,
-//     leftOffset = 0,
-//     topOffset = -40,
-//     zIndex = 1000,
-//     fontFamily = "Arial, sans-serif",
-//     letterSpacing = "2px",
-//     textShadow = "0 2px 8px rgba(0,0,0,0.2)",
-//   } = options;
-
-//   const bunRect = bunImg.getBoundingClientRect();
-//   const container = document.body;
-
-//   const floating = document.createElement("div");
-//   floating.textContent = text;
-//   floating.style.position = "fixed";
-//   floating.style.left = `${bunRect.left + bunRect.width / 2 + leftOffset}px`;
-//   floating.style.top = `${bunRect.top + topOffset}px`;
-//   floating.style.transform = "translateX(-50%)";
-//   floating.style.fontSize = fontSize;
-//   floating.style.color = color;
-//   floating.style.fontWeight = fontWeight;
-//   floating.style.fontFamily = fontFamily;
-//   floating.style.letterSpacing = letterSpacing;
-//   floating.style.textShadow = textShadow;
-//   floating.style.opacity = "1";
-//   floating.style.zIndex = zIndex;
-//   floating.style.pointerEvents = "none";
-//   container.appendChild(floating);
-
-//   // Animate
-//   let start = null;
-//   function animate(ts) {
-//     if (!start) start = ts;
-//     const progress = ts - start;
-//     const percent = Math.min(progress / duration, 1);
-//     floating.style.top = `${
-//       bunRect.top + topOffset - percent * riseDistance
-//     }px`;
-//     floating.style.opacity = `${1 - percent}`;
-//     if (percent < 1) {
-//       requestAnimationFrame(animate);
-//     } else {
-//       container.removeChild(floating);
-//     }
-//   }
-//   requestAnimationFrame(animate);
-// }
-
-// // Update bunImg click event:
-// bunImg.addEventListener("click", function () {
-//   const randomIndex = Math.floor(Math.random() * audioFiles.length);
-//   const audio = new Audio(audioFiles[randomIndex]);
-//   audio.play();
-
-//   showFloatingText({
-//     text: "功德+1",
-//     fontSize: "28px",
-//     color: "#000000",
-//     fontWeight: "bold",
-//     duration: 1500,
-//     riseDistance: 80,
-//     topOffset: -50,
-//     fontFamily: "Microsoft YaHei, sans-serif",
-//     // textShadow: "0 4px 12px rgba(0,0,0,0.3)",
-//   });
-// });
-
 // document.addEventListener("DOMContentLoaded", function () {
 //   const pagesContainer = document.getElementById("pagesContainer");
 //   const pageNav = document.getElementById("pageNav");
@@ -952,7 +863,7 @@ document.addEventListener("DOMContentLoaded", function () {
   );
 
   // 首次按键：显示导航并跳到第二页
-  document.addEventListener("keydown", function onFirstKey(e) {
+  document.addEventListener("keydown", function onFirstKey() {
     if (startText && !startText.classList.contains("hidden")) {
       pageNav.style.display = "flex";
       const secondPage = document.getElementById("page2");
@@ -973,9 +884,20 @@ document.addEventListener("DOMContentLoaded", function () {
       const targetPageId = this.dataset.page;
       const targetPage = document.getElementById(targetPageId);
       if (targetPage) {
-        targetPage.scrollIntoView({ behavior: "smooth", block: "start" });
-        pageBtns.forEach((b) => b.classList.remove("active"));
-        this.classList.add("active");
+        if (targetPageId == "page1") {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+          const pagesContainer = document.getElementById('pagesContainer');
+          if (pagesContainer) pagesContainer.scrollTop = 0;
+        }
+        else {
+
+          targetPage.scrollIntoView({ behavior: "smooth", block: "start" });
+          pageBtns.forEach((b) => b.classList.remove("active"));
+          this.classList.add("active");
+        }
+
       }
     });
   });
@@ -1007,11 +929,78 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // 显示音效与浮动文字（保留）
-  const audioFilesLocal = audioFiles;
+
+  bunImg.addEventListener("mousedown", function () {
+    this.classList.add("shrink");
+  });
+  bunImg.addEventListener("mouseup", function () {
+    this.classList.remove("shrink");
+  });
+  bunImg.addEventListener("mouseleave", function () {
+    this.classList.remove("shrink");
+  });
+
+  function showFloatingText(options = {}) {
+    // Default style parameters
+    const {
+      text = "Hello!",
+      fontSize = "24px",
+      color = "#ff69b4",
+      fontWeight = "bold",
+      duration = 1200,
+      riseDistance = 60,
+      leftOffset = 0,
+      topOffset = -40,
+      zIndex = 1000,
+      fontFamily = "Arial, sans-serif",
+      letterSpacing = "2px",
+      textShadow = "0 2px 8px rgba(0,0,0,0.2)",
+    } = options;
+
+    const bunRect = bunImg.getBoundingClientRect();
+    const container = document.body;
+
+    const floating = document.createElement("div");
+    floating.textContent = text;
+    floating.style.position = "fixed";
+    floating.style.left = `${bunRect.left + bunRect.width / 2 + leftOffset}px`;
+    floating.style.top = `${bunRect.top + topOffset}px`;
+    floating.style.transform = "translateX(-50%)";
+    floating.style.fontSize = fontSize;
+    floating.style.color = color;
+    floating.style.fontWeight = fontWeight;
+    floating.style.fontFamily = fontFamily;
+    floating.style.letterSpacing = letterSpacing;
+    floating.style.textShadow = textShadow;
+    floating.style.opacity = "1";
+    floating.style.zIndex = zIndex;
+    floating.style.pointerEvents = "none";
+    container.appendChild(floating);
+
+    // Animate
+    let start = null;
+    function animate(ts) {
+      if (!start) start = ts;
+      const progress = ts - start;
+      const percent = Math.min(progress / duration, 1);
+      floating.style.top = `${bunRect.top + topOffset - percent * riseDistance
+        }px`;
+      floating.style.opacity = `${1 - percent}`;
+      if (percent < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        container.removeChild(floating);
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+  // Update bunImg click event:
   bunImg.addEventListener("click", function () {
-    const randomIndex = Math.floor(Math.random() * audioFilesLocal.length);
-    const audio = new Audio(audioFilesLocal[randomIndex]);
+    const randomIndex = Math.floor(Math.random() * audioFiles.length);
+    const audio = new Audio(audioFiles[randomIndex]);
     audio.play();
+
     showFloatingText({
       text: "功德+1",
       fontSize: "28px",
@@ -1021,6 +1010,7 @@ document.addEventListener("DOMContentLoaded", function () {
       riseDistance: 80,
       topOffset: -50,
       fontFamily: "Microsoft YaHei, sans-serif",
+      // textShadow: "0 4px 12px rgba(0,0,0,0.3)",
     });
   });
 
@@ -1088,6 +1078,15 @@ document.addEventListener("DOMContentLoaded", function () {
       puzzles[i].started = false;
       puzzles[i].solved = false;
       setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
+    }
+    // Scroll to second page and update nav state
+    const secondPage = document.getElementById("page2");
+    if (secondPage) {
+      secondPage.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (pageNav) pageNav.style.display = "flex";
+      pageBtns.forEach((b) => b.classList.remove("active"));
+      const btn = Array.from(pageBtns).find((b) => b.dataset.page === "page2");
+      if (btn) btn.classList.add("active");
     }
   }
   restartBtn.onclick = doRestart;
