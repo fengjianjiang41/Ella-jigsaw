@@ -787,6 +787,11 @@ function checkSolved(idx) {
       // 自动滚动到结果页
       const resultPage = document.getElementById("page6");
       if (resultPage) resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
+      // 显示恭喜文字
+      const congratulationsText = document.getElementById("congratulationsText");
+      if (congratulationsText) {
+        congratulationsText.innerHTML = "<h2>恭  喜</h2>";
+      }
     }
   }
 }
@@ -865,6 +870,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // 首次按键：显示导航并跳到第二页
   document.addEventListener("keydown", function onFirstKey() {
     if (startText && !startText.classList.contains("hidden")) {
+      startText.textContent = "本页有惊喜"; // Change the text
       pageNav.style.display = "flex";
       const secondPage = document.getElementById("page2");
       if (secondPage) {
@@ -892,11 +898,10 @@ document.addEventListener("DOMContentLoaded", function () {
           if (pagesContainer) pagesContainer.scrollTop = 0;
         }
         else {
-
           targetPage.scrollIntoView({ behavior: "smooth", block: "start" });
-          pageBtns.forEach((b) => b.classList.remove("active"));
-          this.classList.add("active");
         }
+        pageBtns.forEach((b) => b.classList.remove("active"));
+        this.classList.add("active");
 
       }
     });
@@ -907,19 +912,13 @@ document.addEventListener("DOMContentLoaded", function () {
   pagesContainer.addEventListener("scroll", function () {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
-      const containerRect = pagesContainer.getBoundingClientRect();
       let currentPageId = "page1";
-      pages.forEach((page) => {
-        const pageRect = page.getBoundingClientRect();
-        if (pageRect.top < containerRect.bottom && pageRect.bottom > containerRect.top) {
-          currentPageId = page.id;
-        }
-      });
-      pageBtns.forEach((btn) => {
-        btn.classList.remove("active");
-        if (btn.dataset.page === currentPageId) btn.classList.add("active");
-      });
-      // 控制浮动控件只在拼图页显示
+      const activeBtn = Array.from(pageBtns).find((btn) =>
+        btn.classList.contains("active")
+      );
+      currentPageId = activeBtn ? activeBtn.dataset.page : "page1";
+
+      // Show or hide floating controls based on the current page
       if (["page3", "page4", "page5"].includes(currentPageId)) {
         floatingControls.style.display = "flex";
       } else {
@@ -1046,6 +1045,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const page3 = document.getElementById("page3");
     if (page3) page3.scrollIntoView({ behavior: "smooth", block: "start" });
     // 显示浮动控件
+    pageBtns.forEach((btn) => {
+      btn.classList.remove("active");
+      if (btn.dataset.page === "page3") btn.classList.add("active");
+    });
     floatingControls.style.display = "flex";
   };
 
@@ -1088,7 +1091,13 @@ document.addEventListener("DOMContentLoaded", function () {
       const btn = Array.from(pageBtns).find((b) => b.dataset.page === "page2");
       if (btn) btn.classList.add("active");
     }
+    // 重置为 "往下有惊喜" 当重启按钮被点击
+    const congratulationsText = document.getElementById("congratulationsText");
+    if (congratulationsText) {
+      congratulationsText.innerHTML = "<h2>往下有惊喜</h2>";
+    }
   }
+
   restartBtn.onclick = doRestart;
   restartBtnFloat.onclick = doRestart;
 
@@ -1112,8 +1121,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // top 按钮回首页
   topBtn.onclick = function () {
-    const first = document.getElementById("page1");
-    if (first) first.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const pagesContainer = document.getElementById('pagesContainer');
+    if (pagesContainer) pagesContainer.scrollTop = 0;
+    pageBtns.forEach((btn) => {
+      btn.classList.remove("active");
+    });
+    const firstPageBtn = Array.from(pageBtns).find((btn) => btn.dataset.page === "page1");
+    if (firstPageBtn) firstPageBtn.classList.add("active");
   };
 
   // 初始按钮状态
