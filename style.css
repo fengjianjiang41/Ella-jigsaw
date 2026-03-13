@@ -134,31 +134,40 @@ button:disabled {
 }
 
 canvas {
-    width: 1344px;
-    height: 768px;
+    width: 100%;
+    max-width: 1344px;
+    height: auto;
     display: block;
+    margin: 0 auto;
     border: 2px solid #333;
+    justify-content: center;
+    align-items: center;
 }
 
 .jigsaw-container {
+    width: 100%;
     display: flex;
     flex-direction: column;
     /* Stack vertically */
     justify-content: center;
     align-items: center;
     gap: 2em;
-    margin-top: 2em;
+    margin: 2em auto;
+    min-height: calc(100vh - 8em);
+    box-sizing: border-box;
 }
 
 .jigsaw {
-    width: 1344px;
-    height: 768px;
+    width: 100%;
+    max-width: 70vw;
+    height: auto;
     border: 2px solid #333;
     background: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: center;
     align-items: center;
+    margin: 0 auto;
 }
 
 .controls {
@@ -264,6 +273,22 @@ body {
 .pages-container::-webkit-scrollbar {
     display: none;
     /* Chrome、Safari和Opera隐藏滚动条 */
+}
+
+/* 浮动控制块样式（拼图页显示） */
+.floating-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2000;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
 }
 
 /* 首页特定样式 */
