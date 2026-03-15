@@ -1,3 +1,44 @@
+@keyframes congratsColorCycle {
+    0% { color: #000000; }
+    2.94% { color: #2B0000; }
+    5.88% { color: #560000; }
+    8.82% { color: #8B0000; }
+    11.76% { color: #B20000; }
+    14.71% { color: #FF0000; }
+    17.65% { color: #FF3300; }
+    20.59% { color: #FF6600; }
+    23.53% { color: #FF7F00; }
+    26.47% { color: #FF9900; }
+    29.41% { color: #FFB300; }
+    32.35% { color: #FFCC00; }
+    35.29% { color: #FFFF00; }
+    38.24% { color: #FFFF33; }
+    41.18% { color: #FFFF66; }
+    44.12% { color: #FFFF99; }
+    47.06% { color: #FFFFFF; }
+    50% { color: #FFFF99; }
+    52.94% { color: #FFFF66; }
+    55.88% { color: #FFFF33; }
+    58.82% { color: #FFFF00; }
+    61.76% { color: #FFCC00; }
+    64.71% { color: #FFB300; }
+    67.65% { color: #FF9900; }
+    70.59% { color: #FF7F00; }
+    73.53% { color: #FF6600; }
+    76.47% { color: #FF3300; }
+    79.41% { color: #FF0000; }
+    82.35% { color: #B20000; }
+    85.29% { color: #8B0000; }
+    88.24% { color: #560000; }
+    91.18% { color: #2B0000; }
+    94.12% { color: #000000; }
+    100% { color: #000000; }
+}
+
+.congrats-animate {
+    animation: congratsColorCycle 1.2s ease-in-out 1;
+    -webkit-animation: congratsColorCycle 1.2s ease-in-out 1;
+}
 body {
     font-family: Arial, sans-serif;
     margin: 0;

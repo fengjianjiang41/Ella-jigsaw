@@ -839,7 +839,7 @@ function updatePersonalList() {
   ol.innerHTML = "";
   list.forEach((t, i) => {
     const li = document.createElement("li");
-    li.textContent = `${t.toFixed(2)} 秒`;
+    li.textContent = `${nickname}: ${t.toFixed(2)} 秒`;
     ol.appendChild(li);
   });
 }
@@ -1105,6 +1105,7 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
+    okBtn.disabled = false;
     stopTimer();
     allSolved = [false, false, false];
     for (let i = 0; i < imagePaths.length; i++) {
@@ -1147,6 +1148,22 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+
+    // Add smooth transition animation to "恭喜" text using CSS keyframes
+    const congratulationsText = document.getElementById("congratulationsText");
+    if (congratulationsText) {
+      const h2 = congratulationsText.querySelector("h2");
+      if (h2) {
+        h2.classList.remove("congrats-animate"); // reset if needed
+        // Force reflow to restart animation if needed
+        void h2.offsetWidth;
+        h2.classList.add("congrats-animate");
+        h2.addEventListener("animationend", function handler() {
+          h2.classList.remove("congrats-animate");
+          h2.removeEventListener("animationend", handler);
+        });
+      }
+    }
   };
 
   // top 按钮回首页
