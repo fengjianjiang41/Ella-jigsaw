@@ -599,7 +599,7 @@ class Piece {
       this.x,
       this.y,
       pieceXSize,
-      pieceYSize,
+      pieceYSize
     );
   }
   contains(mx, my) {
@@ -624,8 +624,8 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
           row * pieceYSize,
           col * pieceXSize,
           row * pieceYSize,
-          row * gridSize + col,
-        ),
+          row * gridSize + col
+        )
       );
     }
   }
@@ -786,23 +786,9 @@ function checkSolved(idx) {
       stopTimer();
       // 自动滚动到结果页
       const resultPage = document.getElementById("page6");
-      if (resultPage)
-        resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
-      // update navigation buttons (if present)
-      try {
-        const allBtns = document.querySelectorAll(".page-btn");
-        allBtns.forEach((b) => b.classList.remove("active"));
-        const activeBtn = document.querySelector(
-          `.page-btn[data-page="${'page6'}"]`,
-        );
-        if (activeBtn) activeBtn.classList.add("active");
-      } catch (e) {
-        // ignore if DOM structure is different
-      }
+      if (resultPage) resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
       // 显示恭喜文字
-      const congratulationsText = document.getElementById(
-        "congratulationsText",
-      );
+      const congratulationsText = document.getElementById("congratulationsText");
       if (congratulationsText) {
         congratulationsText.innerHTML = "<h2>恭  喜</h2>";
       }
@@ -816,34 +802,34 @@ function checkSolved(idx) {
 // Scroll to the first unsolved puzzle (assumes puzzles 0..N map to pages 3..(3+N-1))
 function scrollToFirstUnsolved() {
   if (!puzzles || puzzles.length === 0) return;
-  const firstUnsolvedIdx = puzzles.findIndex((p) => !p || !p.solved);
+  const firstUnsolvedIdx = puzzles.findIndex(p => !p || !p.solved);
   if (firstUnsolvedIdx === -1) return;
 
-  const targetPageId = "page" + (3 + firstUnsolvedIdx);
+  const targetPageId = 'page' + (3 + firstUnsolvedIdx);
   const targetPage = document.getElementById(targetPageId);
   if (targetPage) {
-    targetPage.scrollIntoView({ behavior: "smooth", block: "start" });
+    targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // update navigation buttons (if present)
   try {
-    const allBtns = document.querySelectorAll(".page-btn");
-    allBtns.forEach((b) => b.classList.remove("active"));
-    const activeBtn = document.querySelector(
-      `.page-btn[data-page="${targetPageId}"]`,
-    );
-    if (activeBtn) activeBtn.classList.add("active");
+    const allBtns = document.querySelectorAll('.page-btn');
+    allBtns.forEach(b => b.classList.remove('active'));
+    const activeBtn = document.querySelector(`.page-btn[data-page="${targetPageId}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
   } catch (e) {
     // ignore if DOM structure is different
   }
 
   // ensure floating controls are visible for puzzle pages
-  const floatingControls = document.getElementById("floatingControls");
-  if (floatingControls) floatingControls.style.display = "flex";
+  const floatingControls = document.getElementById('floatingControls');
+  if (floatingControls) floatingControls.style.display = 'flex';
 }
 
 // 排行相关
-const globalBests = [{ nickname: "阿见", time: 45.23 }];
+const globalBests = [
+  { nickname: "阿见", time: 45.23 },
+];
 
 function updatePersonalList() {
   let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
@@ -908,7 +894,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function (e) {
       e.preventDefault();
     },
-    { passive: false },
+    { passive: false }
   );
 
   // 首次按键：显示导航并跳到第二页
@@ -935,16 +921,18 @@ document.addEventListener("DOMContentLoaded", function () {
       const targetPage = document.getElementById(targetPageId);
       if (targetPage) {
         if (targetPageId == "page1") {
-          window.scrollTo({ top: 0, behavior: "instant" });
+          window.scrollTo({ top: 0, behavior: 'instant' });
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
-          const pagesContainer = document.getElementById("pagesContainer");
+          const pagesContainer = document.getElementById('pagesContainer');
           if (pagesContainer) pagesContainer.scrollTop = 0;
-        } else {
+        }
+        else {
           targetPage.scrollIntoView({ behavior: "smooth", block: "start" });
         }
         pageBtns.forEach((b) => b.classList.remove("active"));
         this.classList.add("active");
+
       }
     });
   });
@@ -956,7 +944,7 @@ document.addEventListener("DOMContentLoaded", function () {
     scrollTimeout = setTimeout(() => {
       let currentPageId = "page1";
       const activeBtn = Array.from(pageBtns).find((btn) =>
-        btn.classList.contains("active"),
+        btn.classList.contains("active")
       );
       currentPageId = activeBtn ? activeBtn.dataset.page : "page1";
 
@@ -1024,9 +1012,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!start) start = ts;
       const progress = ts - start;
       const percent = Math.min(progress / duration, 1);
-      floating.style.top = `${
-        bunRect.top + topOffset - percent * riseDistance
-      }px`;
+      floating.style.top = `${bunRect.top + topOffset - percent * riseDistance
+        }px`;
       floating.style.opacity = `${1 - percent}`;
       if (percent < 1) {
         requestAnimationFrame(animate);
@@ -1148,7 +1135,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Confirm：保存成绩并更新排行
   confirmBtn.onclick = function () {
     // use timer (ms) convert to seconds
-    const timeSeconds = timer / 1000;
+    const timeSeconds = (timer / 1000);
     let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
     if (!records[nickname]) records[nickname] = [];
     records[nickname].push(timeSeconds);
@@ -1181,17 +1168,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // top 按钮回首页
   topBtn.onclick = function () {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-    const pagesContainer = document.getElementById("pagesContainer");
+    const pagesContainer = document.getElementById('pagesContainer');
     if (pagesContainer) pagesContainer.scrollTop = 0;
     pageBtns.forEach((btn) => {
       btn.classList.remove("active");
     });
-    const firstPageBtn = Array.from(pageBtns).find(
-      (btn) => btn.dataset.page === "page1",
-    );
+    const firstPageBtn = Array.from(pageBtns).find((btn) => btn.dataset.page === "page1");
     if (firstPageBtn) firstPageBtn.classList.add("active");
   };
 
@@ -1207,6 +1192,7 @@ document.addEventListener("DOMContentLoaded", function () {
   updateGlobalList();
 });
 // ...existing code...
+
 
 // ------------------------------------------------------------------
 
@@ -1231,15 +1217,19 @@ var SOLID_CELL = 2;
 var cnt = 0;
 
 function clamp(x, min, max) {
-  if (x < min) return min;
-  else if (x > max) return max;
-  else return x;
+  if (x < min)
+    return min;
+  else if (x > max)
+    return max;
+  else
+    return x;
 }
 
 // ----------------- start of simulator ------------------------------
 
 class FlipFluid {
   constructor(density, width, height, spacing, particleRadius, maxParticles) {
+
     // fluid
 
     this.density = density;
@@ -1319,7 +1309,7 @@ class FlipFluid {
       first += this.numCellParticles[i];
       this.firstCellParticle[i] = first;
     }
-    this.firstCellParticle[this.pNumCells] = first; // guard
+    this.firstCellParticle[this.pNumCells] = first;		// guard
 
     // fill particles into cells
 
@@ -1340,6 +1330,7 @@ class FlipFluid {
     var minDist2 = minDist * minDist;
 
     for (var iter = 0; iter < numIters; iter++) {
+
       for (var i = 0; i < this.numParticles; i++) {
         var px = this.particlePos[2 * i];
         var py = this.particlePos[2 * i + 1];
@@ -1358,16 +1349,18 @@ class FlipFluid {
             var last = this.firstCellParticle[cellNr + 1];
             for (var j = first; j < last; j++) {
               var id = this.cellParticleIds[j];
-              if (id == i) continue;
+              if (id == i)
+                continue;
               var qx = this.particlePos[2 * id];
               var qy = this.particlePos[2 * id + 1];
 
               var dx = qx - px;
               var dy = qy - py;
               var d2 = dx * dx + dy * dy;
-              if (d2 > minDist2 || d2 == 0.0) continue;
+              if (d2 > minDist2 || d2 == 0.0)
+                continue;
               var d = Math.sqrt(d2);
-              var s = (0.5 * (minDist - d)) / d;
+              var s = 0.5 * (minDist - d) / d;
               dx *= s;
               dy *= s;
               this.particlePos[2 * i] -= dx;
@@ -1381,10 +1374,8 @@ class FlipFluid {
                 var color0 = this.particleColor[3 * i + k];
                 var color1 = this.particleColor[3 * id + k];
                 var color = (color0 + color1) * 0.5;
-                this.particleColor[3 * i + k] =
-                  color0 + (color - color0) * colorDiffusionCoeff;
-                this.particleColor[3 * id + k] =
-                  color1 + (color - color1) * colorDiffusionCoeff;
+                this.particleColor[3 * i + k] = color0 + (color - color0) * colorDiffusionCoeff;
+                this.particleColor[3 * id + k] = color1 + (color - color1) * colorDiffusionCoeff;
               }
             }
           }
@@ -1406,6 +1397,7 @@ class FlipFluid {
     var minY = h + r;
     var maxY = (this.fNumY - 1) * h - r;
 
+
     for (var i = 0; i < this.numParticles; i++) {
       var x = this.particlePos[2 * i];
       var y = this.particlePos[2 * i + 1];
@@ -1417,6 +1409,7 @@ class FlipFluid {
       // obstacle collision
 
       if (d2 < minDist2) {
+
         // var d = Math.sqrt(d2);
         // var s = (minDist - d) / d;
         // x += dx * s;
@@ -1431,6 +1424,7 @@ class FlipFluid {
       if (x < minX) {
         x = minX;
         this.particleVel[2 * i] = 0.0;
+
       }
       if (x > maxX) {
         x = maxX;
@@ -1467,11 +1461,11 @@ class FlipFluid {
       y = clamp(y, h, (this.fNumY - 1) * h);
 
       var x0 = Math.floor((x - h2) * h1);
-      var tx = (x - h2 - x0 * h) * h1;
+      var tx = ((x - h2) - x0 * h) * h1;
       var x1 = Math.min(x0 + 1, this.fNumX - 2);
 
       var y0 = Math.floor((y - h2) * h1);
-      var ty = (y - h2 - y0 * h) * h1;
+      var ty = ((y - h2) - y0 * h) * h1;
       var y1 = Math.min(y0 + 1, this.fNumY - 2);
 
       var sx = 1.0 - tx;
@@ -1494,7 +1488,8 @@ class FlipFluid {
         }
       }
 
-      if (numFluidCells > 0) this.particleRestDensity = sum / numFluidCells;
+      if (numFluidCells > 0)
+        this.particleRestDensity = sum / numFluidCells;
     }
 
     // 			for (var xi = 1; xi < this.fNumX; xi++) {
@@ -1523,6 +1518,7 @@ class FlipFluid {
     var h2 = 0.5 * h;
 
     if (toGrid) {
+
       this.prevU.set(this.u);
       this.prevV.set(this.v);
 
@@ -1546,6 +1542,7 @@ class FlipFluid {
     }
 
     for (var component = 0; component < 2; component++) {
+
       var dx = component == 0 ? 0.0 : h2;
       var dy = component == 0 ? h2 : 0.0;
 
@@ -1561,11 +1558,11 @@ class FlipFluid {
         y = clamp(y, h, (this.fNumY - 1) * h);
 
         var x0 = Math.min(Math.floor((x - dx) * h1), this.fNumX - 2);
-        var tx = (x - dx - x0 * h) * h1;
+        var tx = ((x - dx) - x0 * h) * h1;
         var x1 = Math.min(x0 + 1, this.fNumX - 2);
 
         var y0 = Math.min(Math.floor((y - dy) * h1), this.fNumY - 2);
-        var ty = (y - dy - y0 * h) * h1;
+        var ty = ((y - dy) - y0 * h) * h1;
         var y1 = Math.min(y0 + 1, this.fNumY - 2);
 
         var sx = 1.0 - tx;
@@ -1583,64 +1580,37 @@ class FlipFluid {
 
         if (toGrid) {
           var pv = this.particleVel[2 * i + component];
-          f[nr0] += pv * d0;
-          d[nr0] += d0;
-          f[nr1] += pv * d1;
-          d[nr1] += d1;
-          f[nr2] += pv * d2;
-          d[nr2] += d2;
-          f[nr3] += pv * d3;
-          d[nr3] += d3;
-        } else {
+          f[nr0] += pv * d0; d[nr0] += d0;
+          f[nr1] += pv * d1; d[nr1] += d1;
+          f[nr2] += pv * d2; d[nr2] += d2;
+          f[nr3] += pv * d3; d[nr3] += d3;
+        }
+        else {
           var offset = component == 0 ? n : 1;
-          var valid0 =
-            this.cellType[nr0] != AIR_CELL ||
-            this.cellType[nr0 - offset] != AIR_CELL
-              ? 1.0
-              : 0.0;
-          var valid1 =
-            this.cellType[nr1] != AIR_CELL ||
-            this.cellType[nr1 - offset] != AIR_CELL
-              ? 1.0
-              : 0.0;
-          var valid2 =
-            this.cellType[nr2] != AIR_CELL ||
-            this.cellType[nr2 - offset] != AIR_CELL
-              ? 1.0
-              : 0.0;
-          var valid3 =
-            this.cellType[nr3] != AIR_CELL ||
-            this.cellType[nr3 - offset] != AIR_CELL
-              ? 1.0
-              : 0.0;
+          var valid0 = this.cellType[nr0] != AIR_CELL || this.cellType[nr0 - offset] != AIR_CELL ? 1.0 : 0.0;
+          var valid1 = this.cellType[nr1] != AIR_CELL || this.cellType[nr1 - offset] != AIR_CELL ? 1.0 : 0.0;
+          var valid2 = this.cellType[nr2] != AIR_CELL || this.cellType[nr2 - offset] != AIR_CELL ? 1.0 : 0.0;
+          var valid3 = this.cellType[nr3] != AIR_CELL || this.cellType[nr3 - offset] != AIR_CELL ? 1.0 : 0.0;
 
           var v = this.particleVel[2 * i + component];
           var d = valid0 * d0 + valid1 * d1 + valid2 * d2 + valid3 * d3;
 
           if (d > 0.0) {
-            var picV =
-              (valid0 * d0 * f[nr0] +
-                valid1 * d1 * f[nr1] +
-                valid2 * d2 * f[nr2] +
-                valid3 * d3 * f[nr3]) /
-              d;
-            var corr =
-              (valid0 * d0 * (f[nr0] - prevF[nr0]) +
-                valid1 * d1 * (f[nr1] - prevF[nr1]) +
-                valid2 * d2 * (f[nr2] - prevF[nr2]) +
-                valid3 * d3 * (f[nr3] - prevF[nr3])) /
-              d;
+
+            var picV = (valid0 * d0 * f[nr0] + valid1 * d1 * f[nr1] + valid2 * d2 * f[nr2] + valid3 * d3 * f[nr3]) / d;
+            var corr = (valid0 * d0 * (f[nr0] - prevF[nr0]) + valid1 * d1 * (f[nr1] - prevF[nr1])
+              + valid2 * d2 * (f[nr2] - prevF[nr2]) + valid3 * d3 * (f[nr3] - prevF[nr3])) / d;
             var flipV = v + corr;
 
-            this.particleVel[2 * i + component] =
-              (1.0 - flipRatio) * picV + flipRatio * flipV;
+            this.particleVel[2 * i + component] = (1.0 - flipRatio) * picV + flipRatio * flipV;
           }
         }
       }
 
       if (toGrid) {
         for (var i = 0; i < f.length; i++) {
-          if (d[i] > 0.0) f[i] /= d[i];
+          if (d[i] > 0.0)
+            f[i] /= d[i];
         }
 
         // restore solid cells
@@ -1648,10 +1618,7 @@ class FlipFluid {
         for (var i = 0; i < this.fNumX; i++) {
           for (var j = 0; j < this.fNumY; j++) {
             var solid = this.cellType[i * n + j] == SOLID_CELL;
-            if (
-              solid ||
-              (i > 0 && this.cellType[(i - 1) * n + j] == SOLID_CELL)
-            )
+            if (solid || (i > 0 && this.cellType[(i - 1) * n + j] == SOLID_CELL))
               this.u[i * n + j] = this.prevU[i * n + j];
             if (solid || (j > 0 && this.cellType[i * n + j - 1] == SOLID_CELL))
               this.v[i * n + j] = this.prevV[i * n + j];
@@ -1662,12 +1629,13 @@ class FlipFluid {
   }
 
   solveIncompressibility(numIters, dt, overRelaxation, compensateDrift = true) {
+
     this.p.fill(0.0);
     this.prevU.set(this.u);
     this.prevV.set(this.v);
 
     var n = this.fNumY;
-    var cp = (this.density * this.h) / dt;
+    var cp = this.density * this.h / dt;
 
     for (var i = 0; i < this.fNumCells; i++) {
       var u = this.u[i];
@@ -1675,9 +1643,12 @@ class FlipFluid {
     }
 
     for (var iter = 0; iter < numIters; iter++) {
+
       for (var i = 1; i < this.fNumX - 1; i++) {
         for (var j = 1; j < this.fNumY - 1; j++) {
-          if (this.cellType[i * n + j] != FLUID_CELL) continue;
+
+          if (this.cellType[i * n + j] != FLUID_CELL)
+            continue;
 
           var center = i * n + j;
           var left = (i - 1) * n + j;
@@ -1691,16 +1662,17 @@ class FlipFluid {
           var sy0 = this.s[bottom];
           var sy1 = this.s[top];
           var s = sx0 + sx1 + sy0 + sy1;
-          if (s == 0.0) continue;
+          if (s == 0.0)
+            continue;
 
-          var div =
-            this.u[right] - this.u[center] + this.v[top] - this.v[center];
+          var div = this.u[right] - this.u[center] +
+            this.v[top] - this.v[center];
 
           if (this.particleRestDensity > 0.0 && compensateDrift) {
             var k = 1.0;
-            var compression =
-              this.particleDensity[i * n + j] - this.particleRestDensity;
-            if (compression > 0.0) div = div - k * compression;
+            var compression = this.particleDensity[i * n + j] - this.particleRestDensity;
+            if (compression > 0.0)
+              div = div - k * compression;
           }
 
           var p = -div / s;
@@ -1718,9 +1690,9 @@ class FlipFluid {
 
   updateParticleColors() {
     // for (var i = 0; i < this.numParticles; i++) {
-    // 	this.particleColor[3 * i] *= 0.99;
+    // 	this.particleColor[3 * i] *= 0.99; 
     // 	this.particleColor[3 * i + 1] *= 0.99
-    // 	this.particleColor[3 * i + 2] =
+    // 	this.particleColor[3 * i + 2] = 
     // 		clamp(this.particleColor[3 * i + 2] + 0.001, 0.0, 1.0)
     // }
 
@@ -1729,23 +1701,12 @@ class FlipFluid {
     var h1 = this.fInvSpacing;
 
     for (var i = 0; i < this.numParticles; i++) {
+
       var s = 0.01;
 
-      this.particleColor[3 * i] = clamp(
-        this.particleColor[3 * i] - s,
-        0.0,
-        1.0,
-      );
-      this.particleColor[3 * i + 1] = clamp(
-        this.particleColor[3 * i + 1] - s,
-        0.0,
-        1.0,
-      );
-      this.particleColor[3 * i + 2] = clamp(
-        this.particleColor[3 * i + 2] + s,
-        0.0,
-        1.0,
-      );
+      this.particleColor[3 * i] = clamp(this.particleColor[3 * i] - s, 0.0, 1.0);
+      this.particleColor[3 * i + 1] = clamp(this.particleColor[3 * i + 1] - s, 0.0, 1.0);
+      this.particleColor[3 * i + 2] = clamp(this.particleColor[3 * i + 2] + s, 0.0, 1.0);
 
       var x = this.particlePos[2 * i];
       var y = this.particlePos[2 * i + 1];
@@ -1777,26 +1738,10 @@ class FlipFluid {
     var r, g, b;
 
     switch (num) {
-      case 0:
-        r = 0.0;
-        g = s;
-        b = 1.0;
-        break;
-      case 1:
-        r = 0.0;
-        g = 1.0;
-        b = 1.0 - s;
-        break;
-      case 2:
-        r = s;
-        g = 1.0;
-        b = 0.0;
-        break;
-      case 3:
-        r = 1.0;
-        g = 1.0 - s;
-        b = 0.0;
-        break;
+      case 0: r = 0.0; g = s; b = 1.0; break;
+      case 1: r = 0.0; g = 1.0; b = 1.0 - s; break;
+      case 2: r = s; g = 1.0; b = 0.0; break;
+      case 3: r = 1.0; g = 1.0 - s; b = 0.0; break;
     }
 
     this.cellColor[3 * cellNr] = r;
@@ -1808,57 +1753,46 @@ class FlipFluid {
     this.cellColor.fill(0.0);
 
     for (var i = 0; i < this.fNumCells; i++) {
+
       if (this.cellType[i] == SOLID_CELL) {
         this.cellColor[3 * i] = 0.5;
         this.cellColor[3 * i + 1] = 0.5;
         this.cellColor[3 * i + 2] = 0.5;
-      } else if (this.cellType[i] == FLUID_CELL) {
+      }
+      else if (this.cellType[i] == FLUID_CELL) {
         var d = this.particleDensity[i];
-        if (this.particleRestDensity > 0.0) d /= this.particleRestDensity;
+        if (this.particleRestDensity > 0.0)
+          d /= this.particleRestDensity;
         this.setSciColor(i, d, 0.0, 2.0);
       }
     }
   }
 
-  simulate(
-    dt,
-    gravity,
-    flipRatio,
-    numPressureIters,
-    numParticleIters,
-    overRelaxation,
-    compensateDrift,
-    separateParticles,
-    obstacleX,
-    abstacleY,
-    obstacleRadius,
-  ) {
+  simulate(dt, gravity, flipRatio, numPressureIters, numParticleIters, overRelaxation, compensateDrift, separateParticles, obstacleX, abstacleY, obstacleRadius) {
     var numSubSteps = 1;
     var sdt = dt / numSubSteps;
 
     for (var step = 0; step < numSubSteps; step++) {
       this.integrateParticles(sdt, gravity);
-      if (separateParticles) this.pushParticlesApart(numParticleIters);
-      this.handleParticleCollisions(obstacleX, abstacleY, obstacleRadius);
+      if (separateParticles)
+        this.pushParticlesApart(numParticleIters);
+      this.handleParticleCollisions(obstacleX, abstacleY, obstacleRadius)
       this.transferVelocities(true);
       this.updateParticleDensity();
-      this.solveIncompressibility(
-        numPressureIters,
-        sdt,
-        overRelaxation,
-        compensateDrift,
-      );
+      this.solveIncompressibility(numPressureIters, sdt, overRelaxation, compensateDrift);
       this.transferVelocities(false, flipRatio);
     }
 
     this.updateParticleColors();
     this.updateCellColors();
+
   }
 }
 
 // ----------------- end of simulator ------------------------------
 
-var scene = {
+var scene =
+{
   gravity: -9.81,
   //		gravity : 0.0,
   dt: 1.0 / 120.0,
@@ -1878,7 +1812,7 @@ var scene = {
   obstacleVelY: 0.0,
   showParticles: true,
   showGrid: false,
-  fluid: null,
+  fluid: null
 };
 
 function setupScene() {
@@ -1896,16 +1830,16 @@ function setupScene() {
   var h = tankHeight / res;
   var density = 1000.0;
 
-  var relWaterHeight = 0.8;
-  var relWaterWidth = 0.6;
+  var relWaterHeight = 0.8
+  var relWaterWidth = 0.6
 
   // dam break
 
   // compute number of particles
 
-  var r = 0.3 * h; // particle radius w.r.t. cell size
+  var r = 0.3 * h;	// particle radius w.r.t. cell size
   var dx = 2.0 * r;
-  var dy = (Math.sqrt(3.0) / 2.0) * dx;
+  var dy = Math.sqrt(3.0) / 2.0 * dx;
 
   var numX = Math.floor((relWaterWidth * tankWidth - 2.0 * h - 2.0 * r) / dx);
   var numY = Math.floor((relWaterHeight * tankHeight - 2.0 * h - 2.0 * r) / dy);
@@ -1913,14 +1847,7 @@ function setupScene() {
 
   // create fluid
 
-  f = scene.fluid = new FlipFluid(
-    density,
-    tankWidth,
-    tankHeight,
-    h,
-    r,
-    maxParticles,
-  );
+  f = scene.fluid = new FlipFluid(density, tankWidth, tankHeight, h, r, maxParticles);
 
   // create particles
 
@@ -1929,7 +1856,7 @@ function setupScene() {
   for (var i = 0; i < numX; i++) {
     for (var j = 0; j < numY; j++) {
       f.particlePos[p++] = h + r + dx * i + (j % 2 == 0 ? 0.0 : r);
-      f.particlePos[p++] = h + r + dy * j;
+      f.particlePos[p++] = h + r + dy * j
     }
   }
 
@@ -1939,14 +1866,16 @@ function setupScene() {
 
   for (var i = 0; i < f.fNumX; i++) {
     for (var j = 0; j < f.fNumY; j++) {
-      var s = 1.0; // fluid
-      if (i == 0 || i == f.fNumX - 1 || j == 0) s = 0.0; // solid
-      f.s[i * n + j] = s;
+      var s = 1.0;	// fluid
+      if (i == 0 || i == f.fNumX - 1 || j == 0)
+        s = 0.0;	// solid
+      f.s[i * n + j] = s
     }
   }
 
   setObstacle(3.0, 2.0, true);
 }
+
 
 // draw -------------------------------------------------------
 
@@ -2023,17 +1952,13 @@ function createShader(gl, vsSource, fsSource) {
   gl.shaderSource(vsShader, vsSource);
   gl.compileShader(vsShader);
   if (!gl.getShaderParameter(vsShader, gl.COMPILE_STATUS))
-    console.log(
-      "vertex shader compile error: " + gl.getShaderInfoLog(vsShader),
-    );
+    console.log("vertex shader compile error: " + gl.getShaderInfoLog(vsShader));
 
   const fsShader = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(fsShader, fsSource);
   gl.compileShader(fsShader);
   if (!gl.getShaderParameter(fsShader, gl.COMPILE_STATUS))
-    console.log(
-      "fragment shader compile error: " + gl.getShaderInfoLog(fsShader),
-    );
+    console.log("fragment shader compile error: " + gl.getShaderInfoLog(fsShader));
 
   var shader = gl.createProgram();
   gl.attachShader(shader, vsShader);
@@ -2071,6 +1996,7 @@ function draw() {
   // grid
 
   if (gridVertBuffer == null) {
+
     var f = scene.fluid;
     gridVertBuffer = gl.createBuffer();
     var cellCenters = new Float32Array(2 * f.fNumCells);
@@ -2087,29 +2013,27 @@ function draw() {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
-  if (gridColorBuffer == null) gridColorBuffer = gl.createBuffer();
+  if (gridColorBuffer == null)
+    gridColorBuffer = gl.createBuffer();
 
   if (scene.showGrid) {
-    var pointSize = ((0.9 * scene.fluid.h) / simWidth) * canvas.width;
+
+    var pointSize = 0.9 * scene.fluid.h / simWidth * canvas.width;
 
     gl.useProgram(pointShader);
-    gl.uniform2f(
-      gl.getUniformLocation(pointShader, "domainSize"),
-      simWidth,
-      simHeight,
-    );
-    gl.uniform1f(gl.getUniformLocation(pointShader, "pointSize"), pointSize);
-    gl.uniform1f(gl.getUniformLocation(pointShader, "drawDisk"), 0.0);
+    gl.uniform2f(gl.getUniformLocation(pointShader, 'domainSize'), simWidth, simHeight);
+    gl.uniform1f(gl.getUniformLocation(pointShader, 'pointSize'), pointSize);
+    gl.uniform1f(gl.getUniformLocation(pointShader, 'drawDisk'), 0.0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, gridVertBuffer);
-    var posLoc = gl.getAttribLocation(pointShader, "attrPosition");
+    var posLoc = gl.getAttribLocation(pointShader, 'attrPosition');
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, gridColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, scene.fluid.cellColor, gl.DYNAMIC_DRAW);
 
-    var colorLoc = gl.getAttribLocation(pointShader, "attrColor");
+    var colorLoc = gl.getAttribLocation(pointShader, 'attrColor');
     gl.enableVertexAttribArray(colorLoc);
     gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
 
@@ -2126,32 +2050,29 @@ function draw() {
   if (scene.showParticles) {
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
-    var pointSize =
-      ((2.0 * scene.fluid.particleRadius) / simWidth) * canvas.width;
+    var pointSize = 2.0 * scene.fluid.particleRadius / simWidth * canvas.width;
 
     gl.useProgram(pointShader);
-    gl.uniform2f(
-      gl.getUniformLocation(pointShader, "domainSize"),
-      simWidth,
-      simHeight,
-    );
-    gl.uniform1f(gl.getUniformLocation(pointShader, "pointSize"), pointSize);
-    gl.uniform1f(gl.getUniformLocation(pointShader, "drawDisk"), 1.0);
+    gl.uniform2f(gl.getUniformLocation(pointShader, 'domainSize'), simWidth, simHeight);
+    gl.uniform1f(gl.getUniformLocation(pointShader, 'pointSize'), pointSize);
+    gl.uniform1f(gl.getUniformLocation(pointShader, 'drawDisk'), 1.0);
 
-    if (pointVertexBuffer == null) pointVertexBuffer = gl.createBuffer();
-    if (pointColorBuffer == null) pointColorBuffer = gl.createBuffer();
+    if (pointVertexBuffer == null)
+      pointVertexBuffer = gl.createBuffer();
+    if (pointColorBuffer == null)
+      pointColorBuffer = gl.createBuffer();
 
     gl.bindBuffer(gl.ARRAY_BUFFER, pointVertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, scene.fluid.particlePos, gl.DYNAMIC_DRAW);
 
-    var posLoc = gl.getAttribLocation(pointShader, "attrPosition");
+    var posLoc = gl.getAttribLocation(pointShader, 'attrPosition');
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, pointColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, scene.fluid.particleColor, gl.DYNAMIC_DRAW);
 
-    var colorLoc = gl.getAttribLocation(pointShader, "attrColor");
+    var colorLoc = gl.getAttribLocation(pointShader, 'attrColor');
     gl.enableVertexAttribArray(colorLoc);
     gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
 
@@ -2170,8 +2091,9 @@ function draw() {
   var numSegs = 50;
 
   if (diskVertBuffer == null) {
+
     diskVertBuffer = gl.createBuffer();
-    var dphi = (2.0 * Math.PI) / numSegs;
+    var dphi = 2.0 * Math.PI / numSegs;
     var diskVerts = new Float32Array(2 * numSegs + 2);
     var p = 0;
     diskVerts[p++] = 0.0;
@@ -2190,7 +2112,7 @@ function draw() {
     for (var i = 0; i < numSegs; i++) {
       diskIds[p++] = 0;
       diskIds[p++] = 1 + i;
-      diskIds[p++] = 1 + ((i + 1) % numSegs);
+      diskIds[p++] = 1 + (i + 1) % numSegs;
     }
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, diskIdBuffer);
@@ -2203,28 +2125,12 @@ function draw() {
   var diskColor = [1.0, 0.0, 0.0];
 
   gl.useProgram(meshShader);
-  gl.uniform2f(
-    gl.getUniformLocation(meshShader, "domainSize"),
-    simWidth,
-    simHeight,
-  );
-  gl.uniform3f(
-    gl.getUniformLocation(meshShader, "color"),
-    diskColor[0],
-    diskColor[1],
-    diskColor[2],
-  );
-  gl.uniform2f(
-    gl.getUniformLocation(meshShader, "translation"),
-    scene.obstacleX,
-    scene.obstacleY,
-  );
-  gl.uniform1f(
-    gl.getUniformLocation(meshShader, "scale"),
-    scene.obstacleRadius + scene.fluid.particleRadius,
-  );
+  gl.uniform2f(gl.getUniformLocation(meshShader, 'domainSize'), simWidth, simHeight);
+  gl.uniform3f(gl.getUniformLocation(meshShader, 'color'), diskColor[0], diskColor[1], diskColor[2]);
+  gl.uniform2f(gl.getUniformLocation(meshShader, 'translation'), scene.obstacleX, scene.obstacleY);
+  gl.uniform1f(gl.getUniformLocation(meshShader, 'scale'), scene.obstacleRadius + scene.fluid.particleRadius);
 
-  posLoc = gl.getAttribLocation(meshShader, "attrPosition");
+  posLoc = gl.getAttribLocation(meshShader, 'attrPosition');
   gl.enableVertexAttribArray(posLoc);
   gl.bindBuffer(gl.ARRAY_BUFFER, diskVertBuffer);
   gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
@@ -2233,9 +2139,11 @@ function draw() {
   gl.drawElements(gl.TRIANGLES, 3 * numSegs, gl.UNSIGNED_SHORT, 0);
 
   gl.disableVertexAttribArray(posLoc);
+
 }
 
 function setObstacle(x, y, reset) {
+
   var vx = 0.0;
   var vy = 0.0;
 
@@ -2253,6 +2161,7 @@ function setObstacle(x, y, reset) {
 
   for (var i = 1; i < f.numX - 2; i++) {
     for (var j = 1; j < f.numY - 2; j++) {
+
       f.s[i * n + j] = 1.0;
 
       dx = (i + 0.5) * f.h - x;
@@ -2308,53 +2217,46 @@ function endDrag() {
   scene.obstacleVelY = 0.0;
 }
 
-canvas.addEventListener("mousedown", (event) => {
+canvas.addEventListener('mousedown', event => {
   startDrag(event.x, event.y);
 });
 
-canvas.addEventListener("mouseup", (event) => {
+canvas.addEventListener('mouseup', event => {
   endDrag();
 });
 
-canvas.addEventListener("mousemove", (event) => {
+canvas.addEventListener('mousemove', event => {
   drag(event.x, event.y);
 });
 
-canvas.addEventListener("touchstart", (event) => {
-  startDrag(event.touches[0].clientX, event.touches[0].clientY);
+canvas.addEventListener('touchstart', event => {
+  startDrag(event.touches[0].clientX, event.touches[0].clientY)
 });
 
-canvas.addEventListener("touchend", (event) => {
-  endDrag();
+canvas.addEventListener('touchend', event => {
+  endDrag()
 });
 
-canvas.addEventListener(
-  "touchmove",
-  (event) => {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    drag(event.touches[0].clientX, event.touches[0].clientY);
-  },
-  { passive: false },
-);
+canvas.addEventListener('touchmove', event => {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  drag(event.touches[0].clientX, event.touches[0].clientY)
+}, { passive: false });
 
-document.addEventListener("keydown", (event) => {
+
+document.addEventListener('keydown', event => {
   switch (event.key) {
-    case "p":
-      scene.paused = !scene.paused;
-      break;
-    case "m":
-      scene.paused = false;
-      simulate();
-      scene.paused = true;
-      break;
+    case 'p': scene.paused = !scene.paused; break;
+    case 'm': scene.paused = false; simulate(); scene.paused = true; break;
   }
 });
 
 function toggleStart() {
-  var new_button = document.getElementById("startButton");
-  if (scene.paused) new_button.innerHTML = "Stop";
-  else new_button.innerHTML = "Start";
+  var new_button = document.getElementById('startButton');
+  if (scene.paused)
+    new_button.innerHTML = "Stop";
+  else
+    new_button.innerHTML = "Start";
   scene.paused = !scene.paused;
 }
 
@@ -2363,19 +2265,9 @@ function toggleStart() {
 function simulate() {
   if (!scene.paused)
     scene.fluid.simulate(
-      scene.dt,
-      scene.gravity,
-      scene.flipRatio,
-      scene.numPressureIters,
-      scene.numParticleIters,
-      scene.overRelaxation,
-      scene.compensateDrift,
-      scene.separateParticles,
-      scene.obstacleX,
-      scene.obstacleY,
-      scene.obstacleRadius,
-      scene.colorFieldNr,
-    );
+      scene.dt, scene.gravity, scene.flipRatio, scene.numPressureIters, scene.numParticleIters,
+      scene.overRelaxation, scene.compensateDrift, scene.separateParticles,
+      scene.obstacleX, scene.obstacleY, scene.obstacleRadius, scene.colorFieldNr);
   scene.frameNr++;
 }
 
