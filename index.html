@@ -102,19 +102,23 @@
                 <h2>往下有惊喜</h2>
             </div>
 
+            <!-- Inside #page6 -->
+            <div style="text-align: center; margin: 1em 0;font-size: 20px">
+                <button class="button" onclick="togglePause()" id="pauseButton">开始</button>
+            </div>
 
-            <input type="checkbox" checked onclick="scene.showParticles = !scene.showParticles">Particles &nbsp;
-            <input type="checkbox" onclick="scene.showGrid = !scene.showGrid">Grid &nbsp;
-            <input type="checkbox" checked onclick="scene.compensateDrift = !scene.compensateDrift">Compensate Drift
-            &nbsp;
-            <input type="checkbox" checked onclick="scene.separateParticles = !scene.separateParticles">Separate
-            Particles
-            &nbsp;
-            PIC
-            <input type="range" min="0" max="10" value="9" class="slider" onchange="scene.flipRatio = 0.1 * this.value">
-            FLIP
-            <br>
-            <canvas id="myCanvas" style="border:4px dashed #ff69b4; background: linear-gradient(135deg, #fff0f5 0%, #ffe4e1 100%); box-shadow: 0 4px 16px rgba(255,105,180,0.2); border-radius: 16px; width: 1000px; height: 500px;"></canvas>
+            <!-- Add the hint text below the button -->
+            <div id="dragHint"
+                style="visibility: hidden; text-align: center; margin: 10px 0; font-size: 16px; color: #666;">
+                试着鼠标拽一下我
+            </div>
+
+            <canvas id="myCanvas1"
+                style="border:4px solid #ffb3c2; background: linear-gradient(135deg, #fff0f5 0%, #ffe4e1 100%); box-shadow: 0 4px 16px rgba(255,105,180,0.2); border-radius: 16px; width: 1000px; height: 500px;"></canvas>
+
+
+            <button class="button" onclick="setupScene()">Restart</button>
+            <canvas id="myCanvas2" style="border:2px solid"></canvas>
         </div>
     </div>
 
