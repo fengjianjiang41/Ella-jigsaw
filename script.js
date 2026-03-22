@@ -1896,9 +1896,15 @@ function startDrag2(x, y) {
   let mx = x - bounds.left - canvas2.clientLeft;
   let my = y - bounds.top - canvas2.clientTop;
   
+  // Adjust for canvas scaling (actual size vs displayed size)
+  let scaleX = canvas2.width / bounds.width;
+  let scaleY = canvas2.height / bounds.height;
+  let actualX = mx * scaleX;
+  let actualY = my * scaleY;
+  
   // Convert mouse coordinates to simulation coordinates
-  let simX = mx / cScale2;
-  let simY = (canvas2.height - my) / cScale2; // Flip Y coordinate
+  let simX = actualX / cScale2;
+  let simY = (canvas2.height - actualY) / cScale2; // Flip Y coordinate
   
   // Always target the fixed draggable ball
   const ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
@@ -1919,9 +1925,15 @@ function drag2(x, y) {
     let mx = x - bounds.left - canvas2.clientLeft;
     let my = y - bounds.top - canvas2.clientTop;
     
+    // Adjust for canvas scaling (actual size vs displayed size)
+    let scaleX = canvas2.width / bounds.width;
+    let scaleY = canvas2.height / bounds.height;
+    let actualX = mx * scaleX;
+    let actualY = my * scaleY;
+    
     // Convert mouse coordinates to simulation coordinates
-    let newX = mx / cScale2;
-    let newY = (canvas2.height - my) / cScale2; // Flip Y coordinate
+    let newX = actualX / cScale2;
+    let newY = (canvas2.height - actualY) / cScale2; // Flip Y coordinate
 
     let ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
 
