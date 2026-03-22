@@ -1775,7 +1775,7 @@ canvas2.width = window.innerWidth - 20;
 canvas2.height = window.innerHeight - 100;
 
 var simMinWidth = 2.0;
-var cScale2 = canvas2.width / simMinWidth;
+var cScale2 = Math.min(canvas2.width, canvas2.height) / simMinWidth;
 var simWidth2 = canvas2.width / cScale2;
 var simHeight2 = canvas2.height / cScale2;
 
@@ -1866,16 +1866,12 @@ var physicsScene = {
   restitution: 1.0,
 };
 
-// Add a fixed index for the draggable ball (always the third ball)
-var DRAGGABLE_BALL_INDEX = 2;
-
-// Modify setupSceneGravity to always have 3 balls with the third one being draggable
 function setupSceneGravity() {
   physicsScene.balls = [];
-  var numBalls = 3; // Always 3 balls
+  var numBalls = 20;
 
   for (i = 0; i < numBalls; i++) {
-    var radius = 0.01 * (i===0? 6.4 : i===1? 3.5 : 4.0); // Third ball has radius 0.04
+    var radius = 0.05 + Math.random() * 0.1;
     var mass = Math.PI * radius * radius;
     var pos = new Vector2(Math.random() * simWidth2, Math.random() * simHeight2);
     var vel = new Vector2(
@@ -1885,83 +1881,14 @@ function setupSceneGravity() {
 
     physicsScene.balls.push(new Ball(radius, mass, pos, vel));
   }
-  
-  // Reset drag tracking
-  mouseDown2 = false;
 }
-
-// Functions to handle dragging for canvas2 - always drag the fixed ball
-function startDrag2(x, y) {
-  let bounds = canvas2.getBoundingClientRect();
-  let mx = x - bounds.left - canvas2.clientLeft;
-  let my = y - bounds.top - canvas2.clientTop;
-  
-  // Convert mouse coordinates to simulation coordinates
-  let simX = mx / cScale2;
-  let simY = (canvas2.height - my) / cScale2; // Flip Y coordinate
-  
-  // Always target the fixed draggable ball
-  const ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
-  
-  // Set the ball's position to the mouse position
-  ball.pos.x = simX;
-  ball.pos.y = simY;
-  
-  // Set velocity to zero when starting drag
-  ball.vel.set(new Vector2(0, 0));
-  
-  mouseDown2 = true;
-}
-
-function drag2(x, y) {
-  if (mouseDown2) {
-    let bounds = canvas2.getBoundingClientRect();
-    let mx = x - bounds.left - canvas2.clientLeft;
-    let my = y - bounds.top - canvas2.clientTop;
-    
-    // Convert mouse coordinates to simulation coordinates
-    let newX = mx / cScale2;
-    let newY = (canvas2.height - my) / cScale2; // Flip Y coordinate
-
-    let ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
-
-    ball.vel.x = (newX - ball.pos.x) / physicsScene.dt;
-    ball.vel.y = (newY - ball.pos.y) / physicsScene.dt;
-    
-    // Update the fixed draggable ball position directly
-    ball.pos.x = newX;
-    ball.pos.y = newY;
-  }
-}
-
-function endDrag2() {
-  mouseDown2 = false;
-}
-
-// Add event listeners for canvas2
-canvas2.addEventListener("mousedown", (event) => startDrag2(event.x, event.y));
-canvas2.addEventListener("mouseup", (event) => endDrag2());
-canvas2.addEventListener("mousemove", (event) => drag2(event.x, event.y));
-canvas2.addEventListener("touchstart", (event) =>
-  startDrag2(event.touches[0].clientX, event.touches[0].clientY),
-);
-canvas2.addEventListener("touchend", (event) => endDrag2());
-canvas2.addEventListener(
-  "touchmove",
-  (event) => {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    drag2(event.touches[0].clientX, event.touches[0].clientY);
-  },
-  { passive: false },
-);
 
 // draw -------------------------------------------------------
 
 function drawGravity() {
   c.clearRect(0, 0, canvas2.width, canvas2.height);
 
-  c.fillStyle = "#000000";
+  c.fillStyle = "#FF0000";
 
   for (i = 0; i < physicsScene.balls.length; i++) {
     var ball = physicsScene.balls[i];
@@ -2029,19 +1956,12 @@ function handleWallCollision(ball, worldSize) {
 
 // simulation -------------------------------------------------------
 
-// Modify simulateGravity to exclude the fixed draggable ball from physics simulation during drag
 function simulateGravity() {
   for (i = 0; i < physicsScene.balls.length; i++) {
-    // Skip physics simulation for the draggable ball when it's being dragged
-    if (mouseDown2 && i === DRAGGABLE_BALL_INDEX) continue;
-    
     var ball1 = physicsScene.balls[i];
     ball1.simulate(physicsScene.dt, physicsScene.gravity);
 
     for (j = i + 1; j < physicsScene.balls.length; j++) {
-      // Skip collision if either ball is the draggable ball and is currently being dragged
-      if ((mouseDown2 && (i === DRAGGABLE_BALL_INDEX || j === DRAGGABLE_BALL_INDEX))) continue;
-      
       var ball2 = physicsScene.balls[j];
       handleBallCollision(ball1, ball2, physicsScene.restitution);
     }
