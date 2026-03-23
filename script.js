@@ -1771,8 +1771,9 @@ function simulateTank() {
 var canvas2 = document.getElementById("myCanvas2");
 var c = canvas2.getContext("2d");
 
-canvas2.width = window.innerWidth - 20;
-canvas2.height = window.innerHeight - 100;
+// Set canvas actual size to match CSS size (1000x500)
+canvas2.width = 1000;
+canvas2.height = 500;
 
 var simMinWidth = 2.0;
 var cScale2 = canvas2.width / simMinWidth;
@@ -1896,15 +1897,9 @@ function startDrag2(x, y) {
   let mx = x - bounds.left - canvas2.clientLeft;
   let my = y - bounds.top - canvas2.clientTop;
   
-  // Adjust for canvas scaling (actual size vs displayed size)
-  let scaleX = canvas2.width / bounds.width;
-  let scaleY = canvas2.height / bounds.height;
-  let actualX = mx * scaleX;
-  let actualY = my * scaleY;
-  
   // Convert mouse coordinates to simulation coordinates
-  let simX = actualX / cScale2;
-  let simY = (canvas2.height - actualY) / cScale2; // Flip Y coordinate
+  let simX = mx / cScale2;
+  let simY = (canvas2.height - my) / cScale2; // Flip Y coordinate
   
   // Always target the fixed draggable ball
   const ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
@@ -1925,15 +1920,9 @@ function drag2(x, y) {
     let mx = x - bounds.left - canvas2.clientLeft;
     let my = y - bounds.top - canvas2.clientTop;
     
-    // Adjust for canvas scaling (actual size vs displayed size)
-    let scaleX = canvas2.width / bounds.width;
-    let scaleY = canvas2.height / bounds.height;
-    let actualX = mx * scaleX;
-    let actualY = my * scaleY;
-    
     // Convert mouse coordinates to simulation coordinates
-    let newX = actualX / cScale2;
-    let newY = (canvas2.height - actualY) / cScale2; // Flip Y coordinate
+    let newX = mx / cScale2;
+    let newY = (canvas2.height - my) / cScale2; // Flip Y coordinate
 
     let ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
 
