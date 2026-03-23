@@ -1716,6 +1716,7 @@ function togglePause() {
 document.addEventListener("DOMContentLoaded", function () {
   const pauseBtn = document.getElementById("pauseButton");
   const dragHint = document.getElementById("dragHint");
+  const dragHint2 = document.getElementById("dragHint2");
 
   if (pauseBtn && dragHint) {
     // Initial check - use visibility instead of display
@@ -1725,6 +1726,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // Observe text content changes
     const observer = new MutationObserver(() => {
       dragHint.style.visibility =
+        pauseBtn.textContent.trim() === "暂停" ? "visible" : "hidden";
+    });
+
+    observer.observe(pauseBtn, {
+      characterData: true,
+      subtree: true,
+      childList: true,
+    });
+  }
+  if (pauseBtn && dragHint2) {
+    // Initial check - use visibility instead of display
+    dragHint2.style.visibility =
+      pauseBtn.textContent.trim() === "暂停" ? "visible" : "hidden";
+
+    // Observe text content changes
+    const observer = new MutationObserver(() => {
+      dragHint2.style.visibility =
         pauseBtn.textContent.trim() === "暂停" ? "visible" : "hidden";
     });
 
@@ -1864,7 +1882,8 @@ var physicsScene = {
   worldSize: new Vector2(simWidth2, simHeight2),
   paused: true,
   balls: [],
-  restitution: 1.0,
+  restitution: 0.8,
+  G: 10, // Gravitational constant
 };
 
 // Add a fixed index for the draggable ball (always the third ball)
@@ -1876,9 +1895,12 @@ function setupSceneGravity() {
   var numBalls = 3; // Always 3 balls
 
   for (i = 0; i < numBalls; i++) {
-    var radius = 0.01 * (i===0? 6.4 : i===1? 3.5 : 4.0); // Third ball has radius 0.04
+    var radius = 0.01 * (i === 0 ? 6.4 : i === 1 ? 3.5 : 4.0); // Third ball has radius 0.04
     var mass = Math.PI * radius * radius;
-    var pos = new Vector2(Math.random() * simWidth2, Math.random() * simHeight2);
+    var pos = new Vector2(
+      Math.random() * simWidth2,
+      Math.random() * simHeight2,
+    );
     var vel = new Vector2(
       -1.0 + 2.0 * Math.random(),
       -1.0 + 2.0 * Math.random(),
@@ -1886,7 +1908,7 @@ function setupSceneGravity() {
 
     physicsScene.balls.push(new Ball(radius, mass, pos, vel));
   }
-  
+
   // Reset drag tracking
   mouseDown2 = false;
 }
@@ -1896,21 +1918,21 @@ function startDrag2(x, y) {
   let bounds = canvas2.getBoundingClientRect();
   let mx = x - bounds.left - canvas2.clientLeft;
   let my = y - bounds.top - canvas2.clientTop;
-  
+
   // Convert mouse coordinates to simulation coordinates
   let simX = mx / cScale2;
   let simY = (canvas2.height - my) / cScale2; // Flip Y coordinate
-  
+
   // Always target the fixed draggable ball
   const ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
-  
+
   // Set the ball's position to the mouse position
   ball.pos.x = simX;
   ball.pos.y = simY;
-  
+
   // Set velocity to zero when starting drag
   ball.vel.set(new Vector2(0, 0));
-  
+
   mouseDown2 = true;
 }
 
@@ -1919,7 +1941,7 @@ function drag2(x, y) {
     let bounds = canvas2.getBoundingClientRect();
     let mx = x - bounds.left - canvas2.clientLeft;
     let my = y - bounds.top - canvas2.clientTop;
-    
+
     // Convert mouse coordinates to simulation coordinates
     let newX = mx / cScale2;
     let newY = (canvas2.height - my) / cScale2; // Flip Y coordinate
@@ -1928,7 +1950,7 @@ function drag2(x, y) {
 
     ball.vel.x = (newX - ball.pos.x) / physicsScene.dt;
     ball.vel.y = (newY - ball.pos.y) / physicsScene.dt;
-    
+
     // Update the fixed draggable ball position directly
     ball.pos.x = newX;
     ball.pos.y = newY;
@@ -2008,23 +2030,23 @@ function handleBallCollision(ball1, ball2, restitution) {
 
 // ------------------------------------------------------
 
-function handleWallCollision(ball, worldSize) {
+function handleWallCollision(ball, worldSize, restitution) {
   if (ball.pos.x < ball.radius) {
     ball.pos.x = ball.radius;
-    ball.vel.x = -ball.vel.x;
+    ball.vel.x = -restitution * ball.vel.x;
   }
   if (ball.pos.x > worldSize.x - ball.radius) {
     ball.pos.x = worldSize.x - ball.radius;
-    ball.vel.x = -ball.vel.x;
+    ball.vel.x = -restitution * ball.vel.x;
   }
   if (ball.pos.y < ball.radius) {
     ball.pos.y = ball.radius;
-    ball.vel.y = -ball.vel.y;
+    ball.vel.y = -restitution * ball.vel.y;
   }
 
   if (ball.pos.y > worldSize.y - ball.radius) {
     ball.pos.y = worldSize.y - ball.radius;
-    ball.vel.y = -ball.vel.y;
+    ball.vel.y = -restitution * ball.vel.y;
   }
 }
 
@@ -2032,22 +2054,58 @@ function handleWallCollision(ball, worldSize) {
 
 // Modify simulateGravity to exclude the fixed draggable ball from physics simulation during drag
 function simulateGravity() {
+  // Calculate gravitational forces between all pairs of balls
   for (i = 0; i < physicsScene.balls.length; i++) {
     // Skip physics simulation for the draggable ball when it's being dragged
     if (mouseDown2 && i === DRAGGABLE_BALL_INDEX) continue;
-    
+
     var ball1 = physicsScene.balls[i];
+
+    // Apply constant gravity
     ball1.simulate(physicsScene.dt, physicsScene.gravity);
 
+    // Calculate gravitational forces from other balls
+    for (j = 0; j < physicsScene.balls.length; j++) {
+      if (i === j) continue; // Skip self
+      if (mouseDown2 && j === DRAGGABLE_BALL_INDEX) continue; // Skip dragged ball
+
+      var ball2 = physicsScene.balls[j];
+
+      // Calculate distance between balls
+      var dir = new Vector2();
+      dir.subtractVectors(ball2.pos, ball1.pos);
+      var distance = dir.length();
+
+      // Avoid division by zero and extremely small distances
+      if (distance < 0.01) continue;
+
+      // Calculate gravitational force (F = G * m1 * m2 / r^2)
+      var forceMagnitude =
+        (physicsScene.G * ball1.mass * ball2.mass) / (distance * distance);
+
+      // Normalize direction and apply force
+      dir.scale(forceMagnitude / distance);
+      ball1.vel.add(dir, physicsScene.dt / ball1.mass);
+    }
+
+    // Handle collisions
     for (j = i + 1; j < physicsScene.balls.length; j++) {
       // Skip collision if either ball is the draggable ball and is currently being dragged
-      if ((mouseDown2 && (i === DRAGGABLE_BALL_INDEX || j === DRAGGABLE_BALL_INDEX))) continue;
-      
+      if (
+        mouseDown2 &&
+        (i === DRAGGABLE_BALL_INDEX || j === DRAGGABLE_BALL_INDEX)
+      )
+        continue;
+
       var ball2 = physicsScene.balls[j];
       handleBallCollision(ball1, ball2, physicsScene.restitution);
     }
 
-    handleWallCollision(ball1, physicsScene.worldSize);
+    handleWallCollision(
+      ball1,
+      physicsScene.worldSize,
+      physicsScene.restitution,
+    );
   }
 }
 
