@@ -125,57 +125,15 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
     draggingPiece: null,
     offsetX: 0,
     offsetY: 0,
-    mouseX: 0,
-    mouseY: 0,
-    mouseOver: false,
   };
   drawPuzzle(puzzleIdx);
 }
 
 function drawPuzzle(idx) {
-  const { pieces, mouseX, mouseY, mouseOver } = puzzles[idx];
+  const { pieces } = puzzles[idx];
   ctxs[idx].clearRect(0, 0, canvasXSize * 2, canvasYSize * 2);
-  
-  // Lens parameters (only for hongbao puzzle)
-  const isHongbao = idx === 2;
-  const lensDiameter = 300;
-  const lensRadius = lensDiameter / 2;
-  const transitionWidth = 50;
-  
   for (const piece of pieces) {
-    if (isHongbao && mouseOver) {
-      // Calculate distance from piece center to mouse position
-      const pieceCenterX = piece.x + pieceXSize / 2;
-      const pieceCenterY = piece.y + pieceYSize / 2;
-      const dx = pieceCenterX - mouseX;
-      const dy = pieceCenterY - mouseY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance <= lensRadius) {
-        // Inside lens - draw normally
-        piece.draw(ctxs[idx]);
-      } else if (distance <= lensRadius + transitionWidth) {
-        // In transition area - draw with reduced alpha
-        const alpha = 1 - (distance - lensRadius) / transitionWidth;
-        ctxs[idx].globalAlpha = alpha * piece.alpha;
-        ctxs[idx].drawImage(
-          piece.img,
-          piece.sx,
-          piece.sy,
-          pieceXSize,
-          pieceYSize,
-          piece.x,
-          piece.y,
-          pieceXSize,
-          pieceYSize
-        );
-        ctxs[idx].globalAlpha = 1;
-      }
-      // Outside lens - don't draw
-    } else {
-      // Not hongbao or mouse not over - draw normally
-      piece.draw(ctxs[idx]);
-    }
+    piece.draw(ctxs[idx]);
   }
 }
 
@@ -243,9 +201,6 @@ function onMouseDown(idx, e) {
   const rect = canvases[idx].getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (canvases[idx].width / rect.width);
   const my = (e.clientY - rect.top) * (canvases[idx].height / rect.height);
-  puzzles[idx].mouseX = mx;
-  puzzles[idx].mouseY = my;
-  puzzles[idx].mouseOver = true;
   const { pieces } = puzzles[idx];
   for (let i = pieces.length - 1; i >= 0; i--) {
     const piece = pieces[i];
@@ -269,34 +224,24 @@ function onMouseDown(idx, e) {
   }
 }
 function onMouseMove(idx, e) {
+  const piece = puzzles[idx].draggingPiece;
+  if (!piece) return;
   const rect = canvases[idx].getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (canvases[idx].width / rect.width);
   const my = (e.clientY - rect.top) * (canvases[idx].height / rect.height);
-  puzzles[idx].mouseX = mx;
-  puzzles[idx].mouseY = my;
-  puzzles[idx].mouseOver = true;
-  const piece = puzzles[idx].draggingPiece;
-  if (piece) {
-    piece.x = mx - piece.offsetX;
-    piece.y = my - piece.offsetY;
-  }
+  piece.x = mx - piece.offsetX;
+  piece.y = my - piece.offsetY;
   drawPuzzle(idx);
 }
 function onMouseUp(idx, e) {
-  const rect = canvases[idx].getBoundingClientRect();
-  const mx = (e.clientX - rect.left) * (canvases[idx].width / rect.width);
-  const my = (e.clientY - rect.top) * (canvases[idx].height / rect.height);
-  puzzles[idx].mouseX = mx;
-  puzzles[idx].mouseY = my;
   const piece = puzzles[idx].draggingPiece;
-  if (piece) {
-    piece.dragging = false;
-    puzzles[idx].draggingPiece = null;
-    // Snap logic
-    tryMerge(idx, piece);
-    drawPuzzle(idx);
-    checkSolved(idx);
-  }
+  if (!piece) return;
+  piece.dragging = false;
+  puzzles[idx].draggingPiece = null;
+  // Snap logic
+  tryMerge(idx, piece);
+  drawPuzzle(idx);
+  checkSolved(idx);
 }
 
 function tryMerge(idx, piece) {
@@ -440,21 +385,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // 初始化拼图（3个）
   for (let i = 0; i < imagePaths.length; i++) {
     canvases[i].addEventListener("mousedown", (e) => onMouseDown(i, e));
-  canvases[i].addEventListener("mousemove", (e) => onMouseMove(i, e));
-  canvases[i].addEventListener("mouseup", (e) => onMouseUp(i, e));
-  canvases[i].addEventListener("mouseleave", (e) => {
-    puzzles[i].mouseOver = false;
-    onMouseUp(i, e);
-  });
-  canvases[i].addEventListener("mouseenter", (e) => {
-    const rect = canvases[i].getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (canvases[i].width / rect.width);
-    const my = (e.clientY - rect.top) * (canvases[i].height / rect.height);
-    puzzles[i].mouseX = mx;
-    puzzles[i].mouseY = my;
-    puzzles[i].mouseOver = true;
-    drawPuzzle(i);
-  });
+    canvases[i].addEventListener("mousemove", (e) => onMouseMove(i, e));
+    canvases[i].addEventListener("mouseup", (e) => onMouseUp(i, e));
+    canvases[i].addEventListener("mouseleave", (e) => onMouseUp(i, e));
     setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
   }
 
