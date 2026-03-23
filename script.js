@@ -1,6 +1,6 @@
 const imagePaths = [
-  "images/apple.png",
   "images/eureka.png",
+  "images/apple.png",
   "images/hongbao.png",
 ];
 const audioFiles = ["audio/emo.m4a", "audio/ua.m4a", "audio/ui.m4a"];
@@ -50,7 +50,7 @@ function loadImage(src) {
 }
 
 class Piece {
-  constructor(img, sx, sy, x, y, idx) {
+  constructor(img, sx, sy, x, y, idx, puzzleIdx) {
     this.img = img;
     this.sx = sx;
     this.sy = sy;
@@ -63,8 +63,19 @@ class Piece {
     this.dragging = false;
     this.offsetX = 0;
     this.offsetY = 0;
+    this.puzzleIdx = puzzleIdx;
+    // Breathing effect properties (only for apple and hongbao puzzles)
+    if (puzzleIdx === 1 || puzzleIdx === 2) {
+      this.alpha = 1;
+      this.period = 5000 + Math.random() * 5000; // 2-5 seconds
+      this.phase = Math.random() * Math.PI * 2;
+      this.time = 0;
+    } else {
+      this.alpha = 1;
+    }
   }
   draw(ctx) {
+    ctx.globalAlpha = this.alpha;
     ctx.drawImage(
       this.img,
       this.sx,
@@ -76,6 +87,7 @@ class Piece {
       pieceXSize,
       pieceYSize,
     );
+    ctx.globalAlpha = 1;
   }
   contains(mx, my) {
     return (
@@ -100,6 +112,7 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
           col * pieceXSize,
           row * pieceYSize,
           row * gridSize + col,
+          puzzleIdx,
         ),
       );
     }
@@ -137,6 +150,7 @@ function scatterPieces(idx) {
 function animatePuzzle(idx) {
   if (!puzzles[idx].started) return;
   const { pieces } = puzzles[idx];
+  const currentTime = Date.now();
   for (const piece of pieces) {
     if (piece.dragging) continue;
     // Bounce
@@ -165,6 +179,17 @@ function animatePuzzle(idx) {
             Math.floor((groupPiece.idx - piece.idx) / gridSize) * pieceYSize;
         }
       });
+    }
+    // Breathing effect for apple and hongbao puzzles
+    if (piece.puzzleIdx === 1 || piece.puzzleIdx === 2) {
+      if (piece.group.length === 1) {
+        // Only breathe if piece is not connected
+        piece.time = currentTime;
+        piece.alpha = 0.5 + 0.5 * Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
+      } else {
+        // Stop breathing once connected
+        piece.alpha = 1;
+      }
     }
   }
   drawPuzzle(idx);
