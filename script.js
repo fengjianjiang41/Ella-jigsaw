@@ -4,6 +4,7 @@ const imagePaths = [
   "images/hongbao.png",
 ];
 const audioFiles = ["audio/emo.m4a", "audio/ua.m4a", "audio/ui.m4a"];
+let bunClickCount = 0;
 
 const gridSize = 2;
 const canvasXSize = 1344;
@@ -135,13 +136,13 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
 function drawPuzzle(idx) {
   const { pieces, mouseX, mouseY, mouseOver } = puzzles[idx];
   ctxs[idx].clearRect(0, 0, canvasXSize * 2, canvasYSize * 2);
-  
+
   // Lens parameters (only for hongbao puzzle)
   const isHongbao = idx === 2;
   const lensDiameter = 300;
   const lensRadius = lensDiameter / 2;
   const transitionWidth = 50;
-  
+
   for (const piece of pieces) {
     if (isHongbao && mouseOver) {
       // Calculate distance from piece center to mouse position
@@ -150,7 +151,7 @@ function drawPuzzle(idx) {
       const dx = pieceCenterX - mouseX;
       const dy = pieceCenterY - mouseY;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
+
       if (distance <= lensRadius) {
         // Inside lens - draw normally
         piece.draw(ctxs[idx]);
@@ -167,7 +168,7 @@ function drawPuzzle(idx) {
           piece.x,
           piece.y,
           pieceXSize,
-          pieceYSize
+          pieceYSize,
         );
         ctxs[idx].globalAlpha = 1;
       }
@@ -227,7 +228,10 @@ function animatePuzzle(idx) {
       if (piece.group.length === 1) {
         // Only breathe if piece is not connected
         piece.time = currentTime;
-        piece.alpha = 0.5 + 0.5 * Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
+        piece.alpha =
+          0.5 +
+          0.5 *
+            Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
       } else {
         // Stop breathing once connected
         piece.alpha = 1;
@@ -440,21 +444,21 @@ document.addEventListener("DOMContentLoaded", function () {
   // 初始化拼图（3个）
   for (let i = 0; i < imagePaths.length; i++) {
     canvases[i].addEventListener("mousedown", (e) => onMouseDown(i, e));
-  canvases[i].addEventListener("mousemove", (e) => onMouseMove(i, e));
-  canvases[i].addEventListener("mouseup", (e) => onMouseUp(i, e));
-  canvases[i].addEventListener("mouseleave", (e) => {
-    puzzles[i].mouseOver = false;
-    onMouseUp(i, e);
-  });
-  canvases[i].addEventListener("mouseenter", (e) => {
-    const rect = canvases[i].getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (canvases[i].width / rect.width);
-    const my = (e.clientY - rect.top) * (canvases[i].height / rect.height);
-    puzzles[i].mouseX = mx;
-    puzzles[i].mouseY = my;
-    puzzles[i].mouseOver = true;
-    drawPuzzle(i);
-  });
+    canvases[i].addEventListener("mousemove", (e) => onMouseMove(i, e));
+    canvases[i].addEventListener("mouseup", (e) => onMouseUp(i, e));
+    canvases[i].addEventListener("mouseleave", (e) => {
+      puzzles[i].mouseOver = false;
+      onMouseUp(i, e);
+    });
+    canvases[i].addEventListener("mouseenter", (e) => {
+      const rect = canvases[i].getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * (canvases[i].width / rect.width);
+      const my = (e.clientY - rect.top) * (canvases[i].height / rect.height);
+      puzzles[i].mouseX = mx;
+      puzzles[i].mouseY = my;
+      puzzles[i].mouseOver = true;
+      drawPuzzle(i);
+    });
     setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
   }
 
@@ -593,11 +597,21 @@ document.addEventListener("DOMContentLoaded", function () {
     requestAnimationFrame(animate);
   }
 
-  // Update bunImg click event:
+  // Replace the existing bunImg click event listener with this one
   bunImg.addEventListener("click", function () {
-    const randomIndex = Math.floor(Math.random() * audioFiles.length);
-    const audio = new Audio(audioFiles[randomIndex]);
-    audio.play();
+    bunClickCount++;
+
+    // Check if click count is a multiple of 7
+    if (bunClickCount % 7 === 0) {
+      // Play the new audio file
+      const audio = new Audio("audio/jcxbroken.m4a");
+      audio.play();
+    } else {
+      // Play random audio from existing files
+      const randomIndex = Math.floor(Math.random() * audioFiles.length);
+      const audio = new Audio(audioFiles[randomIndex]);
+      audio.play();
+    }
 
     showFloatingText({
       text: "功德+1",
@@ -1558,24 +1572,27 @@ const pointFragmentShader = `
 			gl_FragColor = vec4(fragColor, 1.0);
 		}`;
 
+// Update the mesh vertex shader to include texture coordinates
 const meshVertexShader = `
 		attribute vec2 attrPosition;
+		attribute vec2 attrTexCoord;
 		uniform vec2 domainSize;
-		uniform vec3 color;
 		uniform vec2 translation;
 		uniform float scale;
-		varying vec3 fragColor;
+		varying vec2 fragTexCoord;
 		void main() {
 			vec2 v = translation + attrPosition * scale;
 			vec4 screenTransform = vec4(2.0 / domainSize.x, 2.0 / domainSize.y, -1.0, -1.0);
 			gl_Position = vec4(v * screenTransform.xy + screenTransform.zw, 0.0, 1.0);
-			fragColor = color;
+			fragTexCoord = (attrPosition + 1.0) / 2.0;
 		}`;
 
+// Update the mesh fragment shader to use texture instead of color
 const meshFragmentShader = `
 		precision mediump float;
-		varying vec3 fragColor;
-		void main() { gl_FragColor = vec4(fragColor, 1.0); }`;
+		varying vec2 fragTexCoord;
+		uniform sampler2D texture;
+		void main() { gl_FragColor = texture2D(texture, fragTexCoord); }`;
 
 function createShader(gl, vsSource, fsSource) {
   const vsShader = gl.createShader(gl.VERTEX_SHADER);
@@ -1599,6 +1616,9 @@ var gridVertBuffer = null;
 var gridColorBuffer = null;
 var diskVertBuffer = null;
 var diskIdBuffer = null;
+// Add new variables for texture handling
+var diskTexCoordBuffer = null;
+var obstacleTexture = null;
 
 function drawTank() {
   gl.clearColor(1.0, 1.0, 1.0, 1.0);
@@ -1688,6 +1708,7 @@ function drawTank() {
     gl.disableVertexAttribArray(colorLoc);
   }
 
+  // Update the disk buffer creation to include texture coordinates
   var numSegs = 50;
   if (diskVertBuffer == null) {
     diskVertBuffer = gl.createBuffer();
@@ -1703,6 +1724,19 @@ function drawTank() {
     gl.bindBuffer(gl.ARRAY_BUFFER, diskVertBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, diskVerts, gl.DYNAMIC_DRAW);
 
+    // Create texture coordinates for the disk
+    diskTexCoordBuffer = gl.createBuffer();
+    var diskTexCoords = new Float32Array(2 * numSegs + 2);
+    p = 0;
+    diskTexCoords[p++] = 0.5;
+    diskTexCoords[p++] = 0.5;
+    for (var i = 0; i < numSegs; i++) {
+      diskTexCoords[p++] = (Math.cos(i * dphi) + 1.0) / 2.0;
+      diskTexCoords[p++] = (Math.sin(i * dphi) + 1.0) / 2.0;
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, diskTexCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, diskTexCoords, gl.DYNAMIC_DRAW);
+
     diskIdBuffer = gl.createBuffer();
     var diskIds = new Uint16Array(3 * numSegs);
     p = 0;
@@ -1715,18 +1749,42 @@ function drawTank() {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, diskIds, gl.DYNAMIC_DRAW);
   }
 
-  var diskColor = [0.8, 0.2, 0.2];
+  // Load the obstacle texture if not already loaded
+  if (obstacleTexture == null) {
+    obstacleTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, obstacleTexture);
+    // Set default texture while loading
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array([255, 255, 255, 255]),
+    );
+    // Load the actual texture
+    var img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function () {
+      gl.bindTexture(gl.TEXTURE_2D, obstacleTexture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    };
+    img.src = "images/bun_white.png";
+  }
+
+  // Update the rendering code to use the texture
   gl.useProgram(meshShader);
   gl.uniform2f(
     gl.getUniformLocation(meshShader, "domainSize"),
     simWidth,
     simHeight,
-  );
-  gl.uniform3f(
-    gl.getUniformLocation(meshShader, "color"),
-    diskColor[0],
-    diskColor[1],
-    diskColor[2],
   );
   gl.uniform2f(
     gl.getUniformLocation(meshShader, "translation"),
@@ -1738,14 +1796,27 @@ function drawTank() {
     scene.obstacleRadius,
   );
 
+  // Bind the texture
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, obstacleTexture);
+  gl.uniform1i(gl.getUniformLocation(meshShader, "texture"), 0);
+
+  // Set up vertex attributes
   posLoc = gl.getAttribLocation(meshShader, "attrPosition");
   gl.enableVertexAttribArray(posLoc);
   gl.bindBuffer(gl.ARRAY_BUFFER, diskVertBuffer);
   gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
+  // Set up texture coordinate attribute
+  var texCoordLoc = gl.getAttribLocation(meshShader, "attrTexCoord");
+  gl.enableVertexAttribArray(texCoordLoc);
+  gl.bindBuffer(gl.ARRAY_BUFFER, diskTexCoordBuffer);
+  gl.vertexAttribPointer(texCoordLoc, 2, gl.FLOAT, false, 0, 0);
+
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, diskIdBuffer);
   gl.drawElements(gl.TRIANGLES, 3 * numSegs, gl.UNSIGNED_SHORT, 0);
   gl.disableVertexAttribArray(posLoc);
+  gl.disableVertexAttribArray(texCoordLoc);
 }
 
 var mouseDown = false;
@@ -2073,6 +2144,16 @@ canvas2.addEventListener(
 
 // draw -------------------------------------------------------
 
+// Load images for the balls
+var bunImage = new Image();
+bunImage.src = "images/bun_white.png";
+
+var earthImage = new Image();
+earthImage.src = "images/earth.png";
+
+var moonImage = new Image();
+moonImage.src = "images/moon.png";
+
 function drawGravity() {
   c.clearRect(0, 0, canvas2.width, canvas2.height);
 
@@ -2080,16 +2161,42 @@ function drawGravity() {
 
   for (i = 0; i < physicsScene.balls.length; i++) {
     var ball = physicsScene.balls[i];
-    c.beginPath();
-    c.arc(
-      cX(ball.pos),
-      cY(ball.pos),
-      cScale2 * ball.radius,
-      0.0,
-      2.0 * Math.PI,
-    );
-    c.closePath();
-    c.fill();
+    var radius = cScale2 * ball.radius;
+
+    if (i === 0 && earthImage.complete) {
+      // Draw earth image for the biggest ball
+      c.drawImage(
+        earthImage,
+        cX(ball.pos) - radius,
+        cY(ball.pos) - radius,
+        radius * 2,
+        radius * 2,
+      );
+    } else if (i === 1 && moonImage.complete) {
+      // Draw moon image for the smallest ball
+      c.drawImage(
+        moonImage,
+        cX(ball.pos) - radius,
+        cY(ball.pos) - radius,
+        radius * 2,
+        radius * 2,
+      );
+    } else if (i === DRAGGABLE_BALL_INDEX && bunImage.complete) {
+      // Draw the bun image for the draggable ball
+      c.drawImage(
+        bunImage,
+        cX(ball.pos) - radius,
+        cY(ball.pos) - radius,
+        radius * 2,
+        radius * 2,
+      );
+    } else {
+      // Draw regular balls as circles
+      c.beginPath();
+      c.arc(cX(ball.pos), cY(ball.pos), radius, 0.0, 2.0 * Math.PI);
+      c.closePath();
+      c.fill();
+    }
   }
 }
 
@@ -2144,7 +2251,6 @@ function handleWallCollision(ball, worldSize, restitution) {
 
 // simulation -------------------------------------------------------
 
-// Modify simulateGravity to exclude the fixed draggable ball from physics simulation during drag
 function simulateGravity() {
   // Calculate gravitational forces between all pairs of balls
   for (i = 0; i < physicsScene.balls.length; i++) {
@@ -2159,7 +2265,7 @@ function simulateGravity() {
     // Calculate gravitational forces from other balls
     for (j = 0; j < physicsScene.balls.length; j++) {
       if (i === j) continue; // Skip self
-      if (mouseDown2 && j === DRAGGABLE_BALL_INDEX) continue; // Skip dragged ball
+      // REMOVED: if (mouseDown2 && j === DRAGGABLE_BALL_INDEX) continue; // Skip dragged ball
 
       var ball2 = physicsScene.balls[j];
 
