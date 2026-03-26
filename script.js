@@ -2017,6 +2017,91 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+// Floating Music Button Functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const musicBtn = document.getElementById('floatingMusicBtn');
+  const textContainer = document.querySelector('.music-text-container');
+  const musicText = document.querySelector('.music-text');
+  let audio = null;
+  let isPlaying = false;
+  let animationFrameId = null;
+  let scrollPosition = 0;
+  let scrollDirection = 1;
+  let scrollSpeed = 0.5;
+
+    // Preload button sound
+  const buttonSound = new Audio('audio/button.m4a');
+
+  // Initialize audio element
+  function initAudio() {
+    audio = new Audio('audio/KevinVillecco-Yoshigemia.mp3');
+    audio.loop = true;
+  }
+
+  // Toggle music play/pause
+  function toggleMusic() {
+    if (!audio) {
+      initAudio();
+    }
+
+    if (isPlaying) {
+      audio.pause();
+      musicBtn.classList.remove('playing');
+      textContainer.classList.remove('scrolling');
+      cancelAnimationFrame(animationFrameId);
+    } else {
+      audio.play();
+      musicBtn.classList.add('playing');
+      startScrolling();
+    }
+    isPlaying = !isPlaying;
+  }
+
+  // Start scrolling animation
+  function startScrolling() {
+    const textWidth = musicText.offsetWidth;
+    const containerWidth = textContainer.offsetWidth;
+    
+    function animate() {
+      if (scrollDirection === 1) {
+        // Scroll left
+        scrollPosition += scrollSpeed;
+        if (scrollPosition >= textWidth - 0.5 * containerWidth) {
+          scrollDirection = -1;
+        }
+      } else {
+        // Scroll right
+        scrollPosition -= scrollSpeed;
+        if (scrollPosition <= - 0.5 * containerWidth) {
+          scrollDirection = 1;
+        }
+      }
+      
+      musicText.style.transform = `translateX(-${scrollPosition}px)`;
+      animationFrameId = requestAnimationFrame(animate);
+    }
+    
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
+  // Add click event listener
+  if (musicBtn) {
+    musicBtn.addEventListener('click', toggleMusic);
+  }
+  // Add click event listeners to all other buttons (except page buttons)
+  const buttons = document.querySelectorAll('button');
+  buttons.forEach(button => {
+    // Skip music button and page buttons
+    if (button.id !== 'floatingMusicBtn' && !button.classList.contains('page-btn')) {
+      button.addEventListener('click', function() {
+        // Play button sound
+        buttonSound.currentTime = 0; // Reset sound to start
+        buttonSound.play();
+      });
+    }
+  });
+});
+
 function simulateTank() {
   if (!scene.paused) {
     var sdt = scene.dt;

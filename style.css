@@ -434,6 +434,117 @@ body {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
+/* Floating Music Button Styles */
+.floating-music-container {
+    position: fixed;
+    bottom: 330px;
+    left: 30px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.floating-music-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    -ms-border-radius: 50%;
+    -o-border-radius: 50%;
+}
+
+.floating-music-btn:hover {
+    transform: scale(1.1);
+}
+
+.floating-music-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.floating-music-btn.playing img {
+    animation: breatheRotate 2s ease-in-out infinite;
+}
+
+@keyframes breatheRotate {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    50% {
+        transform: scale(3) rotate(180deg);
+        -webkit-transform: scale(3) rotate(180deg);
+        -moz-transform: scale(3) rotate(180deg);
+        -ms-transform: scale(3) rotate(180deg);
+        -o-transform: scale(3) rotate(180deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(360deg);
+    }
+}
+
+/* Music Text Styles */
+.music-text-container {
+    width: 60px;
+    height: 20px;
+    margin-top: 5px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.music-text {
+    color: #666;
+    /*Greycolor*/
+    font-size: 12px;
+    white-space: nowrap;
+    position: absolute;
+    left: 0;
+    transition: transform 0.5s ease;
+    /*Fadeeffectonbothends*/
+    /* mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); */
+}
+
+/* Animation for scrolling text */
+.music-text-container.scrolling .music-text {
+    animation: scrollText 12s linear infinite;
+    -webkit-animation: scrollText 12s linear infinite;
+}
+
+@keyframes scrollText {
+    0% {
+        transform: translateX(100%);
+        -webkit-transform: translateX(100%);
+        -moz-transform: translateX(100%);
+        -ms-transform: translateX(100%);
+        -o-transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(-100%);
+        -webkit-transform: translateX(-100%);
+        -moz-transform: translateX(-100%);
+        -ms-transform: translateX(-100%);
+        -o-transform: translateX(-100%);
+    }
+}
+
 /* 首页特定样式 */
 .flicker-text {
     font-size: 32px;
