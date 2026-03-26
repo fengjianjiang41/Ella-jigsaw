@@ -42,37 +42,46 @@
         <div class="page" id="page2">
             <div class="text-row"
                 style="text-align: center; margin: 1em; padding: 0px; background-color: #ffffff; border: 0px solid #ccc; border-radius: 1px;">
-                <p style="font-size: 48px; color: #000000; font-weight: bold; padding-top: 50px;">注 册 页</p>
-                <img src="images/1.gif" alt="注册"
-                    style="max-width: 100%; height: auto; margin-top: 1em; border-radius: 8px;">
-                <p style="font-size: 18px; color: #666; margin: 10; padding-top: 5px;">有请各位拼图大侠留下芳名供后人仰慕</p>
+                <p style="font-size: 48px; color: #000000; font-weight: bold; padding-top: 50px;">拼 图 侠 注 册 页</p>
+                <!-- <img src="images/1.gif" alt="注册"
+                    style="max-width: 100%; height: auto; margin-top: 1em; border-radius: 8px;"> -->
+                <p style="font-size: 18px; color: #666; margin: 10; padding-top: 5px;">榜上有名，只是时间问题</p>
             </div>
             <div class="nickname-block" style="text-align: center; margin-top: 1em;">
                 <input type="text" id="nicknameInput" placeholder="输入昵称"
                     style="width: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; text-align: center;">
-                <button id="okBtn">OK!</button>
+                <button id="okBtn">写完了</button>
             </div>
 
             <!-- Start 放到注册页底部 -->
             <div style="height: 2em;"></div>
             <div style="font-size: 24px; text-align: center; margin-top: 1em; padding-bottom: 3em;">
-                <button id="startBtn" disabled>开始</button>
+                <button id="startBtn" disabled>点我开始！</button>
             </div>
         </div>
 
         <!-- 第3页：拼图1 -->
         <div class="page" id="page3">
             <canvas class="jigsaw" id="jigsaw1" width="2688" height="1536"></canvas>
+            <div id="page3Title" style="text-align: center; margin: 10px 0; font-size: 16px; color: #000000;">
+                会动的拼图怎么不算 动 作 游 戏 呢
+            </div>
         </div>
 
         <!-- 第4页：拼图2 -->
         <div class="page" id="page4">
             <canvas class="jigsaw" id="jigsaw2" width="2688" height="1536"></canvas>
+            <div id="page4Title" style="text-align: center; margin: 10px 0; font-size: 16px; color: #000000;">
+                防止你胜利的秘诀在于 隐身
+            </div>
         </div>
 
         <!-- 第5页：拼图3 -->
         <div class="page" id="page5">
             <canvas class="jigsaw" id="jigsaw3" width="2688" height="1536"></canvas>
+            <div id="page5Title" style="text-align: center; margin: 10px 0; font-size: 16px; color: #000000;">
+                你只能在最近最近的位置找到我！
+            </div>
         </div>
 
         <!-- 第6页：结果与排名 -->

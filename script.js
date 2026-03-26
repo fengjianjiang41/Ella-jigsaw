@@ -19,6 +19,9 @@ let timer = 0,
   timerInterval = null;
 let allSolved = [false, false, false];
 let nickname = "";
+let page5ActiveTimer = 0;
+let page5TimerInterval = null;
+let page5Active = false;
 
 function formatTime(ms) {
   let s = Math.floor(ms / 1000);
@@ -40,6 +43,26 @@ function startTimer() {
 }
 function stopTimer() {
   clearInterval(timerInterval);
+}
+
+// Page5 active timer functions
+function startPage5Timer() {
+  if (page5TimerInterval) {
+    clearInterval(page5TimerInterval);
+  }
+  page5TimerInterval = setInterval(() => {
+    page5ActiveTimer += 100;
+    if (page5ActiveTimer > 30000) { // 30 seconds
+      showPage5Hint();
+    }
+  }, 100);
+}
+
+function stopPage5Timer() {
+  if (page5TimerInterval) {
+    clearInterval(page5TimerInterval);
+    page5TimerInterval = null;
+  }
 }
 
 function loadImage(src) {
@@ -335,12 +358,36 @@ function tryMerge(idx, piece) {
   }
 }
 
+function showPage5Hint() {
+  let page5Hint = document.getElementById("page5Hint");
+  if (!page5Hint) {
+    // Create the hint element if it doesn't exist
+    page5Hint = document.createElement("div");
+    page5Hint.id = "page5Hint";
+    page5Hint.style.textAlign = "center";
+    page5Hint.style.marginTop = "20px";
+    page5Hint.style.fontSize = "24px";
+    page5Hint.style.color = "#000000";
+    page5Hint.style.fontWeight = "bold";
+    const page5 = document.getElementById("page5");
+    if (page5) {
+      page5.appendChild(page5Hint);
+    }
+  }
+  page5Hint.textContent = "鼠标挪出来，啥都能看见~！";
+  page5Hint.style.display = "block";
+}
+
 function checkSolved(idx) {
   const { pieces } = puzzles[idx];
   if (pieces.every((p) => p.group === pieces[0].group)) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
     if (allSolved.every(Boolean)) {
+      // 播放group.mp3
+      const groupAudio = new Audio("audio/group.mp3");
+      groupAudio.currentTime = 0;
+      groupAudio.play();
       document.getElementById("confirmBtn").disabled = false;
       stopTimer();
       // 自动滚动到结果页
@@ -355,6 +402,10 @@ function checkSolved(idx) {
         congratulationsText.innerHTML = "<h2>恭  喜</h2>";
       }
     } else {
+      // 播放fast.mp3
+      const fastAudio = new Audio("audio/fast.mp3");
+      fastAudio.currentTime = 0;
+      fastAudio.play();
       // If not all solved, scroll to the first unsolved puzzle (frontest unsolved)
       scrollToFirstUnsolved();
     }
@@ -506,6 +557,14 @@ document.addEventListener("DOMContentLoaded", function () {
         pageBtns.forEach((b) => b.classList.remove("active"));
         this.classList.add("active");
       }
+      // Handle page5 active state
+      if (targetPageId === "page5" && !page5Active) {
+        page5Active = true;
+        startPage5Timer();
+      } else if (targetPageId !== "page5" && page5Active) {
+        page5Active = false;
+        stopPage5Timer();
+      }
     });
   });
 
@@ -526,7 +585,15 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         floatingControls.style.display = "none";
       }
-    }, 50);
+      // Handle page5 active state
+      if (currentPageId === "page5" && !page5Active) {
+        page5Active = true;
+        startPage5Timer();
+      } else if (currentPageId !== "page5" && page5Active) {
+        page5Active = false;
+        stopPage5Timer();
+      }
+    }, 100);
   });
 
   // 显示音效与浮动文字（保留）
@@ -601,16 +668,27 @@ document.addEventListener("DOMContentLoaded", function () {
   bunImg.addEventListener("click", function () {
     bunClickCount++;
 
+    // Get the left-bottom image element
+    const leftBottomImg = document.querySelector(".left-bottom-img");
+
     // Check if click count is a multiple of 7
     if (bunClickCount % 7 === 0) {
       // Play the new audio file
       const audio = new Audio("audio/jcxbroken.m4a");
       audio.play();
+      // Substitute pink.png with smile.png
+      if (leftBottomImg) {
+        leftBottomImg.src = "images/smile.png";
+      }
     } else {
       // Play random audio from existing files
       const randomIndex = Math.floor(Math.random() * audioFiles.length);
       const audio = new Audio(audioFiles[randomIndex]);
       audio.play();
+      // Return to pink.png
+      if (leftBottomImg) {
+        leftBottomImg.src = "images/pink.png";
+      }
     }
 
     showFloatingText({
@@ -673,6 +751,14 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
     stopTimer();
+    stopPage5Timer();
+    page5Active = false;
+    page5ActiveTimer = 0;
+    // Clear the hint text
+    const page5Hint = document.getElementById("page5Hint");
+    if (page5Hint) {
+      page5Hint.style.display = "none";
+    }
     // 将每个拼图重置（重新绘制初始状态）
     for (let i = 0; i < imagePaths.length; i++) {
       puzzles[i].started = false;
@@ -690,6 +776,14 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtnFloat.disabled = true;
     okBtn.disabled = false;
     stopTimer();
+    stopPage5Timer();
+    page5Active = false;
+    page5ActiveTimer = 0;
+    // Clear the hint text
+    const page5Hint = document.getElementById("page5Hint");
+    if (page5Hint) {
+      page5Hint.style.display = "none";
+    }
     allSolved = [false, false, false];
     for (let i = 0; i < imagePaths.length; i++) {
       puzzles[i].started = false;
@@ -763,6 +857,12 @@ document.addEventListener("DOMContentLoaded", function () {
       (btn) => btn.dataset.page === "page1",
     );
     if (firstPageBtn) firstPageBtn.classList.add("active");
+
+    // Handle page5 active state
+    if (page5Active) {
+      page5Active = false;
+      stopPage5Timer();
+    }
   };
 
   // 初始按钮状态
