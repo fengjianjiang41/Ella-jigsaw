@@ -52,7 +52,8 @@ function startPage5Timer() {
   }
   page5TimerInterval = setInterval(() => {
     page5ActiveTimer += 100;
-    if (page5ActiveTimer > 30000) { // 30 seconds
+    if (page5ActiveTimer > 30000) {
+      // 30 seconds
       showPage5Hint();
     }
   }, 100);
@@ -535,6 +536,11 @@ document.addEventListener("DOMContentLoaded", function () {
           if (btn.dataset.page === "page2") btn.classList.add("active");
         });
       }
+      // Toggle music when first key is pressed
+      if (toggleMusicFunction) {
+        toggleMusicFunction();
+      }
+
       document.removeEventListener("keydown", onFirstKey);
     }
   });
@@ -2017,11 +2023,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+// Global variable to hold the toggleMusic function
+let toggleMusicFunction = null;
+
 // Floating Music Button Functionality
-document.addEventListener('DOMContentLoaded', function() {
-  const musicBtn = document.getElementById('floatingMusicBtn');
-  const textContainer = document.querySelector('.music-text-container');
-  const musicText = document.querySelector('.music-text');
+document.addEventListener("DOMContentLoaded", function () {
+  const musicBtn = document.getElementById("floatingMusicBtn");
+  const textContainer = document.querySelector(".music-text-container");
+  const musicText = document.querySelector(".music-text");
   let audio = null;
   let isPlaying = false;
   let animationFrameId = null;
@@ -2029,12 +2038,12 @@ document.addEventListener('DOMContentLoaded', function() {
   let scrollDirection = 1;
   let scrollSpeed = 0.5;
 
-    // Preload button sound
-  const buttonSound = new Audio('audio/button.m4a');
+  // Preload button sound
+  const buttonSound = new Audio("audio/button.m4a");
 
   // Initialize audio element
   function initAudio() {
-    audio = new Audio('audio/KevinVillecco-Yoshigemia.mp3');
+    audio = new Audio("audio/KevinVillecco-Yoshigemia.mp3");
     audio.loop = true;
   }
 
@@ -2046,12 +2055,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (isPlaying) {
       audio.pause();
-      musicBtn.classList.remove('playing');
-      textContainer.classList.remove('scrolling');
+      musicBtn.classList.remove("playing");
+      textContainer.classList.remove("scrolling");
       cancelAnimationFrame(animationFrameId);
     } else {
       audio.play();
-      musicBtn.classList.add('playing');
+      musicBtn.classList.add("playing");
       startScrolling();
     }
     isPlaying = !isPlaying;
@@ -2061,7 +2070,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function startScrolling() {
     const textWidth = musicText.offsetWidth;
     const containerWidth = textContainer.offsetWidth;
-    
+
     function animate() {
       if (scrollDirection === 1) {
         // Scroll left
@@ -2072,34 +2081,40 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         // Scroll right
         scrollPosition -= scrollSpeed;
-        if (scrollPosition <= - 0.5 * containerWidth) {
+        if (scrollPosition <= -0.5 * containerWidth) {
           scrollDirection = 1;
         }
       }
-      
+
       musicText.style.transform = `translateX(-${scrollPosition}px)`;
       animationFrameId = requestAnimationFrame(animate);
     }
-    
+
     animationFrameId = requestAnimationFrame(animate);
   }
 
   // Add click event listener
   if (musicBtn) {
-    musicBtn.addEventListener('click', toggleMusic);
+    musicBtn.addEventListener("click", toggleMusic);
   }
   // Add click event listeners to all other buttons (except page buttons)
-  const buttons = document.querySelectorAll('button');
-  buttons.forEach(button => {
+  const buttons = document.querySelectorAll("button");
+  buttons.forEach((button) => {
     // Skip music button and page buttons
-    if (button.id !== 'floatingMusicBtn' && !button.classList.contains('page-btn')) {
-      button.addEventListener('click', function() {
+    if (
+      button.id !== "floatingMusicBtn" &&
+      !button.classList.contains("page-btn")
+    ) {
+      button.addEventListener("click", function () {
         // Play button sound
         buttonSound.currentTime = 0; // Reset sound to start
         buttonSound.play();
       });
     }
   });
+
+  // Make toggleMusic available globally
+  toggleMusicFunction = toggleMusic;
 });
 
 function simulateTank() {

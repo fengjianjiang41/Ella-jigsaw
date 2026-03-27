@@ -204,6 +204,18 @@ main {
     align-self: flex-start;
 }
 
+.pinyin-image {
+    display: flex;
+    justify-content: center;
+    /* 水平居中 */
+    align-items: center;
+    /* 垂直居中（如果需要） */
+    width: 100%;
+    /* 确保容器占满宽度 */
+    margin-top: -1em;
+    margin-bottom: 3em;
+}
+
 .game-image {
     display: flex;
     justify-content: center;
@@ -248,7 +260,7 @@ button {
     padding: 0.5em 1em;
     font-size: 1em;
     align-items: center;
-    background-color: #ffffff;
+    background-color: #dddddd;
     /* Button background color */
     color: #000000;
     /* Text color */
@@ -379,6 +391,43 @@ canvas {
     z-index: 1001;
 }
 
+/* Display image on hover for first page button */
+.page-nav .page-btn:first-child:hover {
+    background: url('images/b1.png') no-repeat center center;
+    background-size: 110%;
+    color: transparent;
+}
+
+.page-nav .page-btn:nth-child(2):hover {
+    background: url('images/b2.png') no-repeat center center;
+    background-size: 110%;
+    color: transparent;
+}
+
+.page-nav .page-btn:nth-child(3):hover {
+    background: url('images/b3.png') no-repeat center center;
+    background-size: 110%;
+    color: transparent;
+}
+
+.page-nav .page-btn:nth-child(4):hover {
+    background: url('images/b4.png') no-repeat center center;
+    background-size: 110%;
+    color: transparent;
+}
+
+.page-nav .page-btn:nth-child(5):hover {
+    background: url('images/b5.png') no-repeat center center;
+    background-size: 110%;
+    color: transparent;
+}
+
+.page-nav .page-btn:nth-child(6):hover {
+    background: url('images/b6.png') no-repeat center center;
+    background-size: 110%;
+    color: transparent;
+}
+
 /* 分页内容区域 */
 .page {
     min-height: 100vh;
@@ -462,10 +511,18 @@ body {
     -moz-border-radius: 50%;
     -ms-border-radius: 50%;
     -o-border-radius: 50%;
+    -webkit-transition: transform 0.3s ease;
+    -moz-transition: transform 0.3s ease;
+    -ms-transition: transform 0.3s ease;
+    -o-transition: transform 0.3s ease;
 }
 
 .floating-music-btn:hover {
     transform: scale(1.1);
+    -webkit-transform: scale(1.1);
+    -moz-transform: scale(1.1);
+    -ms-transform: scale(1.1);
+    -o-transform: scale(1.1);
 }
 
 .floating-music-btn img {
