@@ -536,10 +536,10 @@ document.addEventListener("DOMContentLoaded", function () {
           if (btn.dataset.page === "page2") btn.classList.add("active");
         });
       }
-      // Toggle music when first key is pressed
-      if (toggleMusicFunction) {
-        toggleMusicFunction();
-      }
+      // // Toggle music when first key is pressed
+      // if (toggleMusicFunction) {
+      //   toggleMusicFunction();
+      // }
 
       document.removeEventListener("keydown", onFirstKey);
     }
@@ -2047,6 +2047,22 @@ document.addEventListener("DOMContentLoaded", function () {
     audio.loop = true;
   }
 
+  // Attract attention animation for music button
+  function startAttentionAnimation() {
+    if (!isPlaying && musicBtn) {
+      // Animation: expand and shrink twice in 1 second
+      musicBtn.classList.add('attention');
+      setTimeout(() => {
+        musicBtn.classList.remove('attention');
+        // Schedule next animation in 10 seconds
+        attentionInterval = setTimeout(startAttentionAnimation, 10000);
+      }, 1000);
+    }
+  }
+
+  // Start attention animation
+  let attentionInterval = setTimeout(startAttentionAnimation, 1000);
+
   // Toggle music play/pause
   function toggleMusic() {
     if (!audio) {
@@ -2062,6 +2078,12 @@ document.addEventListener("DOMContentLoaded", function () {
       audio.play();
       musicBtn.classList.add("playing");
       startScrolling();
+      // Stop attention animation when music starts
+      if (attentionInterval) {
+        clearTimeout(attentionInterval);
+        attentionInterval = null;
+      }
+      musicBtn.classList.remove('attention');
     }
     isPlaying = !isPlaying;
   }
