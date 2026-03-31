@@ -1,3 +1,10 @@
 # From the 2nd commit
 
 1. to ensure the merged pieces moving together and bouncing as a bulk
+
+3/31/2026
+1. Sound effects of page buttons
+2. Cute fonts
+3. More noticeable confirm button
+4. Direct link to 2 mini gameas
+5. Sound effects of mini game

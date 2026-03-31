@@ -1,3 +1,10 @@
+@font-face {
+    font-family: 'CustomFont';
+    src: url('font/font.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 @keyframes congratsColorCycle {
     0% {
         color: #000000;
@@ -142,7 +149,7 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'CustomFont', Arial, sans-serif;
     margin: 0;
     padding: 0;
     background: #ffffff;
@@ -259,6 +266,7 @@ main {
 button {
     padding: 0.5em 1em;
     font-size: 1em;
+    font-family: 'CustomFont', Arial, sans-serif;
     align-items: center;
     background-color: #dddddd;
     /* Button background color */
@@ -648,6 +656,7 @@ body {
     color: white;
     padding: 8px 12px;
     font-size: 14px;
+    font-family: 'CustomFont', Arial, sans-serif;
     margin: 4px 2px;
     cursor: pointer;
     border-radius: 4px;

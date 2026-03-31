@@ -163,42 +163,38 @@ function drawPuzzle(idx) {
 
   // Lens parameters (only for hongbao puzzle)
   const isHongbao = idx === 2;
-  const lensDiameter = 300;
+  const lensDiameter = 600;
   const lensRadius = lensDiameter / 2;
-  const transitionWidth = 50;
 
-  for (const piece of pieces) {
-    if (isHongbao && mouseOver) {
-      // Calculate distance from piece center to mouse position
-      const pieceCenterX = piece.x + pieceXSize / 2;
-      const pieceCenterY = piece.y + pieceYSize / 2;
-      const dx = pieceCenterX - mouseX;
-      const dy = pieceCenterY - mouseY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+  // If it's the hongbao puzzle and mouse is over, draw with lens effect
+  if (isHongbao && mouseOver) {
+    // Draw white blanket first
+    ctxs[idx].fillStyle = "white";
+    ctxs[idx].fillRect(0, 0, canvasXSize * 2, canvasYSize * 2);
 
-      if (distance <= lensRadius) {
-        // Inside lens - draw normally
-        piece.draw(ctxs[idx]);
-      } else if (distance <= lensRadius + transitionWidth) {
-        // In transition area - draw with reduced alpha
-        const alpha = 1 - (distance - lensRadius) / transitionWidth;
-        ctxs[idx].globalAlpha = alpha * piece.alpha;
-        ctxs[idx].drawImage(
-          piece.img,
-          piece.sx,
-          piece.sy,
-          pieceXSize,
-          pieceYSize,
-          piece.x,
-          piece.y,
-          pieceXSize,
-          pieceYSize,
-        );
-        ctxs[idx].globalAlpha = 1;
-      }
-      // Outside lens - don't draw
-    } else {
-      // Not hongbao or mouse not over - draw normally
+    // Create clipping path for the circular hole
+    ctxs[idx].save();
+    ctxs[idx].beginPath();
+    ctxs[idx].arc(mouseX, mouseY, lensRadius, 0, Math.PI * 2);
+    ctxs[idx].clip();
+
+    // Draw all pieces inside the clipping path (visible through the hole)
+    for (const piece of pieces) {
+      piece.draw(ctxs[idx]);
+    }
+
+    // Restore context
+    ctxs[idx].restore();
+
+    // Draw black border around the hole
+    ctxs[idx].strokeStyle = "black";
+    ctxs[idx].lineWidth = 2;
+    ctxs[idx].beginPath();
+    ctxs[idx].arc(mouseX, mouseY, lensRadius, 0, Math.PI * 2);
+    ctxs[idx].stroke();
+  } else {
+    // Not hongbao or mouse not over - draw all pieces normally
+    for (const piece of pieces) {
       piece.draw(ctxs[idx]);
     }
   }
@@ -278,6 +274,11 @@ function onMouseDown(idx, e) {
   for (let i = pieces.length - 1; i >= 0; i--) {
     const piece = pieces[i];
     if (piece.contains(mx, my)) {
+      // Play dragging sound
+      const draggingAudio = new Audio("audio/dragging.m4a");
+      draggingAudio.currentTime = 0;
+      draggingAudio.volume = 0.2;
+      draggingAudio.play();
       piece.dragging = true;
       puzzles[idx].draggingPiece = piece;
       piece.group.forEach((groupPiece) => {
@@ -329,18 +330,15 @@ function onMouseUp(idx, e) {
 
 function tryMerge(idx, piece) {
   const { pieces } = puzzles[idx];
+  let merged = false;
   for (const other of pieces) {
     if (other === piece) continue;
     // If adjacent in original grid
     const dx = (other.idx % gridSize) - (piece.idx % gridSize);
-    const dy =
-      Math.floor(other.idx / gridSize) - Math.floor(piece.idx / gridSize);
+    const dy = Math.floor(other.idx / gridSize) - Math.floor(piece.idx / gridSize);
     if (Math.abs(dx) + Math.abs(dy) === 1) {
       // If close enough in current position
-      if (
-        Math.abs(other.x - piece.x - dx * pieceXSize) < 20 &&
-        Math.abs(other.y - piece.y - dy * pieceYSize) < 20
-      ) {
+      if (Math.abs(other.x - piece.x - dx * pieceXSize) < 20 && Math.abs(other.y - piece.y - dy * pieceYSize) < 20) {
         // Merge: align positions
         piece.x = other.x - dx * pieceXSize;
         piece.y = other.y - dy * pieceYSize;
@@ -354,8 +352,16 @@ function tryMerge(idx, piece) {
         other.group.forEach((groupPiece) => {
           groupPiece.group = piece.group;
         });
+        merged = true;
       }
     }
+  }
+  if (merged) {
+    // Play success sound
+    const successAudio = new Audio("audio/success.m4a");
+    successAudio.currentTime = 0;
+    successAudio.volume = 0.2;
+    successAudio.play();
   }
 }
 
@@ -401,6 +407,17 @@ function checkSolved(idx) {
       );
       if (congratulationsText) {
         congratulationsText.innerHTML = "<h2>恭  喜</h2>";
+      }
+      // 激活页面6按钮并停用其他按钮
+      try {
+        const allBtns = document.querySelectorAll(".page-btn");
+        allBtns.forEach((b) => b.classList.remove("active"));
+        const activeBtn = document.querySelector(
+          ".page-btn[data-page='page6']",
+        );
+        if (activeBtn) activeBtn.classList.add("active");
+      } catch (e) {
+        // ignore if DOM structure is different
       }
     } else {
       // 播放fast.mp3
@@ -547,6 +564,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 分页按钮跳转
   pageBtns.forEach((btn) => {
+    // 添加悬停事件播放音频
+    btn.addEventListener("mouseenter", function () {
+      const pageBtnAudio = new Audio("audio/pagebtn.mp3");
+      pageBtnAudio.currentTime = 0;
+      pageBtnAudio.volume = 0.3; // 调整音量，范围0-1
+      pageBtnAudio.play();
+    });
+
     btn.addEventListener("click", function () {
       const targetPageId = this.dataset.page;
       const targetPage = document.getElementById(targetPageId);
@@ -626,7 +651,7 @@ document.addEventListener("DOMContentLoaded", function () {
       leftOffset = 0,
       topOffset = -40,
       zIndex = 1000,
-      fontFamily = "Arial, sans-serif",
+      fontFamily = "'CustomFont', Arial, sans-serif",
       letterSpacing = "2px",
       textShadow = "0 2px 8px rgba(0,0,0,0.2)",
     } = options;
@@ -678,24 +703,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const leftBottomImg = document.querySelector(".left-bottom-img");
 
     // Check if click count is a multiple of 7
-    if (bunClickCount % 7 === 0) {
-      // Play the new audio file
-      const audio = new Audio("audio/jcxbroken.m4a");
-      audio.play();
-      // Substitute pink.png with smile.png
-      if (leftBottomImg) {
-        leftBottomImg.src = "images/smile.png";
-      }
-    } else {
-      // Play random audio from existing files
-      const randomIndex = Math.floor(Math.random() * audioFiles.length);
-      const audio = new Audio(audioFiles[randomIndex]);
-      audio.play();
-      // Return to pink.png
-      if (leftBottomImg) {
-        leftBottomImg.src = "images/pink.png";
-      }
+    // if (bunClickCount % 7 === 0) {
+    //   // Play the new audio file
+    //   const audio = new Audio("audio/jcxbroken.m4a");
+    //   audio.play();
+    //   // Substitute pink.png with smile.png
+    //   if (leftBottomImg) {
+    //     leftBottomImg.src = "images/smile.png";
+    //   }
+    // } else {
+    // Play random audio from existing files
+    const randomIndex = Math.floor(Math.random() * audioFiles.length);
+    const audio = new Audio(audioFiles[randomIndex]);
+    audio.play();
+    // Return to pink.png
+    if (leftBottomImg) {
+      leftBottomImg.src = "images/pink.png";
     }
+    // }
 
     showFloatingText({
       text: "功德+1",
@@ -705,7 +730,7 @@ document.addEventListener("DOMContentLoaded", function () {
       duration: 1500,
       riseDistance: 80,
       topOffset: -50,
-      fontFamily: "Microsoft YaHei, sans-serif",
+      fontFamily: "'CustomFont', Microsoft YaHei, sans-serif",
       // textShadow: "0 4px 12px rgba(0,0,0,0.3)",
     });
   });
@@ -2051,9 +2076,9 @@ document.addEventListener("DOMContentLoaded", function () {
   function startAttentionAnimation() {
     if (!isPlaying && musicBtn) {
       // Animation: expand and shrink twice in 1 second
-      musicBtn.classList.add('attention');
+      musicBtn.classList.add("attention");
       setTimeout(() => {
-        musicBtn.classList.remove('attention');
+        musicBtn.classList.remove("attention");
         // Schedule next animation in 10 seconds
         attentionInterval = setTimeout(startAttentionAnimation, 10000);
       }, 1000);
@@ -2083,7 +2108,7 @@ document.addEventListener("DOMContentLoaded", function () {
         clearTimeout(attentionInterval);
         attentionInterval = null;
       }
-      musicBtn.classList.remove('attention');
+      musicBtn.classList.remove("attention");
     }
     isPlaying = !isPlaying;
   }
