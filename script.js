@@ -44,10 +44,14 @@ function formatTime(ms) {
 
 function startTimer() {
   timer = 0;
-  document.getElementById("floatingTimer").textContent = formatTime(timer);
+  const floatingTimer = document.getElementById("floatingTimer");
+  const page6Timer = document.getElementById("page6Timer");
+  if (floatingTimer) floatingTimer.textContent = formatTime(timer);
+  if (page6Timer) page6Timer.textContent = formatTime(timer);
   timerInterval = setInterval(() => {
     timer += 10;
-    document.getElementById("floatingTimer").textContent = formatTime(timer);
+    if (floatingTimer) floatingTimer.textContent = formatTime(timer);
+    if (page6Timer) page6Timer.textContent = formatTime(timer);
   }, 10);
 }
 function stopTimer() {
@@ -169,7 +173,14 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
 }
 
 function drawPuzzle(idx) {
-  const { pieces, mouseX, mouseY, mouseOver, boundaryHighlight, mergeHighlight } = puzzles[idx];
+  const {
+    pieces,
+    mouseX,
+    mouseY,
+    mouseOver,
+    boundaryHighlight,
+    mergeHighlight,
+  } = puzzles[idx];
   ctxs[idx].clearRect(0, 0, canvasXSize * 2, canvasYSize * 2);
 
   // Draw boundary
@@ -248,7 +259,7 @@ function animatePuzzle(idx) {
   const { pieces } = puzzles[idx];
   const currentTime = Date.now();
   let boundaryHit = false;
-  
+
   for (const piece of pieces) {
     if (piece.dragging) continue;
     // Bounce
@@ -295,7 +306,7 @@ function animatePuzzle(idx) {
       }
     }
   }
-  
+
   // Handle boundary highlight and sound
   if (boundaryHit) {
     // Check if this puzzle's page is currently active
@@ -307,7 +318,7 @@ function animatePuzzle(idx) {
       bouncingAudio.volume = 1;
       bouncingAudio.play();
     }
-    
+
     puzzles[idx].boundaryHighlight = true;
     // Reset highlight after 300ms
     setTimeout(() => {
@@ -317,7 +328,7 @@ function animatePuzzle(idx) {
       }
     }, 100);
   }
-  
+
   drawPuzzle(idx);
   if (!puzzles[idx].solved) requestAnimationFrame(() => animatePuzzle(idx));
 }
@@ -426,7 +437,7 @@ function tryMerge(idx, piece) {
     successAudio.currentTime = 0;
     successAudio.volume = 0.2;
     successAudio.play();
-    
+
     // Trigger merge highlight
     puzzles[idx].mergeHighlight = true;
     // Reset highlight after 500ms
@@ -534,7 +545,7 @@ function scrollToFirstUnsolved() {
 }
 
 // 排行相关
-const globalBests = [{ nickname: "阿见", time: 45.23 }];
+const globalBests = [{ nickname: "阿见", time: 45.23, difficulty: 1 }];
 
 function updatePersonalList() {
   let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
@@ -560,7 +571,13 @@ function updateGlobalList() {
   ol.innerHTML = "";
   globalBests.slice(0, 5).forEach((item, i) => {
     const li = document.createElement("li");
-    li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒`;
+    const difficultyText =
+      globalBests.difficulty === 1
+        ? "简单"
+        : globalBests.difficulty === 2
+          ? "中等"
+          : "困难";
+    li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒 (${difficultyText})`;
     ol.appendChild(li);
   });
 }
@@ -714,6 +731,13 @@ document.addEventListener("DOMContentLoaded", function () {
       } else if (currentPageId !== "page5" && page5Active) {
         page5Active = false;
         stopPage5Timer();
+      }
+      // Sync page6 timer with floating timer when on page6
+      if (currentPageId === "page6") {
+        const page6Timer = document.getElementById("page6Timer");
+        if (page6Timer) {
+          page6Timer.textContent = formatTime(timer);
+        }
       }
     }, 100);
   });
@@ -882,7 +906,7 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
     // Disable difficulty buttons when game starts
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = true;
     });
     allSolved = [false, false, false];
@@ -912,7 +936,7 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
     // Enable difficulty buttons when game stops
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
     });
     stopTimer();
@@ -941,7 +965,7 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtnFloat.disabled = true;
     okBtn.disabled = false;
     // Enable difficulty buttons when game restarts
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
     });
     // Set default difficulty
@@ -1000,6 +1024,12 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
 
+    // Update page6 timer with final time
+    const page6Timer = document.getElementById("page6Timer");
+    if (page6Timer) {
+      page6Timer.textContent = formatTime(timer);
+    }
+
     // Add smooth transition animation to "恭喜" text using CSS keyframes
     const congratulationsText = document.getElementById("congratulationsText");
     if (congratulationsText) {
@@ -1047,7 +1077,7 @@ document.addEventListener("DOMContentLoaded", function () {
   restartBtn.disabled = true;
   restartBtnFloat.disabled = true;
   // Enable difficulty buttons initially
-  [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+  [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
     btn.disabled = false;
   });
   // Set default difficulty
