@@ -10,9 +10,9 @@ let bunClickCount = 0;
 let currentDifficulty = 1; // 1: 简单, 2: 中等, 3: 困难
 let difficultySelected = false; // 标记是否已选择难度
 const difficultySettings = {
-  1: { gridSize: 2, speed: 2, lensSize: 600 }, // 2x2, 慢, 大镜头
-  2: { gridSize: 3, speed: 3, lensSize: 400 }, // 3x3, 中, 中镜头
-  3: { gridSize: 4, speed: 4, lensSize: 300 }, // 4x4, 快, 小镜头
+  1: { gridSize: 2, speed: 4, lensSize: 600 }, // 2x2, 慢, 大镜头
+  2: { gridSize: 3, speed: 6, lensSize: 400 }, // 3x3, 中, 中镜头
+  3: { gridSize: 4, speed: 8, lensSize: 300 }, // 4x4, 快, 小镜头
 };
 let gridSize = difficultySettings[currentDifficulty].gridSize;
 const canvasXSize = 1344;
@@ -30,6 +30,7 @@ let nickname = "";
 let page5ActiveTimer = 0;
 let page5TimerInterval = null;
 let page5Active = false;
+let currentActivePage = "page1"; // Track current active page
 
 function formatTime(ms) {
   let s = Math.floor(ms / 1000);
@@ -161,13 +162,28 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
     mouseX: 0,
     mouseY: 0,
     mouseOver: false,
+    boundaryHighlight: false,
+    mergeHighlight: false,
   };
   drawPuzzle(puzzleIdx);
 }
 
 function drawPuzzle(idx) {
-  const { pieces, mouseX, mouseY, mouseOver } = puzzles[idx];
+  const { pieces, mouseX, mouseY, mouseOver, boundaryHighlight, mergeHighlight } = puzzles[idx];
   ctxs[idx].clearRect(0, 0, canvasXSize * 2, canvasYSize * 2);
+
+  // Draw boundary
+  if (mergeHighlight) {
+    ctxs[idx].strokeStyle = "#00ff00";
+    ctxs[idx].lineWidth = 40000;
+  } else if (boundaryHighlight) {
+    ctxs[idx].strokeStyle = "#ffb3c2";
+    ctxs[idx].lineWidth = 40;
+  } else {
+    ctxs[idx].strokeStyle = "#000000";
+    ctxs[idx].lineWidth = 2;
+  }
+  ctxs[idx].strokeRect(0, 0, canvasXSize * 2, canvasYSize * 2);
 
   // Lens parameters (only for hongbao puzzle)
   const isHongbao = idx === 2;
@@ -194,9 +210,17 @@ function drawPuzzle(idx) {
     // Restore context
     ctxs[idx].restore();
 
-    // Draw black border around the hole
-    ctxs[idx].strokeStyle = "black";
-    ctxs[idx].lineWidth = 2;
+    // Draw border around the hole
+    if (mergeHighlight) {
+      ctxs[idx].strokeStyle = "#00ff00";
+      ctxs[idx].lineWidth = 40;
+    } else if (boundaryHighlight) {
+      ctxs[idx].strokeStyle = "#ffb3c2";
+      ctxs[idx].lineWidth = 40;
+    } else {
+      ctxs[idx].strokeStyle = "black";
+      ctxs[idx].lineWidth = 2;
+    }
     ctxs[idx].beginPath();
     ctxs[idx].arc(mouseX, mouseY, lensRadius, 0, Math.PI * 2);
     ctxs[idx].stroke();
@@ -223,6 +247,8 @@ function animatePuzzle(idx) {
   if (!puzzles[idx].started) return;
   const { pieces } = puzzles[idx];
   const currentTime = Date.now();
+  let boundaryHit = false;
+  
   for (const piece of pieces) {
     if (piece.dragging) continue;
     // Bounce
@@ -239,6 +265,7 @@ function animatePuzzle(idx) {
             piece.x + ((groupPiece.idx - piece.idx) % gridSize) * pieceXSize;
         }
       });
+      boundaryHit = true;
     }
     if (piece.y < 0 || piece.y > 2 * canvasYSize - pieceYSize) {
       piece.vy *= -1;
@@ -251,6 +278,7 @@ function animatePuzzle(idx) {
             Math.floor((groupPiece.idx - piece.idx) / gridSize) * pieceYSize;
         }
       });
+      boundaryHit = true;
     }
     // Breathing effect for apple and hongbao puzzles
     if (piece.puzzleIdx === 1 || piece.puzzleIdx === 2) {
@@ -267,6 +295,29 @@ function animatePuzzle(idx) {
       }
     }
   }
+  
+  // Handle boundary highlight and sound
+  if (boundaryHit) {
+    // Check if this puzzle's page is currently active
+    const expectedPageId = "page" + (3 + idx);
+    if (currentActivePage === expectedPageId) {
+      // Play bouncing sound
+      const bouncingAudio = new Audio("audio/bouncing.m4a");
+      bouncingAudio.currentTime = 0;
+      bouncingAudio.volume = 1;
+      bouncingAudio.play();
+    }
+    
+    puzzles[idx].boundaryHighlight = true;
+    // Reset highlight after 300ms
+    setTimeout(() => {
+      if (puzzles[idx]) {
+        puzzles[idx].boundaryHighlight = false;
+        drawPuzzle(idx);
+      }
+    }, 100);
+  }
+  
   drawPuzzle(idx);
   if (!puzzles[idx].solved) requestAnimationFrame(() => animatePuzzle(idx));
 }
@@ -375,6 +426,16 @@ function tryMerge(idx, piece) {
     successAudio.currentTime = 0;
     successAudio.volume = 0.2;
     successAudio.play();
+    
+    // Trigger merge highlight
+    puzzles[idx].mergeHighlight = true;
+    // Reset highlight after 500ms
+    setTimeout(() => {
+      if (puzzles[idx]) {
+        puzzles[idx].mergeHighlight = false;
+        drawPuzzle(idx);
+      }
+    }, 500);
   }
 }
 
@@ -489,7 +550,7 @@ function updatePersonalList() {
         : record.difficulty === 2
           ? "中等"
           : "困难";
-    li.textContent = `${nickname}: ${record.time.toFixed(2)} ç§’ (${difficultyText})`;
+    li.textContent = `${nickname}: ${record.time.toFixed(2)} 秒 (${difficultyText})`;
     ol.appendChild(li);
   });
 }
@@ -615,6 +676,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         pageBtns.forEach((b) => b.classList.remove("active"));
         this.classList.add("active");
+        currentActivePage = targetPageId; // Update current active page
       }
       // Handle page5 active state
       if (targetPageId === "page5" && !page5Active) {
@@ -637,6 +699,7 @@ document.addEventListener("DOMContentLoaded", function () {
         btn.classList.contains("active"),
       );
       currentPageId = activeBtn ? activeBtn.dataset.page : "page1";
+      currentActivePage = currentPageId; // Update current active page
 
       // Show or hide floating controls based on the current page
       if (["page3", "page4", "page5"].includes(currentPageId)) {
@@ -2155,6 +2218,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize audio element
   function initAudio() {
     audio = new Audio("audio/KevinVillecco-Yoshigemia.mp3");
+    audio.volume = 0.2;
     audio.loop = true;
   }
 
