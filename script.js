@@ -6,11 +6,19 @@ const imagePaths = [
 const audioFiles = ["audio/emo.m4a", "audio/ua.m4a", "audio/ui.m4a"];
 let bunClickCount = 0;
 
-const gridSize = 2;
+// Difficulty settings
+let currentDifficulty = 1; // 1: 简单, 2: 中等, 3: 困难
+let difficultySelected = false; // 标记是否已选择难度
+const difficultySettings = {
+  1: { gridSize: 2, speed: 2, lensSize: 600 }, // 2x2, 慢, 大镜头
+  2: { gridSize: 3, speed: 3, lensSize: 400 }, // 3x3, 中, 中镜头
+  3: { gridSize: 4, speed: 4, lensSize: 300 }, // 4x4, 快, 小镜头
+};
+let gridSize = difficultySettings[currentDifficulty].gridSize;
 const canvasXSize = 1344;
 const canvasYSize = 768;
-const pieceXSize = canvasXSize / gridSize;
-const pieceYSize = canvasYSize / gridSize;
+let pieceXSize = canvasXSize / gridSize;
+let pieceYSize = canvasYSize / gridSize;
 
 let canvases = [];
 let ctxs = [];
@@ -163,7 +171,7 @@ function drawPuzzle(idx) {
 
   // Lens parameters (only for hongbao puzzle)
   const isHongbao = idx === 2;
-  const lensDiameter = 600;
+  const lensDiameter = difficultySettings[currentDifficulty].lensSize;
   const lensRadius = lensDiameter / 2;
 
   // If it's the hongbao puzzle and mouse is over, draw with lens effect
@@ -202,11 +210,12 @@ function drawPuzzle(idx) {
 
 function scatterPieces(idx) {
   const { pieces } = puzzles[idx];
+  const speed = difficultySettings[currentDifficulty].speed;
   for (const piece of pieces) {
     piece.x = Math.random() * (2 * canvasXSize - pieceXSize);
     piece.y = Math.random() * (2 * canvasYSize - pieceYSize);
-    piece.vx = (Math.random() - 0.5) * 4;
-    piece.vy = (Math.random() - 0.5) * 4;
+    piece.vx = (Math.random() - 0.5) * speed;
+    piece.vy = (Math.random() - 0.5) * speed;
   }
 }
 
@@ -335,10 +344,14 @@ function tryMerge(idx, piece) {
     if (other === piece) continue;
     // If adjacent in original grid
     const dx = (other.idx % gridSize) - (piece.idx % gridSize);
-    const dy = Math.floor(other.idx / gridSize) - Math.floor(piece.idx / gridSize);
+    const dy =
+      Math.floor(other.idx / gridSize) - Math.floor(piece.idx / gridSize);
     if (Math.abs(dx) + Math.abs(dy) === 1) {
       // If close enough in current position
-      if (Math.abs(other.x - piece.x - dx * pieceXSize) < 20 && Math.abs(other.y - piece.y - dy * pieceYSize) < 20) {
+      if (
+        Math.abs(other.x - piece.x - dx * pieceXSize) < 20 &&
+        Math.abs(other.y - piece.y - dy * pieceYSize) < 20
+      ) {
         // Merge: align positions
         piece.x = other.x - dx * pieceXSize;
         piece.y = other.y - dy * pieceYSize;
@@ -468,9 +481,15 @@ function updatePersonalList() {
   const ol = document.getElementById("personalList");
   if (!ol) return;
   ol.innerHTML = "";
-  list.forEach((t, i) => {
+  list.forEach((record, i) => {
     const li = document.createElement("li");
-    li.textContent = `${nickname}: ${t.toFixed(2)} 秒`;
+    const difficultyText =
+      record.difficulty === 1
+        ? "简单"
+        : record.difficulty === 2
+          ? "中等"
+          : "困难";
+    li.textContent = `${nickname}: ${record.time.toFixed(2)} ç§’ (${difficultyText})`;
     ol.appendChild(li);
   });
 }
@@ -509,6 +528,15 @@ document.addEventListener("DOMContentLoaded", function () {
   const confirmBtn = document.getElementById("confirmBtn");
   const topBtn = document.getElementById("topBtn");
   const bunImg = document.getElementById("bun-img");
+
+  // Difficulty buttons event listeners
+  const difficulty1Btn = document.getElementById("difficulty1");
+  const difficulty2Btn = document.getElementById("difficulty2");
+  const difficulty3Btn = document.getElementById("difficulty3");
+
+  difficulty1Btn.addEventListener("click", () => setDifficulty(1));
+  difficulty2Btn.addEventListener("click", () => setDifficulty(2));
+  difficulty3Btn.addEventListener("click", () => setDifficulty(3));
 
   // 初始化拼图（3个）
   for (let i = 0; i < imagePaths.length; i++) {
@@ -743,18 +771,57 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!nickname) return alert("请输入昵称");
     localStorage.setItem("jigsaw_nickname", nickname);
     okBtn.disabled = true;
-    startBtn.disabled = false;
+    // Enable start button only if difficulty is selected
+    startBtn.disabled = !difficultySelected;
     updatePersonalList();
   };
+
+  function setDifficulty(level) {
+    currentDifficulty = level;
+    gridSize = difficultySettings[level].gridSize;
+    pieceXSize = canvasXSize / gridSize;
+    pieceYSize = canvasYSize / gridSize;
+    difficultySelected = true;
+
+    // Re-setup puzzles with new difficulty
+    for (let i = 0; i < imagePaths.length; i++) {
+      if (puzzles[i]) {
+        puzzles[i].started = false;
+        puzzles[i].solved = false;
+      }
+      setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
+    }
+
+    // Update button styles
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn, idx) => {
+      if (idx + 1 === level) {
+        btn.style.backgroundColor = "#d5d5d5";
+        btn.style.color = "white";
+      } else {
+        btn.style.backgroundColor = "";
+        btn.style.color = "";
+      }
+    });
+
+    // Check if start button should be enabled
+    if (okBtn.disabled) {
+      startBtn.disabled = false;
+    }
+  }
 
   // Start：在注册页点击，开始所有拼图并跳到 page3，显示浮动控件
   startBtn.onclick = function () {
     if (!nickname) return alert("请先输入昵称并点击OK!");
+    if (!difficultySelected) return alert("请选择难度!");
     startBtn.disabled = true;
     stopBtn.disabled = false;
     confirmBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
+    // Disable difficulty buttons when game starts
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+      btn.disabled = true;
+    });
     allSolved = [false, false, false];
     for (let i = 0; i < imagePaths.length; i++) {
       puzzles[i].started = true;
@@ -776,11 +843,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Stop：停止计时与动画（重置为初始未开始状态）
   stopBtn.onclick = function () {
-    startBtn.disabled = false;
+    startBtn.disabled = !okBtn.disabled || !difficultySelected;
     confirmBtn.disabled = true;
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+    // Enable difficulty buttons when game stops
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+      btn.disabled = false;
+    });
     stopTimer();
     stopPage5Timer();
     page5Active = false;
@@ -800,12 +871,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 重启（页面底部/浮动重启共用）
   function doRestart() {
-    startBtn.disabled = false;
+    startBtn.disabled = true;
     confirmBtn.disabled = true;
     stopBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
     okBtn.disabled = false;
+    // Enable difficulty buttons when game restarts
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+      btn.disabled = false;
+    });
+    // Set default difficulty
+    setDifficulty(1);
     stopTimer();
     stopPage5Timer();
     page5Active = false;
@@ -846,8 +923,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const timeSeconds = timer / 1000;
     let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
     if (!records[nickname]) records[nickname] = [];
-    records[nickname].push(timeSeconds);
-    records[nickname].sort((a, b) => a - b);
+    records[nickname].push({
+      time: timeSeconds,
+      difficulty: currentDifficulty,
+    });
+    records[nickname].sort((a, b) => a.time - b.time);
     records[nickname] = records[nickname].slice(0, 5);
     localStorage.setItem("jigsaw_records", JSON.stringify(records));
     updatePersonalList();
@@ -903,6 +983,12 @@ document.addEventListener("DOMContentLoaded", function () {
   stopBtn.disabled = true;
   restartBtn.disabled = true;
   restartBtnFloat.disabled = true;
+  // Enable difficulty buttons initially
+  [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach(btn => {
+    btn.disabled = false;
+  });
+  // Set default difficulty
+  setDifficulty(1);
   localStorage.removeItem("jigsaw_records"); // 可以移除或注释掉以保留记录
   updatePersonalList();
   updateGlobalList();
