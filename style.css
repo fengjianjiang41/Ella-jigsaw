@@ -148,6 +148,10 @@
     -webkit-animation: congratsColorCycle 0.4s ease-in-out 1;
 }
 
+.color-dancing {
+    /* Base class for color dancing effect */
+}
+
 body {
     font-family: 'CustomFont', Arial, sans-serif;
     margin: 0;

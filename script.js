@@ -1030,19 +1030,16 @@ document.addEventListener("DOMContentLoaded", function () {
       page6Timer.textContent = formatTime(timer);
     }
 
-    // Add smooth transition animation to "恭喜" text using CSS keyframes
+    // Add color dancing animation to "恭喜" text using dynamic color random walk
     const congratulationsText = document.getElementById("congratulationsText");
     if (congratulationsText) {
       const h2 = congratulationsText.querySelector("h2");
       if (h2) {
-        h2.classList.remove("congrats-animate"); // reset if needed
-        // Force reflow to restart animation if needed
-        void h2.offsetWidth;
-        h2.classList.add("congrats-animate");
-        h2.addEventListener("animationend", function handler() {
-          h2.classList.remove("congrats-animate");
-          h2.removeEventListener("animationend", handler);
-        });
+        h2.classList.remove("congrats-animate"); // remove old animation if present
+        h2.classList.add("color-dancing"); // add new color dancing class
+        
+        // Start color random walk animation
+        startColorRandomWalk(h2);
       }
     }
   };
@@ -1086,6 +1083,66 @@ document.addEventListener("DOMContentLoaded", function () {
   updatePersonalList();
   updateGlobalList();
 });
+
+// Color random walk animation function
+function startColorRandomWalk(element) {
+  // Define base colors (black, red, orange, yellow, white)
+  const colors = [
+    // { r: 0, g: 0, b: 0 },     // black
+    { r: 255, g: 0, b: 0 },   // red
+    { r: 255, g: 165, b: 0 }, // orange
+    { r: 255, g: 255, b: 0 }, // yellow
+    { r: 255, g: 255, b: 255 } // white
+  ];
+  
+  // Initialize random weights for each color
+  let weights = colors.map(() => Math.random());
+  
+  // Normalize weights to sum to 1
+  const normalizeWeights = () => {
+    const sum = weights.reduce((a, b) => a + b, 0);
+    weights = weights.map(w => w / sum);
+  };
+  
+  normalizeWeights();
+  
+  // Animation loop
+  const animate = () => {
+    // Randomly adjust weights in small increments
+    weights = weights.map(w => {
+      // Small random adjustment (-0.05 to 0.05)
+      let adjustment = (Math.random() - 0.5) * 0.1;
+      return Math.max(0, Math.min(1, w + adjustment));
+    });
+    
+    normalizeWeights();
+    
+    // Calculate weighted average color
+    let r = 0, g = 0, b = 0;
+    colors.forEach((color, index) => {
+      r += color.r * weights[index];
+      g += color.g * weights[index];
+      b += color.b * weights[index];
+    });
+    
+    // Convert to hex color
+    const toHex = (num) => {
+      const hex = Math.round(num).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    const hexColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    
+    // Apply color to element
+    element.style.color = hexColor;
+    
+    // Continue animation
+    requestAnimationFrame(animate);
+  };
+  
+  // Start animation
+  animate();
+}
 // ...existing code...
 
 // ------------------------------------------------------------------
