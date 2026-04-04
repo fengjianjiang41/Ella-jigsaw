@@ -1030,17 +1030,57 @@ document.addEventListener("DOMContentLoaded", function () {
       page6Timer.textContent = formatTime(timer);
     }
 
-    // Add color dancing animation to "恭喜" text using dynamic color random walk
+    // Replace congratulations text with particles.gif using absolute positioning
     const congratulationsText = document.getElementById("congratulationsText");
     if (congratulationsText) {
+      // Store original content
+      const originalContent = congratulationsText.innerHTML;
+      
+      // Add relative positioning to the container
+      congratulationsText.style.position = "relative";
+      
+      // Create gif element and position it absolutely over the text
+      const gifElement = document.createElement("img");
+      gifElement.src = "images/particles.gif";
+      gifElement.alt = "Particles";
+      gifElement.style.position = "absolute";
+      gifElement.style.top = "0";
+      gifElement.style.left = "0";
+      gifElement.style.width = "100%";
+      gifElement.style.height = "100%";
+      gifElement.style.objectFit = "contain";
+      gifElement.style.zIndex = "10";
+      
+      // Hide the original text temporarily
       const h2 = congratulationsText.querySelector("h2");
       if (h2) {
-        h2.classList.remove("congrats-animate"); // remove old animation if present
-        h2.classList.add("color-dancing"); // add new color dancing class
-        
-        // Start color random walk animation
-        startColorRandomWalk(h2);
+        h2.style.opacity = "0";
       }
+      
+      // Add the gif to the container
+      congratulationsText.appendChild(gifElement);
+      
+      // After the gif plays once (assuming ~3 seconds), restore the text
+      setTimeout(() => {
+        // Remove the gif
+        if (gifElement.parentNode) {
+          gifElement.parentNode.removeChild(gifElement);
+        }
+        
+        // Restore original content but with "往下有惊喜"
+        congratulationsText.innerHTML = "<h2>往下有惊喜</h2>";
+        
+        // Reset positioning
+        congratulationsText.style.position = "";
+        
+        // Ensure no animations are applied
+        const h2 = congratulationsText.querySelector("h2");
+        if (h2) {
+          h2.classList.remove("congrats-animate", "color-dancing");
+          h2.style.animation = "none";
+          h2.style.color = "#000000"; // Reset to original color
+        }
+      }, 1400); // Adjust timing based on actual gif duration
     }
   };
 
@@ -1089,57 +1129,59 @@ function startColorRandomWalk(element) {
   // Define base colors (black, red, orange, yellow, white)
   const colors = [
     // { r: 0, g: 0, b: 0 },     // black
-    { r: 255, g: 0, b: 0 },   // red
+    { r: 255, g: 0, b: 0 }, // red
     { r: 255, g: 165, b: 0 }, // orange
     { r: 255, g: 255, b: 0 }, // yellow
-    { r: 255, g: 255, b: 255 } // white
+    { r: 255, g: 255, b: 255 }, // white
   ];
-  
+
   // Initialize random weights for each color
   let weights = colors.map(() => Math.random());
-  
+
   // Normalize weights to sum to 1
   const normalizeWeights = () => {
     const sum = weights.reduce((a, b) => a + b, 0);
-    weights = weights.map(w => w / sum);
+    weights = weights.map((w) => w / sum);
   };
-  
+
   normalizeWeights();
-  
+
   // Animation loop
   const animate = () => {
     // Randomly adjust weights in small increments
-    weights = weights.map(w => {
+    weights = weights.map((w) => {
       // Small random adjustment (-0.05 to 0.05)
       let adjustment = (Math.random() - 0.5) * 0.1;
       return Math.max(0, Math.min(1, w + adjustment));
     });
-    
+
     normalizeWeights();
-    
+
     // Calculate weighted average color
-    let r = 0, g = 0, b = 0;
+    let r = 0,
+      g = 0,
+      b = 0;
     colors.forEach((color, index) => {
       r += color.r * weights[index];
       g += color.g * weights[index];
       b += color.b * weights[index];
     });
-    
+
     // Convert to hex color
     const toHex = (num) => {
       const hex = Math.round(num).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
+      return hex.length === 1 ? "0" + hex : hex;
     };
-    
+
     const hexColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-    
+
     // Apply color to element
     element.style.color = hexColor;
-    
+
     // Continue animation
     requestAnimationFrame(animate);
   };
-  
+
   // Start animation
   animate();
 }
