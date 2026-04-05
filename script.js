@@ -637,14 +637,8 @@ document.addEventListener("DOMContentLoaded", function () {
     setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
   }
 
-  // 禁用鼠标滚轮（保留 scrollIntoView 控制）
-  pagesContainer.addEventListener(
-    "wheel",
-    function (e) {
-      e.preventDefault();
-    },
-    { passive: false },
-  );
+  // 启用鼠标滚轮滚动所有页面
+  // 移除了滚轮事件的阻止，允许自然滚动行为
 
   // 首次按键：显示导航并跳到第二页
   document.addEventListener("keydown", function onFirstKey() {
