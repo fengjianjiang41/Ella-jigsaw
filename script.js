@@ -2547,15 +2547,19 @@ class Vector2 {
 // physics scene -------------------------------------------------------
 
 class Ball {
-  constructor(radius, mass, pos, vel) {
+  constructor(radius, mass, inertia, pos, vel, ang, omega) {
     this.radius = radius;
     this.mass = mass;
+    this.inertia = inertia;
     this.pos = pos.clone();
     this.vel = vel.clone();
+    this.ang = ang; // 角度是标量
+    this.omega = omega; // 角速度是标量
   }
   simulate(dt, gravity) {
     this.vel.add(gravity, dt);
     this.pos.add(this.vel, dt);
+    this.ang += this.omega * dt; // 角度更新
   }
 }
 
@@ -2566,7 +2570,7 @@ var physicsScene = {
   paused: true,
   balls: [],
   restitution: 0.8,
-  G: 10, // Gravitational constant
+  G: 9.8, // Gravitational constant
 };
 
 // Add a fixed index for the draggable ball (always the third ball)
@@ -2580,6 +2584,7 @@ function setupSceneGravity() {
   for (i = 0; i < numBalls; i++) {
     var radius = 0.01 * (i === 0 ? 6.4 : i === 1 ? 3.5 : 4.0); // Third ball has radius 0.04
     var mass = Math.PI * radius * radius;
+    var inertia = mass * radius * radius / 2.0;
     var pos = new Vector2(
       Math.random() * simWidth2,
       Math.random() * simHeight2,
@@ -2588,8 +2593,10 @@ function setupSceneGravity() {
       -1.0 + 2.0 * Math.random(),
       -1.0 + 2.0 * Math.random(),
     );
+    var ang = 0.0; // 初始角度
+    var omega = 0.0; // 初始角速度
 
-    physicsScene.balls.push(new Ball(radius, mass, pos, vel));
+    physicsScene.balls.push(new Ball(radius, mass, inertia, pos, vel, ang, omega));
   }
 
   // Reset drag tracking
@@ -2682,13 +2689,24 @@ function drawGravity() {
   for (i = 0; i < physicsScene.balls.length; i++) {
     var ball = physicsScene.balls[i];
     var radius = cScale2 * ball.radius;
+    var centerX = cX(ball.pos);
+    var centerY = cY(ball.pos);
 
+    // 保存当前Canvas状态
+    c.save();
+    
+    // 平移到球体中心
+    c.translate(centerX, centerY);
+    
+    // 旋转Canvas到球体的角度
+    c.rotate(ball.ang);
+    
     if (i === 0 && earthImage.complete) {
       // Draw earth image for the biggest ball
       c.drawImage(
         earthImage,
-        cX(ball.pos) - radius,
-        cY(ball.pos) - radius,
+        -radius,
+        -radius,
         radius * 2,
         radius * 2,
       );
@@ -2696,8 +2714,8 @@ function drawGravity() {
       // Draw moon image for the smallest ball
       c.drawImage(
         moonImage,
-        cX(ball.pos) - radius,
-        cY(ball.pos) - radius,
+        -radius,
+        -radius,
         radius * 2,
         radius * 2,
       );
@@ -2705,18 +2723,21 @@ function drawGravity() {
       // Draw the bun image for the draggable ball
       c.drawImage(
         bunImage,
-        cX(ball.pos) - radius,
-        cY(ball.pos) - radius,
+        -radius,
+        -radius,
         radius * 2,
         radius * 2,
       );
     } else {
       // Draw regular balls as circles
       c.beginPath();
-      c.arc(cX(ball.pos), cY(ball.pos), radius, 0.0, 2.0 * Math.PI);
+      c.arc(0, 0, radius, 0.0, 2.0 * Math.PI);
       c.closePath();
       c.fill();
     }
+    
+    // 恢复Canvas状态
+    c.restore();
   }
 }
 
@@ -2734,38 +2755,195 @@ function handleBallCollision(ball1, ball2, restitution) {
   ball1.pos.add(dir, -corr);
   ball2.pos.add(dir, corr);
 
-  var v1 = ball1.vel.dot(dir);
-  var v2 = ball2.vel.dot(dir);
+  // 计算碰撞点
+  var contactPoint1 = new Vector2();
+  contactPoint1.addVectors(ball1.pos, dir, ball1.radius);
+  var contactPoint2 = new Vector2();
+  contactPoint2.subtractVectors(ball2.pos, dir, ball2.radius);
 
+  // 计算碰撞点的速度
+  var vel1 = new Vector2();
+  var vel2 = new Vector2();
+  var tangent1 = new Vector2(-dir.y, dir.x); // 切向方向
+  var tangent2 = new Vector2(-tangent1.x, -tangent1.y);
+
+  // 球体1碰撞点的速度（平动+转动）
+  var r1 = new Vector2();
+  r1.subtractVectors(contactPoint1, ball1.pos);
+  var rotVel1 = new Vector2(-ball1.omega * r1.y, ball1.omega * r1.x);
+  vel1.addVectors(ball1.vel, rotVel1);
+
+  // 球体2碰撞点的速度（平动+转动）
+  var r2 = new Vector2();
+  r2.subtractVectors(contactPoint2, ball2.pos);
+  var rotVel2 = new Vector2(-ball2.omega * r2.y, ball2.omega * r2.x);
+  vel2.addVectors(ball2.vel, rotVel2);
+
+  // 相对速度
+  var relVel = new Vector2();
+  relVel.subtractVectors(vel2, vel1);
+
+  // 分解为法向和切向分量
+  var normalVel = relVel.dot(dir);
+  var tangentVel = relVel.dot(tangent1);
+
+  // 计算法向冲量
   var m1 = ball1.mass;
   var m2 = ball2.mass;
+  var invMass1 = 1.0 / m1;
+  var invMass2 = 1.0 / m2;
+  var invInertia1 = 2.0 / (m1 * ball1.radius * ball1.radius); // 球体的转动惯量 I = (2/5)mr²，但这里简化为 (1/2)mr²
+  var invInertia2 = 2.0 / (m2 * ball2.radius * ball2.radius);
 
-  var newV1 = (m1 * v1 + m2 * v2 - m2 * (v1 - v2) * restitution) / (m1 + m2);
-  var newV2 = (m1 * v1 + m2 * v2 - m1 * (v2 - v1) * restitution) / (m1 + m2);
+  // 计算法向冲量
+  var impulseNormal = -(1 + restitution) * normalVel / (invMass1 + invMass2 + invInertia1 * ball1.radius * ball1.radius + invInertia2 * ball2.radius * ball2.radius);
 
-  ball1.vel.add(dir, newV1 - v1);
-  ball2.vel.add(dir, newV2 - v2);
+  // 应用法向冲量
+  ball1.vel.add(dir, -impulseNormal * invMass1);
+  ball2.vel.add(dir, impulseNormal * invMass2);
+  ball1.omega -= impulseNormal * ball1.radius * invInertia1;
+  ball2.omega += impulseNormal * ball2.radius * invInertia2;
+
+  // 计算切向冲量（摩擦力）
+  var friction = 0.2; // 摩擦系数
+  if (Math.abs(tangentVel) > 0.001) {
+    var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+    
+    // 应用切向冲量
+    ball1.vel.add(tangent1, -impulseTangent * invMass1);
+    ball2.vel.add(tangent1, impulseTangent * invMass2);
+    ball1.omega += impulseTangent * ball1.radius * invInertia1;
+    ball2.omega -= impulseTangent * ball2.radius * invInertia2;
+  }
 }
 
 // ------------------------------------------------------
 
 function handleWallCollision(ball, worldSize, restitution) {
+  var friction = 0.2; // 摩擦系数
+  var invMass = 1.0 / ball.mass;
+  var invInertia = 2.0 / (ball.mass * ball.radius * ball.radius); // 球体的转动惯量
+
+  // 左墙碰撞
   if (ball.pos.x < ball.radius) {
     ball.pos.x = ball.radius;
-    ball.vel.x = -restitution * ball.vel.x;
-  }
-  if (ball.pos.x > worldSize.x - ball.radius) {
-    ball.pos.x = worldSize.x - ball.radius;
-    ball.vel.x = -restitution * ball.vel.x;
-  }
-  if (ball.pos.y < ball.radius) {
-    ball.pos.y = ball.radius;
-    ball.vel.y = -restitution * ball.vel.y;
+    
+    // 计算碰撞点速度
+    var contactPoint = new Vector2(0, ball.pos.y);
+    var r = new Vector2();
+    r.subtractVectors(contactPoint, ball.pos);
+    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var contactVel = new Vector2();
+    contactVel.addVectors(ball.vel, rotVel);
+
+    // 法向和切向方向
+    var normal = new Vector2(1, 0);
+    var tangent = new Vector2(0, 1);
+
+    // 相对速度分量
+    var normalVel = contactVel.dot(normal);
+    var tangentVel = contactVel.dot(tangent);
+
+    // 法向冲量
+    var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
+
+    // 应用法向冲量
+    ball.vel.add(normal, -impulseNormal * invMass);
+    ball.omega -= impulseNormal * ball.radius * invInertia;
+
+    // 切向冲量（摩擦力）
+    if (Math.abs(tangentVel) > 0.001) {
+      var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+      ball.vel.add(tangent, -impulseTangent * invMass);
+      ball.omega += impulseTangent * ball.radius * invInertia;
+    }
   }
 
+  // 右墙碰撞
+  if (ball.pos.x > worldSize.x - ball.radius) {
+    ball.pos.x = worldSize.x - ball.radius;
+    
+    var contactPoint = new Vector2(worldSize.x, ball.pos.y);
+    var r = new Vector2();
+    r.subtractVectors(contactPoint, ball.pos);
+    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var contactVel = new Vector2();
+    contactVel.addVectors(ball.vel, rotVel);
+
+    var normal = new Vector2(-1, 0);
+    var tangent = new Vector2(0, 1);
+
+    var normalVel = contactVel.dot(normal);
+    var tangentVel = contactVel.dot(tangent);
+
+    var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
+
+    ball.vel.add(normal, -impulseNormal * invMass);
+    ball.omega -= impulseNormal * ball.radius * invInertia;
+
+    if (Math.abs(tangentVel) > 0.001) {
+      var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+      ball.vel.add(tangent, -impulseTangent * invMass);
+      ball.omega += impulseTangent * ball.radius * invInertia;
+    }
+  }
+
+  // 地面碰撞
+  if (ball.pos.y < ball.radius) {
+    ball.pos.y = ball.radius;
+    
+    var contactPoint = new Vector2(ball.pos.x, 0);
+    var r = new Vector2();
+    r.subtractVectors(contactPoint, ball.pos);
+    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var contactVel = new Vector2();
+    contactVel.addVectors(ball.vel, rotVel);
+
+    var normal = new Vector2(0, 1);
+    var tangent = new Vector2(1, 0);
+
+    var normalVel = contactVel.dot(normal);
+    var tangentVel = contactVel.dot(tangent);
+
+    var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
+
+    ball.vel.add(normal, -impulseNormal * invMass);
+    ball.omega -= impulseNormal * ball.radius * invInertia;
+
+    if (Math.abs(tangentVel) > 0.001) {
+      var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+      ball.vel.add(tangent, -impulseTangent * invMass);
+      ball.omega += impulseTangent * ball.radius * invInertia;
+    }
+  }
+
+  // 天花板碰撞
   if (ball.pos.y > worldSize.y - ball.radius) {
     ball.pos.y = worldSize.y - ball.radius;
-    ball.vel.y = -restitution * ball.vel.y;
+    
+    var contactPoint = new Vector2(ball.pos.x, worldSize.y);
+    var r = new Vector2();
+    r.subtractVectors(contactPoint, ball.pos);
+    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var contactVel = new Vector2();
+    contactVel.addVectors(ball.vel, rotVel);
+
+    var normal = new Vector2(0, -1);
+    var tangent = new Vector2(1, 0);
+
+    var normalVel = contactVel.dot(normal);
+    var tangentVel = contactVel.dot(tangent);
+
+    var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
+
+    ball.vel.add(normal, -impulseNormal * invMass);
+    ball.omega -= impulseNormal * ball.radius * invInertia;
+
+    if (Math.abs(tangentVel) > 0.001) {
+      var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+      ball.vel.add(tangent, -impulseTangent * invMass);
+      ball.omega += impulseTangent * ball.radius * invInertia;
+    }
   }
 }
 
