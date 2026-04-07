@@ -2569,8 +2569,9 @@ var physicsScene = {
   worldSize: new Vector2(simWidth2, simHeight2),
   paused: true,
   balls: [],
-  restitution: 0.8,
+  restitution: 1,
   G: 9.8, // Gravitational constant
+  gravityEnabled: true, // Track if gravity is enabled
 };
 
 // Add a fixed index for the draggable ball (always the third ball)
@@ -2590,8 +2591,10 @@ function setupSceneGravity() {
       Math.random() * simHeight2,
     );
     var vel = new Vector2(
-      -1.0 + 2.0 * Math.random(),
-      -1.0 + 2.0 * Math.random(),
+      // -1.0 + 2.0 * Math.random(),
+      // -1.0 + 2.0 * Math.random(),
+      0.0,
+      0.0,
     );
     var ang = 0.0; // 初始角度
     var omega = 0.0; // 初始角速度
@@ -2601,6 +2604,17 @@ function setupSceneGravity() {
 
   // Reset drag tracking
   mouseDown2 = false;
+}
+
+// Toggle gravity between balls
+function toggleGravity() {
+  physicsScene.gravityEnabled = !physicsScene.gravityEnabled;
+  var button = document.querySelector('button[onclick="toggleGravity()"]');
+  if (physicsScene.gravityEnabled) {
+    button.textContent = "取消重力";
+  } else {
+    button.textContent = "开启重力";
+  }
 }
 
 // Functions to handle dragging for canvas2 - always drag the fixed ball
@@ -2801,11 +2815,11 @@ function handleBallCollision(ball1, ball2, restitution) {
   // 应用法向冲量
   ball1.vel.add(dir, -impulseNormal * invMass1);
   ball2.vel.add(dir, impulseNormal * invMass2);
-  ball1.omega -= impulseNormal * ball1.radius * invInertia1;
-  ball2.omega += impulseNormal * ball2.radius * invInertia2;
+  // ball1.omega -= impulseNormal * ball1.radius * invInertia1;
+  // ball2.omega += impulseNormal * ball2.radius * invInertia2;
 
   // 计算切向冲量（摩擦力）
-  var friction = 0.2; // 摩擦系数
+  var friction = 0.5; // 摩擦系数
   if (Math.abs(tangentVel) > 0.001) {
     var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
     
@@ -2820,9 +2834,11 @@ function handleBallCollision(ball1, ball2, restitution) {
 // ------------------------------------------------------
 
 function handleWallCollision(ball, worldSize, restitution) {
-  var friction = 0.2; // 摩擦系数
+  var friction = 0.5; // 摩擦系数
   var invMass = 1.0 / ball.mass;
   var invInertia = 2.0 / (ball.mass * ball.radius * ball.radius); // 球体的转动惯量
+
+  var normalAdjust = 2.0;
 
   // 左墙碰撞
   if (ball.pos.x < ball.radius) {
@@ -2832,7 +2848,7 @@ function handleWallCollision(ball, worldSize, restitution) {
     var contactPoint = new Vector2(0, ball.pos.y);
     var r = new Vector2();
     r.subtractVectors(contactPoint, ball.pos);
-    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var rotVel = new Vector2(ball.omega * r.y, -ball.omega * r.x);
     var contactVel = new Vector2();
     contactVel.addVectors(ball.vel, rotVel);
 
@@ -2848,13 +2864,13 @@ function handleWallCollision(ball, worldSize, restitution) {
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
     // 应用法向冲量
-    ball.vel.add(normal, -impulseNormal * invMass);
-    ball.omega -= impulseNormal * ball.radius * invInertia;
+    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     // 切向冲量（摩擦力）
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
-      ball.vel.add(tangent, -impulseTangent * invMass);
+      ball.vel.add(tangent, impulseTangent * invMass);
       ball.omega += impulseTangent * ball.radius * invInertia;
     }
   }
@@ -2866,7 +2882,7 @@ function handleWallCollision(ball, worldSize, restitution) {
     var contactPoint = new Vector2(worldSize.x, ball.pos.y);
     var r = new Vector2();
     r.subtractVectors(contactPoint, ball.pos);
-    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var rotVel = new Vector2(ball.omega * r.y, -ball.omega * r.x);
     var contactVel = new Vector2();
     contactVel.addVectors(ball.vel, rotVel);
 
@@ -2878,13 +2894,13 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal, -impulseNormal * invMass);
-    ball.omega -= impulseNormal * ball.radius * invInertia;
+    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
-      ball.vel.add(tangent, -impulseTangent * invMass);
-      ball.omega += impulseTangent * ball.radius * invInertia;
+      ball.vel.add(tangent, impulseTangent * invMass);
+      ball.omega -= impulseTangent * ball.radius * invInertia;
     }
   }
 
@@ -2895,7 +2911,7 @@ function handleWallCollision(ball, worldSize, restitution) {
     var contactPoint = new Vector2(ball.pos.x, 0);
     var r = new Vector2();
     r.subtractVectors(contactPoint, ball.pos);
-    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var rotVel = new Vector2(ball.omega * r.y, -ball.omega * r.x);
     var contactVel = new Vector2();
     contactVel.addVectors(ball.vel, rotVel);
 
@@ -2907,13 +2923,13 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal, -impulseNormal * invMass);
-    ball.omega -= impulseNormal * ball.radius * invInertia;
+    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
-      ball.vel.add(tangent, -impulseTangent * invMass);
-      ball.omega += impulseTangent * ball.radius * invInertia;
+      ball.vel.add(tangent, impulseTangent * invMass);
+      ball.omega -= impulseTangent * ball.radius * invInertia;
     }
   }
 
@@ -2924,7 +2940,7 @@ function handleWallCollision(ball, worldSize, restitution) {
     var contactPoint = new Vector2(ball.pos.x, worldSize.y);
     var r = new Vector2();
     r.subtractVectors(contactPoint, ball.pos);
-    var rotVel = new Vector2(-ball.omega * r.y, ball.omega * r.x);
+    var rotVel = new Vector2(ball.omega * r.y, -ball.omega * r.x);
     var contactVel = new Vector2();
     contactVel.addVectors(ball.vel, rotVel);
 
@@ -2936,12 +2952,12 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal, -impulseNormal * invMass);
-    ball.omega -= impulseNormal * ball.radius * invInertia;
+    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
-      ball.vel.add(tangent, -impulseTangent * invMass);
+      ball.vel.add(tangent, impulseTangent * invMass);
       ball.omega += impulseTangent * ball.radius * invInertia;
     }
   }
@@ -2961,6 +2977,7 @@ function simulateGravity() {
     ball1.simulate(physicsScene.dt, physicsScene.gravity);
 
     // Calculate gravitational forces from other balls
+  if (physicsScene.gravityEnabled) {
     for (j = 0; j < physicsScene.balls.length; j++) {
       if (i === j) continue; // Skip self
       // REMOVED: if (mouseDown2 && j === DRAGGABLE_BALL_INDEX) continue; // Skip dragged ball
@@ -2983,6 +3000,7 @@ function simulateGravity() {
       dir.scale(forceMagnitude / distance);
       ball1.vel.add(dir, physicsScene.dt / ball1.mass);
     }
+  }
 
     // Handle collisions
     for (j = i + 1; j < physicsScene.balls.length; j++) {
