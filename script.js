@@ -2784,13 +2784,13 @@ function handleBallCollision(ball1, ball2, restitution) {
   // 球体1碰撞点的速度（平动+转动）
   var r1 = new Vector2();
   r1.subtractVectors(contactPoint1, ball1.pos);
-  var rotVel1 = new Vector2(-ball1.omega * r1.y, ball1.omega * r1.x);
+  var rotVel1 = new Vector2(ball1.omega * r1.y, -ball1.omega * r1.x);
   vel1.addVectors(ball1.vel, rotVel1);
 
   // 球体2碰撞点的速度（平动+转动）
   var r2 = new Vector2();
   r2.subtractVectors(contactPoint2, ball2.pos);
-  var rotVel2 = new Vector2(-ball2.omega * r2.y, ball2.omega * r2.x);
+  var rotVel2 = new Vector2(ball2.omega * r2.y, -ball2.omega * r2.x);
   vel2.addVectors(ball2.vel, rotVel2);
 
   // 相对速度
@@ -2827,7 +2827,7 @@ function handleBallCollision(ball1, ball2, restitution) {
     ball1.vel.add(tangent1, -impulseTangent * invMass1);
     ball2.vel.add(tangent1, impulseTangent * invMass2);
     ball1.omega += impulseTangent * ball1.radius * invInertia1;
-    ball2.omega -= impulseTangent * ball2.radius * invInertia2;
+    ball2.omega += impulseTangent * ball2.radius * invInertia2;
   }
 }
 
