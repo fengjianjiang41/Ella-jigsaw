@@ -1639,11 +1639,22 @@ class FlipFluid {
   }
 
   // --- NEW: Calculate the force exerted by the fluid on the obstacle ---
-  calculateFluidForces(obsX, obsY, obsRadius) {
+  calculateFluidForces(
+    obsX,
+    obsY,
+    obsVx,
+    obsVy,
+    obsRadius,
+ ) {
     let fx = 0.0;
     let fy = 0.0;
+    let torque = 0.0;
     let n = this.fNumY;
     let h = this.h;
+
+    // Viscosity parameters
+    let viscosity = 0.5; // Dynamic viscosity
+    let obstacleAngularVel = scene.obstacleOmega; // Obstacle's angular velocity
 
     for (let i = 1; i < this.fNumX - 1; i++) {
       for (let j = 1; j < this.fNumY - 1; j++) {
@@ -1662,8 +1673,44 @@ class FlipFluid {
             // Force is pressure pushing inward against the obstacle
             // We scale down the raw pressure heavily here for stability in 2D
             let scale = 0.005 * h;
-            fx -= pressure * nx * scale;
-            fy -= pressure * ny * scale;
+            let forceX = -pressure * nx * scale;
+            let forceY = -pressure * ny * scale;
+            fx += forceX;
+            fy += forceY;
+
+            // Calculate torque (r × F)
+            torque -= dx * forceY - dy * forceX;
+
+            // --- NEW: Viscous forces for torque ---
+            // Get fluid velocity at this cell
+            let fluidVelX = this.u[i * n + j];
+            let fluidVelY = this.v[i * n + j];
+
+            // Calculate obstacle's linear velocity at the contact point
+            // (due to rotation: v = ω × r)
+            let obstacleVelX = obsVx + obstacleAngularVel * dy;
+            let obstacleVelY = obsVy - obstacleAngularVel * dx;
+
+            // Calculate relative velocity
+            let relVelX = fluidVelX - obstacleVelX;
+            let relVelY = fluidVelY - obstacleVelY;
+
+            // Calculate tangential velocity (perpendicular to normal)
+            let tangentX = -ny; // Tangential vector
+            let tangentY = nx;
+            let tangentialVel = relVelX * tangentX + relVelY * tangentY;
+
+            // Calculate viscous force (proportional to tangential velocity)
+            let viscousForceMagnitude = viscosity * Math.abs(tangentialVel) * scale * 100;
+            let viscousForceX = Math.sign(relVelX) * Math.abs(tangentX) * viscousForceMagnitude;
+            let viscousForceY = Math.sign(relVelY) * Math.abs(tangentY) * viscousForceMagnitude;
+
+            // Add viscous force to total force
+            fx += viscousForceX;
+            fy += viscousForceY;
+
+            // Calculate torque from viscous force
+            torque -= dx * viscousForceY - dy * viscousForceX;
           }
 
           // --- NEW: Kinematic bouncing for deeply penetrating particles ---
@@ -1685,9 +1732,13 @@ class FlipFluid {
 
             // Total repulsive force
             let totalForce = bounceForce + dampingForce;
+            let forceX = totalForce * nx;
+            let forceY = totalForce * ny;
+            fx += forceX;
+            fy += forceY;
 
-            fx += totalForce * nx;
-            fy += totalForce * ny;
+            // Calculate torque (r × F)
+            torque -= dx * forceY - dy * forceX;
           }
 
           // --- Handle center case (dist == 0) ---
@@ -1698,7 +1749,7 @@ class FlipFluid {
         }
       }
     }
-    return { x: fx, y: fy };
+    return { x: fx, y: fy, torque: torque };
   }
 
   updateParticleColors() {
@@ -1823,6 +1874,9 @@ var scene = {
   obstacleVy: 0.0,
   obstacleRadius: 0.15,
   obstacleMass: 0.3, // High mass required for stability against pressure spikes
+  obstacleAng: 0.0, // Angular position (radians)
+  obstacleOmega: 0.0, // Angular velocity (radians/s)
+  obstacleInertia: 0.0, // Moment of inertia
   isDynamic: true,
 
   paused: true,
@@ -1875,7 +1929,124 @@ function setupSceneTank() {
       f.s[i * n + j] = s;
     }
   }
+  
+  // Calculate moment of inertia for a solid sphere: I = (1/2) * m * r^2
+  scene.obstacleInertia = 0.5 * scene.obstacleMass * scene.obstacleRadius * scene.obstacleRadius;
+  
   updateObstacleGrid();
+}
+
+// Handle wall collisions for the obstacle in tank scene with rotational dynamics
+function handleObstacleWallCollision() {
+  var friction = 0.5; // 摩擦系数
+  var restitution = 0.8; //  restitution coefficient
+  var normalAdjustment = 2.0; //  法向调整系数
+  var invMass = 1.0 / scene.obstacleMass;
+  var invInertia = 1.0 / scene.obstacleInertia; //  moment of inertia inverse
+  var radius = scene.obstacleRadius;
+  var h = scene.fluid.h;
+
+  // 左墙碰撞
+  if (scene.obstacleX < radius + h) {
+    scene.obstacleX = radius + h;
+    
+    // 计算碰撞点速度
+    var contactPoint = { x: h, y: scene.obstacleY };
+    var r = { x: contactPoint.x - scene.obstacleX, y: contactPoint.y - scene.obstacleY };
+    var rotVel = { x: scene.obstacleOmega * r.y, y: -scene.obstacleOmega * r.x };
+    var contactVel = { 
+      x: scene.obstacleVx + rotVel.x, 
+      y: scene.obstacleVy + rotVel.y 
+    };
+
+    // 法向和切向方向
+    var normal = { x: 1, y: 0 };
+    var tangent = { x: 0, y: 1 };
+
+    // 相对速度分量
+    var normalVel = contactVel.x * normal.x + contactVel.y * normal.y;
+    var tangentVel = contactVel.x * tangent.x + contactVel.y * tangent.y;
+
+    // 法向冲量
+    var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * radius * radius);
+
+    // 应用法向冲量
+    scene.obstacleVx += normalAdjustment * impulseNormal * normal.x * invMass;
+    scene.obstacleVy += normalAdjustment * impulseNormal * normal.y * invMass;
+    // scene.obstacleOmega -= impulseNormal * radius * invInertia;
+
+    // 切向冲量（摩擦力）
+    if (Math.abs(tangentVel) > 0.001) {
+      var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+      scene.obstacleVx += impulseTangent * tangent.x * invMass;
+      scene.obstacleVy += impulseTangent * tangent.y * invMass;
+      scene.obstacleOmega -= impulseTangent * radius * invInertia;
+    }
+  }
+
+  // 右墙碰撞
+  if (scene.obstacleX > simWidth - radius - h) {
+    scene.obstacleX = simWidth - radius - h;
+    
+    var contactPoint = { x: simWidth - h, y: scene.obstacleY };
+    var r = { x: contactPoint.x - scene.obstacleX, y: contactPoint.y - scene.obstacleY };
+    var rotVel = { x: scene.obstacleOmega * r.y, y: -scene.obstacleOmega * r.x };
+    var contactVel = { 
+      x: scene.obstacleVx + rotVel.x, 
+      y: scene.obstacleVy + rotVel.y 
+    };
+
+    var normal = { x: -1, y: 0 };
+    var tangent = { x: 0, y: 1 };
+
+    var normalVel = contactVel.x * normal.x + contactVel.y * normal.y;
+    var tangentVel = contactVel.x * tangent.x + contactVel.y * tangent.y;
+
+    var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * radius * radius);
+
+    scene.obstacleVx += normalAdjustment * impulseNormal * normal.x * invMass;
+    scene.obstacleVy += normalAdjustment * impulseNormal * normal.y * invMass;
+    // scene.obstacleOmega -= impulseNormal * radius * invInertia;
+
+    if (Math.abs(tangentVel) > 0.001) {
+      var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+      scene.obstacleVx += impulseTangent * tangent.x * invMass;
+      scene.obstacleVy += impulseTangent * tangent.y * invMass;
+      scene.obstacleOmega += impulseTangent * radius * invInertia;
+    }
+  }
+
+  // 地面碰撞
+  if (scene.obstacleY < radius + h) {
+    scene.obstacleY = radius + h;
+    
+    var contactPoint = { x: scene.obstacleX, y: h };
+    var r = { x: contactPoint.x - scene.obstacleX, y: contactPoint.y - scene.obstacleY };
+    var rotVel = { x: scene.obstacleOmega * r.y, y: -scene.obstacleOmega * r.x };
+    var contactVel = { 
+      x: scene.obstacleVx + rotVel.x, 
+      y: scene.obstacleVy + rotVel.y 
+    };
+
+    var normal = { x: 0, y: 1 };
+    var tangent = { x: 1, y: 0 };
+
+    var normalVel = contactVel.x * normal.x + contactVel.y * normal.y;
+    var tangentVel = contactVel.x * tangent.x + contactVel.y * tangent.y;
+
+    var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * radius * radius);
+
+    scene.obstacleVx += normalAdjustment * impulseNormal * normal.x * invMass;
+    scene.obstacleVy += normalAdjustment * impulseNormal * normal.y * invMass;
+    // scene.obstacleOmega -= impulseNormal * radius * invInertia;
+
+    if (Math.abs(tangentVel) > 0.001) {
+      var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
+      scene.obstacleVx += impulseTangent * tangent.x * invMass;
+      scene.obstacleVy += impulseTangent * tangent.y * invMass;
+      scene.obstacleOmega += impulseTangent * radius * invInertia;
+    }
+  }
 }
 
 function updateObstaclePhysics(dt) {
@@ -1887,32 +2058,31 @@ function updateObstaclePhysics(dt) {
     let fluidForces = scene.fluid.calculateFluidForces(
       scene.obstacleX,
       scene.obstacleY,
+      scene.obstacleVx,
+      scene.obstacleVy,
       scene.obstacleRadius,
     );
     scene.obstacleVx += (fluidForces.x / scene.obstacleMass) * dt;
     scene.obstacleVy += (fluidForces.y / scene.obstacleMass) * dt;
+    
+    // 3. Rotational dynamics (torque)
+    if (scene.obstacleInertia > 0) {
+      scene.obstacleOmega += (fluidForces.torque / scene.obstacleInertia) * dt;
+      // Damping for angular velocity
+      // scene.obstacleOmega *= 0.98;
+    }
 
-    // // 3. Drag / Damping
-    // scene.obstacleVx *= 0.98;
-    // scene.obstacleVy *= 0.98;
+    // 4. Drag / Damping
+    scene.obstacleVx *= 0.99;
+    scene.obstacleVy *= 0.99;
 
-    // 4. Integration
+    // 5. Integration
     scene.obstacleX += scene.obstacleVx * dt;
     scene.obstacleY += scene.obstacleVy * dt;
+    scene.obstacleAng += scene.obstacleOmega * dt;
 
-    // 5. Floor/Wall Collision
-    if (scene.obstacleY < scene.obstacleRadius + scene.fluid.h) {
-      scene.obstacleY = scene.obstacleRadius + scene.fluid.h;
-      scene.obstacleVy *= -1; // Bounce
-    }
-    if (scene.obstacleX < scene.obstacleRadius + scene.fluid.h) {
-      scene.obstacleX = scene.obstacleRadius + scene.fluid.h;
-      scene.obstacleVx *= -1;
-    }
-    if (scene.obstacleX > simWidth - scene.obstacleRadius - scene.fluid.h) {
-      scene.obstacleX = simWidth - scene.obstacleRadius - scene.fluid.h;
-      scene.obstacleVx *= -1;
-    }
+    // 6. Floor/Wall Collision with rotational dynamics
+    handleObstacleWallCollision();
   }
   updateObstacleGrid();
 }
@@ -1982,12 +2152,23 @@ const meshVertexShader = `
 		uniform vec2 domainSize;
 		uniform vec2 translation;
 		uniform float scale;
+		uniform float rotation;
 		varying vec2 fragTexCoord;
 		void main() {
-			vec2 v = translation + attrPosition * scale;
+			// Apply rotation
+			float cosRot = cos(rotation);
+			float sinRot = sin(rotation);
+			vec2 rotatedPos = vec2(
+				attrPosition.x * cosRot - attrPosition.y * sinRot,
+				attrPosition.x * sinRot + attrPosition.y * cosRot
+			);
+			
+			// Use texture coordinates directly (no rotation needed for now)
+			// The texture is already mapped correctly to the disk
+			vec2 v = translation + rotatedPos * scale;
 			vec4 screenTransform = vec4(2.0 / domainSize.x, 2.0 / domainSize.y, -1.0, -1.0);
 			gl_Position = vec4(v * screenTransform.xy + screenTransform.zw, 0.0, 1.0);
-			fragTexCoord = (attrPosition + 1.0) / 2.0;
+			fragTexCoord = attrTexCoord;
 		}`;
 
 // Update the mesh fragment shader to use texture instead of color
@@ -2197,6 +2378,10 @@ function drawTank() {
   gl.uniform1f(
     gl.getUniformLocation(meshShader, "scale"),
     scene.obstacleRadius,
+  );
+  gl.uniform1f(
+    gl.getUniformLocation(meshShader, "rotation"),
+    scene.obstacleAng,
   );
 
   // Bind the texture
