@@ -2838,7 +2838,7 @@ function handleWallCollision(ball, worldSize, restitution) {
   var invMass = 1.0 / ball.mass;
   var invInertia = 2.0 / (ball.mass * ball.radius * ball.radius); // 球体的转动惯量
 
-  var normalAdjust = 2.0;
+  var normalAdjustment = 2.0;
 
   // 左墙碰撞
   if (ball.pos.x < ball.radius) {
@@ -2864,7 +2864,7 @@ function handleWallCollision(ball, worldSize, restitution) {
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
     // 应用法向冲量
-    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    ball.vel.add(normal,normalAdjustment *impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     // 切向冲量（摩擦力）
@@ -2894,7 +2894,7 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     if (Math.abs(tangentVel) > 0.001) {
@@ -2923,7 +2923,7 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     if (Math.abs(tangentVel) > 0.001) {
@@ -2952,12 +2952,12 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal, normalAdjust * impulseNormal * invMass);
+    ball.vel.add(normal, normalAdjustment * impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
-      ball.vel.add(tangent, impulseTangent * invMass);
+      ball.vel.add(tangent,  impulseTangent * invMass);
       ball.omega += impulseTangent * ball.radius * invInertia;
     }
   }
