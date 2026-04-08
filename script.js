@@ -1348,7 +1348,7 @@ class FlipFluid {
     }
   }
 
-  handleParticleCollisions(obstacleX, obstacleY, obstacleRadius, obsVx, obsVy) {
+  handleParticleCollisions(obstacleX, obstacleY, obstacleRadius, obsVx, obsVy, obsOmega) {
     var h = 1.0 / this.fInvSpacing;
     var r = this.particleRadius;
     var minDist = obstacleRadius + r;
@@ -1358,6 +1358,9 @@ class FlipFluid {
     var maxX = (this.fNumX - 1) * h - r;
     var minY = h + r;
     var maxY = (this.fNumY - 1) * h - r;
+
+    // Viscosity parameters
+    var viscosity = scene.viscosity; // Dynamic viscosity
 
     for (var i = 0; i < this.numParticles; i++) {
       var x = this.particlePos[2 * i];
@@ -1372,9 +1375,47 @@ class FlipFluid {
         this.particlePos[2 * i] += dx * s;
         this.particlePos[2 * i + 1] += dy * s;
 
+        // Calculate obstacle's linear velocity at the contact point
+        // (due to rotation: v = ω × r)
+        var obsRotVx = -obsOmega * dy;
+        var obsRotVy = obsOmega * dx;
+        
+        // Total obstacle velocity at contact point
+        var totalObsVx = obsVx + obsRotVx;
+        var totalObsVy = obsVy + obsRotVy;
+
         // Two way coupling: Particles inherit obstacle velocity at boundary
-        this.particleVel[2 * i] = obsVx;
-        this.particleVel[2 * i + 1] = obsVy;
+        // but with viscous damping based on relative velocity
+        var particleVx = this.particleVel[2 * i];
+        var particleVy = this.particleVel[2 * i + 1];
+        
+        // Calculate relative velocity
+        var relVx = particleVx - totalObsVx;
+        var relVy = particleVy - totalObsVy;
+        
+        // Calculate normal vector
+        var nx = dx / d;
+        var ny = dy / d;
+        
+        // Calculate tangential vector
+        var tx = -ny;
+        var ty = nx;
+        
+        // Decompose relative velocity into normal and tangential components
+        var relVn = relVx * nx + relVy * ny;
+        var relVt = relVx * tx + relVy * ty;
+        
+        // Apply normal velocity (inelastic collision)
+        var normalVelX = totalObsVx + nx * relVn * 0.1; // Some restitution
+        var normalVelY = totalObsVy + ny * relVn * 0.1;
+        
+        // Apply tangential velocity with viscous damping
+        var tangentialVelX = totalObsVx + tx * relVt * Math.exp(-viscosity * 10);
+        var tangentialVelY = totalObsVy + ty * relVt * Math.exp(-viscosity * 10);
+        
+        // Combine normal and tangential components
+        this.particleVel[2 * i] = normalVelX + tangentialVelX - totalObsVx;
+        this.particleVel[2 * i + 1] = normalVelY + tangentialVelY - totalObsVy;
       }
 
       var damping = 0.5;
@@ -1398,7 +1439,6 @@ class FlipFluid {
         this.particleVel[2 * i + 1] = 0.0;
         this.particleVel[2 * i] *= damping;
       }
-
       this.particlePos[2 * i] = x;
       this.particlePos[2 * i + 1] = y;
     }
@@ -1653,7 +1693,7 @@ class FlipFluid {
     let h = this.h;
 
     // Viscosity parameters
-    let viscosity = 0.5; // Dynamic viscosity
+    let viscosity = scene.viscosity; // Dynamic viscosity
     let obstacleAngularVel = scene.obstacleOmega; // Obstacle's angular velocity
 
     for (let i = 1; i < this.fNumX - 1; i++) {
@@ -1859,6 +1899,7 @@ class FlipFluid {
 
 var scene = {
   gravity: -9.81,
+  viscosity: 0.5,
   dt: 1.0 / 120.0,
   flipRatio: 0.9,
   numPressureIters: 50,
@@ -2637,6 +2678,7 @@ function simulateTank() {
       scene.obstacleRadius,
       scene.obstacleVx,
       scene.obstacleVy,
+      scene.obstacleOmega,
     );
     scene.fluid.transferVelocities(true, scene.flipRatio);
     scene.fluid.updateParticleDensity();
