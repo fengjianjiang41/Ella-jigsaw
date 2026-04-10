@@ -2799,6 +2799,8 @@ var physicsScene = {
   restitution: 1,
   G: 9.8, // Gravitational constant
   gravityEnabled: true, // Track if gravity is enabled
+  ballBallSoundAdjustment: 5000,
+  ballWallSoundAdjustment: 100,
 };
 
 // Add a fixed index for the draggable ball (always the third ball)
@@ -2982,9 +2984,102 @@ function drawGravity() {
   }
 }
 
+
+// Global sound enable state
+let soundEnabled = false;
+
+// Audio pool for ball-wall collision sounds
+const ballWallAudioPool = {
+  audioObjects: [],
+  maxPoolSize: 10,
+  
+  getAudio() {
+    // Find an available audio object
+    for (let audio of this.audioObjects) {
+      if (audio.ended || audio.currentTime === 0) {
+        return audio;
+      }
+    }
+    
+    // Create a new audio object if pool is not full
+    if (this.audioObjects.length < this.maxPoolSize) {
+      const newAudio = new Audio("audio/ballwall.mp3");
+      this.audioObjects.push(newAudio);
+      return newAudio;
+    }
+    
+    // If pool is full, return the oldest one
+    return this.audioObjects[0];
+  }
+};
+
+// Audio pool for ball-ball collision sounds
+const ballBallAudioPool = {
+  audioObjects: [],
+  maxPoolSize: 3,
+  
+  getAudio() {
+    // Find an available audio object
+    for (let audio of this.audioObjects) {
+      if (audio.ended || audio.currentTime === 0) {
+        return audio;
+      }
+    }
+    
+    // Create a new audio object if pool is not full
+    if (this.audioObjects.length < this.maxPoolSize) {
+      const newAudio = new Audio("audio/ballball.mp3");
+      this.audioObjects.push(newAudio);
+      return newAudio;
+    }
+    
+    // If pool is full, return the oldest one
+    return this.audioObjects[0];
+  }
+};
+
+// Toggle sound on/off
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const button = document.querySelector('button[onclick="toggleSound()"]');
+  if (button) {
+    button.textContent = soundEnabled ? "安静一下" : "来点动静";
+  }
+}
+
+function playBallWallSound(normalMomentum) {
+  if (soundEnabled) {
+    var finalAdjustment = 0.8
+    const ballwallAudio = ballWallAudioPool.getAudio();
+    ballwallAudio.currentTime = 0;
+    // Calculate volume proportional to square of normal velocity
+    const volume = Math.min(Math.pow(Math.abs(normalMomentum), 2), 1);
+    ballwallAudio.volume = finalAdjustment * volume;
+    ballwallAudio.play().catch(e => console.log("Audio play failed:", e));
+  }
+}
+
+function playBallBallSound(normalMomentum) {
+  if (soundEnabled) {
+    // Calculate volume proportional to square of normal velocity
+    const volume = Math.min(Math.pow(Math.abs(normalMomentum), 2), 1);
+    
+    // Cancel sound if gravity is on and volume is below 0.2
+    if (physicsScene.gravityEnabled && volume < 0.1) {
+      return;
+    }
+    
+    const ballballAudio = ballBallAudioPool.getAudio();
+    ballballAudio.currentTime = 0;
+    ballballAudio.volume = volume;
+    ballballAudio.play().catch(e => console.log("Audio play failed:", e));
+  }
+}
+
 // collision handling -------------------------------------------------------
 
 function handleBallCollision(ball1, ball2, restitution) {
+  var ballBallSoundAdjustment = physicsScene.ballBallSoundAdjustment;
   var dir = new Vector2();
   dir.subtractVectors(ball2.pos, ball1.pos);
   var d = dir.length();
@@ -3056,12 +3151,16 @@ function handleBallCollision(ball1, ball2, restitution) {
     ball1.omega += impulseTangent * ball1.radius * invInertia1;
     ball2.omega += impulseTangent * ball2.radius * invInertia2;
   }
+  
+  // Play ball-ball collision sound
+  playBallBallSound(ballBallSoundAdjustment * ball1.mass * ball2.mass * normalVel);
 }
 
 // ------------------------------------------------------
 
 function handleWallCollision(ball, worldSize, restitution) {
   var friction = 0.5; // 摩擦系数
+  var ballWallSoundAdjustment = physicsScene.ballWallSoundAdjustment;
   var invMass = 1.0 / ball.mass;
   var invInertia = 2.0 / (ball.mass * ball.radius * ball.radius); // 球体的转动惯量
 
@@ -3093,6 +3192,9 @@ function handleWallCollision(ball, worldSize, restitution) {
     // 应用法向冲量
     ball.vel.add(normal,normalAdjustment *impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
+    
+    // Play wall collision sound
+    playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
 
     // 切向冲量（摩擦力）
     if (Math.abs(tangentVel) > 0.001) {
@@ -3123,6 +3225,9 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
+    
+// Play wall collision sound
+    playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
@@ -3153,6 +3258,9 @@ function handleWallCollision(ball, worldSize, restitution) {
     ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
 
+    // Play wall collision sound
+    playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
+
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
       ball.vel.add(tangent, impulseTangent * invMass);
@@ -3179,8 +3287,11 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal, normalAdjustment * impulseNormal * invMass);
+    ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
+    
+    // Play wall collision sound
+    playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
