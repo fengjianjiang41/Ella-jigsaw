@@ -2016,6 +2016,9 @@ function handleObstacleWallCollision() {
     scene.obstacleVy += normalAdjustment * impulseNormal * normal.y * invMass;
     // scene.obstacleOmega -= impulseNormal * radius * invInertia;
 
+    // 播放碰撞音效
+    playBallGlassSound(normalVel);
+
     // 切向冲量（摩擦力）
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
@@ -2049,6 +2052,9 @@ function handleObstacleWallCollision() {
     scene.obstacleVy += normalAdjustment * impulseNormal * normal.y * invMass;
     // scene.obstacleOmega -= impulseNormal * radius * invInertia;
 
+    // 播放碰撞音效
+    playBallGlassSound(normalVel);
+
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
       scene.obstacleVx += impulseTangent * tangent.x * invMass;
@@ -2080,6 +2086,9 @@ function handleObstacleWallCollision() {
     scene.obstacleVx += normalAdjustment * impulseNormal * normal.x * invMass;
     scene.obstacleVy += normalAdjustment * impulseNormal * normal.y * invMass;
     // scene.obstacleOmega -= impulseNormal * radius * invInertia;
+
+    // 播放碰撞音效
+    playBallGlassSound(normalVel);
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
@@ -2449,6 +2458,12 @@ function drawTank() {
 }
 
 var mouseDown = false;
+var lastDragTime = 0;
+var lastDragX = 0;
+var lastDragY = 0;
+var currentSound = null;
+var soundPlaying = false;
+
 function startDrag(x, y) {
   let bounds = canvas1.getBoundingClientRect();
   let mx = x - bounds.left - canvas1.clientLeft;
@@ -2458,6 +2473,9 @@ function startDrag(x, y) {
   scene.obstacleY = (canvas1.height - my) / cScaleY; // Flip Y for WebGL
   scene.obstacleVx = 0.0;
   scene.obstacleVy = 0.0;
+  lastDragTime = Date.now();
+  lastDragX = mx;
+  lastDragY = my;
 }
 
 function drag(x, y) {
@@ -2473,13 +2491,74 @@ function drag(x, y) {
     scene.obstacleVx = (newX - scene.obstacleX) / scene.dt;
     scene.obstacleVy = (newY - scene.obstacleY) / scene.dt;
 
+    // Calculate speed in pixels per second
+    let currentTime = Date.now();
+    let timeDiff = currentTime - lastDragTime;
+    if (timeDiff > 0) {
+      let distance = Math.sqrt(Math.pow(mx - lastDragX, 2) + Math.pow(my - lastDragY, 2));
+      let speed = (distance / timeDiff) * 1000; // pixels per second
+      
+      // Determine sound level based on speed
+      if (!soundPlaying) {
+        playDragSound(speed);
+      }
+    }
+    
+    lastDragTime = currentTime;
+    lastDragX = mx;
+    lastDragY = my;
+
     scene.obstacleX = newX;
     scene.obstacleY = newY;
   }
 }
 
+function playDragSound(speed) {
+  // Define speed thresholds (adjust as needed)
+  const slowThreshold = 100;
+  const mediumThreshold = 300;
+  const fastThreshold = 600;
+  
+  let soundLevel;
+  if (speed < slowThreshold) {
+    soundLevel = 'slow';
+  } else if (speed < mediumThreshold) {
+    soundLevel = 'medium';
+  } else if (speed < fastThreshold) {
+    soundLevel = 'fast';
+  } else {
+    soundLevel = 'superfast';
+  }
+  
+  // Choose random file (1 or 2)
+  const fileNumber = Math.floor(Math.random() * 3) + 1;
+  const soundPath = `audio/dragging/${soundLevel}${fileNumber}.mp3`;
+  
+  // Stop any currently playing sound
+  if (currentSound) {
+    currentSound.pause();
+    currentSound.currentTime = 0;
+  }
+  
+  // Create and play new sound
+  currentSound = new Audio(soundPath);
+  currentSound.volume = 0.5;
+  soundPlaying = true;
+  
+  currentSound.onended = function() {
+    soundPlaying = false;
+  };
+  
+  currentSound.play().catch(e => console.log("Audio play failed:", e));
+}
+
 function endDrag() {
   mouseDown = false;
+  soundPlaying = false;
+  if (currentSound) {
+    currentSound.pause();
+    currentSound.currentTime = 0;
+  }
 }
 
 canvas1.addEventListener("mousedown", (event) => startDrag(event.x, event.y));
@@ -3038,6 +3117,34 @@ const ballBallAudioPool = {
   }
 };
 
+// Audio pool for obstacle wall collision sounds
+const ballGlassAudioPool = {
+  audioObjects: [],
+  maxPoolSize: 10,
+  
+  getAudio(soundFile) {
+    // Find an available audio object
+    for (let audio of this.audioObjects) {
+      if (audio.ended || audio.currentTime === 0) {
+        audio.src = soundFile;
+        return audio;
+      }
+    }
+    
+    // Create a new audio object if pool is not full
+    if (this.audioObjects.length < this.maxPoolSize) {
+      const newAudio = new Audio(soundFile);
+      this.audioObjects.push(newAudio);
+      return newAudio;
+    }
+    
+    // If pool is full, return the oldest one and update its source
+    const oldestAudio = this.audioObjects[0];
+    oldestAudio.src = soundFile;
+    return oldestAudio;
+  }
+};
+
 // Toggle sound on/off
 function toggleSound() {
   soundEnabled = !soundEnabled;
@@ -3074,6 +3181,28 @@ function playBallBallSound(normalMomentum) {
     ballballAudio.volume = volume;
     ballballAudio.play().catch(e => console.log("Audio play failed:", e));
   }
+}
+
+function playBallGlassSound(normalVel) {
+  // if (soundEnabled) {
+    // Set velocity threshold for long sound
+    const velocityThreshold = 5.0;
+    const absNormalVel = Math.abs(normalVel);
+    
+    // Select sound file based on velocity
+    const soundFile = absNormalVel > velocityThreshold ? "audio/ballglasslong.mp3" : "audio/ballglassshort.mp3";
+    
+    // Calculate volume based on velocity (louder for faster impacts)
+    const volume = Math.min(absNormalVel * 0.2, 1.0);
+    
+    const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
+    ballglassAudio.currentTime = 0;
+    ballglassAudio.volume = volume;
+    // Add pitch randomization (0.8 to 1.2 times original pitch)
+    ballglassAudio.pitch = (0.8 + Math.random() * 0.4) * ballglassAudio.pitch;
+    ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
+    ballglassAudio.play().catch(e => console.log("Audio play failed:", e));
+  // }
 }
 
 // collision handling -------------------------------------------------------
