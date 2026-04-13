@@ -299,7 +299,7 @@ function animatePuzzle(idx) {
         piece.alpha =
           0.5 +
           0.5 *
-            Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
+          Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
       } else {
         // Stop breathing once connected
         piece.alpha = 1;
@@ -791,9 +791,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!start) start = ts;
       const progress = ts - start;
       const percent = Math.min(progress / duration, 1);
-      floating.style.top = `${
-        bunRect.top + topOffset - percent * riseDistance
-      }px`;
+      floating.style.top = `${bunRect.top + topOffset - percent * riseDistance
+        }px`;
       floating.style.opacity = `${1 - percent}`;
       if (percent < 1) {
         requestAnimationFrame(animate);
@@ -1029,10 +1028,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (congratulationsText) {
       // Store original content
       const originalContent = congratulationsText.innerHTML;
-      
+
       // Add relative positioning to the container
       congratulationsText.style.position = "relative";
-      
+
       // Create gif element and position it absolutely over the text
       const gifElement = document.createElement("img");
       gifElement.src = "images/particles.gif";
@@ -1044,29 +1043,29 @@ document.addEventListener("DOMContentLoaded", function () {
       gifElement.style.height = "100%";
       gifElement.style.objectFit = "contain";
       gifElement.style.zIndex = "10";
-      
+
       // Hide the original text temporarily
       const h2 = congratulationsText.querySelector("h2");
       if (h2) {
         h2.style.opacity = "0";
       }
-      
+
       // Add the gif to the container
       congratulationsText.appendChild(gifElement);
-      
+
       // After the gif plays once (assuming ~3 seconds), restore the text
       setTimeout(() => {
         // Remove the gif
         if (gifElement.parentNode) {
           gifElement.parentNode.removeChild(gifElement);
         }
-        
+
         // Restore original content but with "往下有惊喜"
         congratulationsText.innerHTML = "<h2>往下有惊喜</h2>";
-        
+
         // Reset positioning
         congratulationsText.style.position = "";
-        
+
         // Ensure no animations are applied
         const h2 = congratulationsText.querySelector("h2");
         if (h2) {
@@ -1379,7 +1378,7 @@ class FlipFluid {
         // (due to rotation: v = ω × r)
         var obsRotVx = -obsOmega * dy;
         var obsRotVy = obsOmega * dx;
-        
+
         // Total obstacle velocity at contact point
         var totalObsVx = obsVx + obsRotVx;
         var totalObsVy = obsVy + obsRotVy;
@@ -1388,31 +1387,31 @@ class FlipFluid {
         // but with viscous damping based on relative velocity
         var particleVx = this.particleVel[2 * i];
         var particleVy = this.particleVel[2 * i + 1];
-        
+
         // Calculate relative velocity
         var relVx = particleVx - totalObsVx;
         var relVy = particleVy - totalObsVy;
-        
+
         // Calculate normal vector
         var nx = dx / d;
         var ny = dy / d;
-        
+
         // Calculate tangential vector
         var tx = -ny;
         var ty = nx;
-        
+
         // Decompose relative velocity into normal and tangential components
         var relVn = relVx * nx + relVy * ny;
         var relVt = relVx * tx + relVy * ty;
-        
+
         // Apply normal velocity (inelastic collision)
         var normalVelX = totalObsVx + nx * relVn * 0.1; // Some restitution
         var normalVelY = totalObsVy + ny * relVn * 0.1;
-        
+
         // Apply tangential velocity with viscous damping
         var tangentialVelX = totalObsVx + tx * relVt * Math.exp(-viscosity * 10);
         var tangentialVelY = totalObsVy + ty * relVt * Math.exp(-viscosity * 10);
-        
+
         // Combine normal and tangential components
         this.particleVel[2 * i] = normalVelX + tangentialVelX - totalObsVx;
         this.particleVel[2 * i + 1] = normalVelY + tangentialVelY - totalObsVy;
@@ -1564,22 +1563,22 @@ class FlipFluid {
           var offset = component == 0 ? n : 1;
           var valid0 =
             this.cellType[nr0] != AIR_CELL ||
-            this.cellType[nr0 - offset] != AIR_CELL
+              this.cellType[nr0 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid1 =
             this.cellType[nr1] != AIR_CELL ||
-            this.cellType[nr1 - offset] != AIR_CELL
+              this.cellType[nr1 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid2 =
             this.cellType[nr2] != AIR_CELL ||
-            this.cellType[nr2 - offset] != AIR_CELL
+              this.cellType[nr2 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid3 =
             this.cellType[nr3] != AIR_CELL ||
-            this.cellType[nr3 - offset] != AIR_CELL
+              this.cellType[nr3 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
 
@@ -1685,7 +1684,7 @@ class FlipFluid {
     obsVx,
     obsVy,
     obsRadius,
- ) {
+  ) {
     let fx = 0.0;
     let fy = 0.0;
     let torque = 0.0;
@@ -1696,6 +1695,10 @@ class FlipFluid {
     let viscosity = scene.viscosity; // Dynamic viscosity
     let obstacleAngularVel = scene.obstacleOmega; // Obstacle's angular velocity
 
+    // Reset collision count at the start of each frame
+    waterCollisionCount = 0;
+    relativeVelocitySum = 0;
+
     for (let i = 1; i < this.fNumX - 1; i++) {
       for (let j = 1; j < this.fNumY - 1; j++) {
         if (this.cellType[i * n + j] === FLUID_CELL) {
@@ -1705,6 +1708,10 @@ class FlipFluid {
 
           // If fluid cell is exactly at the boundary of the obstacle
           if (dist < obsRadius + h && dist > obsRadius - h) {
+
+            // Increment collision count for this frame
+            waterCollisionCount++;
+
             let pressure = this.p[i * n + j];
             // Normal vector pointing from obstacle to fluid
             let nx = dx / dist;
@@ -1739,6 +1746,7 @@ class FlipFluid {
             let tangentX = -ny; // Tangential vector
             let tangentY = nx;
             let tangentialVel = relVelX * tangentX + relVelY * tangentY;
+            relativeVelocitySum += Math.abs(tangentialVel);
 
             // Calculate viscous force (proportional to tangential velocity)
             let viscousForceMagnitude = viscosity * Math.abs(tangentialVel) * scale * 100;
@@ -1789,6 +1797,21 @@ class FlipFluid {
         }
       }
     }
+
+    waterCollisionIncrement = waterCollisionCount - lastWaterCollisionCount;
+    lastWaterCollisionCount = waterCollisionCount;
+
+    // Check if we should play a water collision sound
+    const currentTime = Date.now();
+    if (waterCollisionIncrement >= waterCollisionThreshold &&
+      currentTime - lastWaterCollisionTime > waterCollisionCooldown) {
+      playWaterObstacleSound(waterCollisionIncrement);
+      lastWaterCollisionTime = currentTime;
+    }
+
+    // Check if we should play a splash sound based on relative velocity
+    playSplashSound(relativeVelocitySum);
+
     return { x: fx, y: fy, torque: torque };
   }
 
@@ -1813,13 +1836,13 @@ class FlipFluid {
       );
       this.particleColor[3 * i + 1] = clamp(
         this.particleColor[3 * i + 1] +
-          (TARGET_G - this.particleColor[3 * i + 1]) * s,
+        (TARGET_G - this.particleColor[3 * i + 1]) * s,
         0.0,
         1.0,
       );
       this.particleColor[3 * i + 2] = clamp(
         this.particleColor[3 * i + 2] +
-          (TARGET_B - this.particleColor[3 * i + 2]) * s,
+        (TARGET_B - this.particleColor[3 * i + 2]) * s,
         0.0,
         1.0,
       );
@@ -1970,10 +1993,10 @@ function setupSceneTank() {
       f.s[i * n + j] = s;
     }
   }
-  
+
   // Calculate moment of inertia for a solid sphere: I = (1/2) * m * r^2
   scene.obstacleInertia = 0.5 * scene.obstacleMass * scene.obstacleRadius * scene.obstacleRadius;
-  
+
   updateObstacleGrid();
 }
 
@@ -1990,14 +2013,14 @@ function handleObstacleWallCollision() {
   // 左墙碰撞
   if (scene.obstacleX < radius + h) {
     scene.obstacleX = radius + h;
-    
+
     // 计算碰撞点速度
     var contactPoint = { x: h, y: scene.obstacleY };
     var r = { x: contactPoint.x - scene.obstacleX, y: contactPoint.y - scene.obstacleY };
     var rotVel = { x: scene.obstacleOmega * r.y, y: -scene.obstacleOmega * r.x };
-    var contactVel = { 
-      x: scene.obstacleVx + rotVel.x, 
-      y: scene.obstacleVy + rotVel.y 
+    var contactVel = {
+      x: scene.obstacleVx + rotVel.x,
+      y: scene.obstacleVy + rotVel.y
     };
 
     // 法向和切向方向
@@ -2031,13 +2054,13 @@ function handleObstacleWallCollision() {
   // 右墙碰撞
   if (scene.obstacleX > simWidth - radius - h) {
     scene.obstacleX = simWidth - radius - h;
-    
+
     var contactPoint = { x: simWidth - h, y: scene.obstacleY };
     var r = { x: contactPoint.x - scene.obstacleX, y: contactPoint.y - scene.obstacleY };
     var rotVel = { x: scene.obstacleOmega * r.y, y: -scene.obstacleOmega * r.x };
-    var contactVel = { 
-      x: scene.obstacleVx + rotVel.x, 
-      y: scene.obstacleVy + rotVel.y 
+    var contactVel = {
+      x: scene.obstacleVx + rotVel.x,
+      y: scene.obstacleVy + rotVel.y
     };
 
     var normal = { x: -1, y: 0 };
@@ -2066,13 +2089,13 @@ function handleObstacleWallCollision() {
   // 地面碰撞
   if (scene.obstacleY < radius + h) {
     scene.obstacleY = radius + h;
-    
+
     var contactPoint = { x: scene.obstacleX, y: h };
     var r = { x: contactPoint.x - scene.obstacleX, y: contactPoint.y - scene.obstacleY };
     var rotVel = { x: scene.obstacleOmega * r.y, y: -scene.obstacleOmega * r.x };
-    var contactVel = { 
-      x: scene.obstacleVx + rotVel.x, 
-      y: scene.obstacleVy + rotVel.y 
+    var contactVel = {
+      x: scene.obstacleVx + rotVel.x,
+      y: scene.obstacleVy + rotVel.y
     };
 
     var normal = { x: 0, y: 1 };
@@ -2114,7 +2137,7 @@ function updateObstaclePhysics(dt) {
     );
     scene.obstacleVx += (fluidForces.x / scene.obstacleMass) * dt;
     scene.obstacleVy += (fluidForces.y / scene.obstacleMass) * dt;
-    
+
     // 3. Rotational dynamics (torque)
     if (scene.obstacleInertia > 0) {
       scene.obstacleOmega += (fluidForces.torque / scene.obstacleInertia) * dt;
@@ -2497,13 +2520,13 @@ function drag(x, y) {
     if (timeDiff > 0) {
       let distance = Math.sqrt(Math.pow(mx - lastDragX, 2) + Math.pow(my - lastDragY, 2));
       let speed = (distance / timeDiff) * 1000; // pixels per second
-      
+
       // Determine sound level based on speed
       if (!soundPlaying) {
         playDragSound(speed);
       }
     }
-    
+
     lastDragTime = currentTime;
     lastDragX = mx;
     lastDragY = my;
@@ -2518,7 +2541,7 @@ function playDragSound(speed) {
   const slowThreshold = 100;
   const mediumThreshold = 300;
   const fastThreshold = 600;
-  
+
   let soundLevel;
   if (speed < slowThreshold) {
     soundLevel = 'slow';
@@ -2529,26 +2552,26 @@ function playDragSound(speed) {
   } else {
     soundLevel = 'superfast';
   }
-  
+
   // Choose random file (1 or 2)
   const fileNumber = Math.floor(Math.random() * 3) + 1;
   const soundPath = `audio/dragging/${soundLevel}${fileNumber}.mp3`;
-  
+
   // Stop any currently playing sound
   if (currentSound) {
     currentSound.pause();
     currentSound.currentTime = 0;
   }
-  
+
   // Create and play new sound
   currentSound = new Audio(soundPath);
   currentSound.volume = 0.5;
   soundPlaying = true;
-  
-  currentSound.onended = function() {
+
+  currentSound.onended = function () {
     soundPlaying = false;
   };
-  
+
   currentSound.play().catch(e => console.log("Audio play failed:", e));
 }
 
@@ -2559,6 +2582,152 @@ function endDrag() {
     currentSound.pause();
     currentSound.currentTime = 0;
   }
+}
+
+// Water obstacle collision tracking
+var waterCollisionCount = 0;
+var lastWaterCollisionCount = 0;
+var waterCollisionIncrement = 0;
+var lastWaterCollisionTime = 0;
+const waterCollisionThreshold = 5; // Minimum collisions to trigger sound
+const waterCollisionCooldown = 0; // ms between sounds
+
+// Function to play water obstacle collision sound
+function playWaterObstacleSound(collisionIntensity) {
+
+  // Randomly select one of the water collision sounds
+  const soundIndex = Math.floor(Math.random() * 5) + 1;
+  const soundFile = `audio/water/into${soundIndex}.mp3`;
+
+  // Calculate volume based on collision intensity
+  const volume = Math.min(Math.pow(collisionIntensity * 0.05, 1.0), 1.0);
+
+  const waterAudio = waterObstacleAudioPool.getAudio(soundFile);
+  waterAudio.currentTime = 0;
+  waterAudio.volume = volume;
+  waterAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
+  waterAudio.play().catch(e => console.log("Audio play failed:", e));
+}
+
+// Splash sound tracking
+var relativeVelocitySum = 0.0;
+var lastSplashTime = 0;
+const splashCooldown = 0; // ms between splash sounds
+const splashLowThreshold = 50; // Threshold for low splash sound
+const splashHighThreshold = 200; // Threshold for high splash sound
+
+// Function to play splash sound based on velocity
+function playSplashSound(velocitySum) {
+  // if (!soundEnabled) return;
+
+  const currentTime = Date.now();
+
+  // Randomly select one of the water collision sounds
+  const soundIndex = Math.floor(Math.random() * 3) + 1;
+
+  let soundFile;
+  if (velocitySum >= splashHighThreshold) {
+    soundFile = `audio/water/high${soundIndex}.mp3`;
+  } else if (velocitySum >= splashLowThreshold) {
+    soundFile = `audio/water/low${soundIndex}.mp3`;
+  } else {
+    return; // Not enough velocity for splash
+  }
+
+  const splashAudio = waterObstacleAudioPool.getAudio(soundFile);
+  splashAudio.currentTime = 0;
+  // Calculate volume based on velocity sum
+  const volume = Math.min(Math.pow(velocitySum * 0.005, 0.7), 1.0);
+  splashAudio.volume = volume;
+  splashAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
+  splashAudio.play().catch(e => console.log("Audio play failed:", e));
+
+  lastSplashTime = currentTime;
+}
+
+// Wave sound tracking
+var avgAbsoluteVelocity = 0.0;
+var prevAvgAbsoluteVelocity = 0;
+var velocityChange = 0.0;
+var lastWaveSoundTime = 0;
+const waveSoundCooldown = 0; // ms between wave sounds
+const waveUpThreshold = 0.05; // Positive threshold for up sound
+const waveDownThreshold = -0.02; // Negative threshold for down sound
+const constantSoundThreshold = 0.1; // Threshold for constant sound trigger
+
+// Function to play wave sound based on velocity change
+function playWaveSound(velocityChange) {
+
+  let soundFile;
+  if (velocityChange > waveUpThreshold) {
+    soundFile = "audio/water/uplow1.mp3";
+  } else if (velocityChange <= waveDownThreshold) {
+    soundFile = "audio/water/downlow1.mp3";
+  } else {
+    return; // Not enough velocity change for wave sound
+  }
+
+  const waveAudio = waterWaveAudioPool.getAudio(soundFile);
+  waveAudio.currentTime = 0;
+  // Calculate volume based on velocity change magnitude
+  const volume = Math.min(velocityChange > 0 ? velocityChange * 10 : -velocityChange * 25, 1.0);
+  waveAudio.volume = volume;
+  waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
+  waveAudio.play().catch(e => console.log("Audio play failed:", e));
+
+}
+
+// Function to play wave sound based on velocity change
+function playConstantSound(velocity) {
+
+  // Randomly select one of the constant sound sounds
+  const soundIndex = Math.floor(Math.random() * 2) + 1;
+
+  let soundFile;
+  if (velocity > constantSoundThreshold) {
+    soundFile = `audio/water/constant${soundIndex}.mp3`;
+  } else {
+    return; // Not enough velocity change for wave sound
+  }
+
+  const waveAudio = waterWaveAudioPool.getAudio(soundFile);
+  waveAudio.currentTime = 0;
+  // Calculate volume based on velocity change magnitude
+  const volume = Math.min(Math.pow(velocity * 0.5, 1.5), 1.0);
+  waveAudio.volume = volume;
+  waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
+  waveAudio.play().catch(e => console.log("Audio play failed:", e));
+
+}
+
+// Spray sound tracking
+var sprayCount = 0;
+var lastSprayCount = 0;
+var sprayIncrement = 0;
+const sprayUpThreshold = 20; // Positive threshold for up sound
+const sprayDownThreshold = -20; // Negative threshold for down sound
+const sprayCooldown = 0; // ms between sounds
+
+// Function to play water obstacle collision sound
+function playSpraySound(sprayIntensity) {
+
+  let soundFile;
+  if (sprayIntensity > sprayUpThreshold) {
+    soundFile = "audio/water/maxup1.mp3";
+  } else if (sprayIntensity < sprayDownThreshold) {
+    soundFile = "audio/water/maxdown1.mp3";
+  } else {
+    return; // Not enough velocity change for wave sound
+  }
+
+  // Calculate volume based on collision intensity
+  const volume = Math.min(Math.pow(sprayIntensity > 0 ? sprayIntensity * 0.025 : -sprayIntensity * 0.025, 0.7), 1.0);
+
+  const sprayAudio = sprayAudioPool.getAudio(soundFile);
+  sprayAudio.currentTime = 0;
+  sprayAudio.volume = volume;
+  sprayAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
+  sprayAudio.play().catch(e => console.log("Audio play failed:", e));
 }
 
 canvas1.addEventListener("mousedown", (event) => startDrag(event.x, event.y));
@@ -2742,6 +2911,25 @@ document.addEventListener("DOMContentLoaded", function () {
   toggleMusicFunction = toggleMusic;
 });
 
+// Add this function to calculate average absolute velocity
+function calculateVelocity() {
+
+  let totalAbsoluteVelocity = 0;
+  let currentSprayCount = 0;
+  for (let i = 0; i < scene.fluid.numParticles; i++) {
+    const vx = scene.fluid.particleVel[2 * i];
+    const vy = scene.fluid.particleVel[2 * i + 1];
+    const speed = Math.sqrt(vx * vx + vy * vy);
+    totalAbsoluteVelocity += speed;
+    if (speed > 1) {
+      currentSprayCount++;
+    }
+  }
+
+  sprayCount = currentSprayCount;
+  avgAbsoluteVelocity = totalAbsoluteVelocity / scene.fluid.numParticles;
+}
+
 function simulateTank() {
   if (!scene.paused) {
     var sdt = scene.dt;
@@ -2770,6 +2958,16 @@ function simulateTank() {
     scene.fluid.transferVelocities(false, scene.flipRatio);
     scene.fluid.updateParticleColors();
     scene.fluid.updateCellColors();
+
+    // Calculate average absolute velocity and check for wave sounds
+    calculateVelocity();
+    playConstantSound(avgAbsoluteVelocity);
+    velocityChange = avgAbsoluteVelocity - prevAvgAbsoluteVelocity;
+    playWaveSound(velocityChange);
+    prevAvgAbsoluteVelocity = avgAbsoluteVelocity;
+    sprayIncrement = sprayCount - lastSprayCount;
+    playSpraySound(sprayIncrement);
+    lastSprayCount = sprayCount;
   }
 }
 
@@ -3016,13 +3214,13 @@ function drawGravity() {
 
     // 保存当前Canvas状态
     c.save();
-    
+
     // 平移到球体中心
     c.translate(centerX, centerY);
-    
+
     // 旋转Canvas到球体的角度
     c.rotate(ball.ang);
-    
+
     if (i === 0 && earthImage.complete) {
       // Draw earth image for the biggest ball
       c.drawImage(
@@ -3057,7 +3255,7 @@ function drawGravity() {
       c.closePath();
       c.fill();
     }
-    
+
     // 恢复Canvas状态
     c.restore();
   }
@@ -3071,7 +3269,7 @@ let soundEnabled = false;
 const ballWallAudioPool = {
   audioObjects: [],
   maxPoolSize: 10,
-  
+
   getAudio() {
     // Find an available audio object
     for (let audio of this.audioObjects) {
@@ -3079,14 +3277,14 @@ const ballWallAudioPool = {
         return audio;
       }
     }
-    
+
     // Create a new audio object if pool is not full
     if (this.audioObjects.length < this.maxPoolSize) {
       const newAudio = new Audio("audio/ballwall.mp3");
       this.audioObjects.push(newAudio);
       return newAudio;
     }
-    
+
     // If pool is full, return the oldest one
     return this.audioObjects[0];
   }
@@ -3096,7 +3294,7 @@ const ballWallAudioPool = {
 const ballBallAudioPool = {
   audioObjects: [],
   maxPoolSize: 3,
-  
+
   getAudio() {
     // Find an available audio object
     for (let audio of this.audioObjects) {
@@ -3104,14 +3302,14 @@ const ballBallAudioPool = {
         return audio;
       }
     }
-    
+
     // Create a new audio object if pool is not full
     if (this.audioObjects.length < this.maxPoolSize) {
       const newAudio = new Audio("audio/ballball.mp3");
       this.audioObjects.push(newAudio);
       return newAudio;
     }
-    
+
     // If pool is full, return the oldest one
     return this.audioObjects[0];
   }
@@ -3121,7 +3319,7 @@ const ballBallAudioPool = {
 const ballGlassAudioPool = {
   audioObjects: [],
   maxPoolSize: 10,
-  
+
   getAudio(soundFile) {
     // Find an available audio object
     for (let audio of this.audioObjects) {
@@ -3130,14 +3328,98 @@ const ballGlassAudioPool = {
         return audio;
       }
     }
-    
+
     // Create a new audio object if pool is not full
     if (this.audioObjects.length < this.maxPoolSize) {
       const newAudio = new Audio(soundFile);
       this.audioObjects.push(newAudio);
       return newAudio;
     }
-    
+
+    // If pool is full, return the oldest one and update its source
+    const oldestAudio = this.audioObjects[0];
+    oldestAudio.src = soundFile;
+    return oldestAudio;
+  }
+};
+
+// Audio pool for water obstacle collision sounds
+const waterObstacleAudioPool = {
+  audioObjects: [],
+  maxPoolSize: 10,
+
+  getAudio(soundFile) {
+    // Find an available audio object
+    for (let audio of this.audioObjects) {
+      if (audio.ended || audio.currentTime === 0) {
+        audio.src = soundFile;
+        return audio;
+      }
+    }
+
+    // Create a new audio object if pool is not full
+    if (this.audioObjects.length < this.maxPoolSize) {
+      const newAudio = new Audio(soundFile);
+      this.audioObjects.push(newAudio);
+      return newAudio;
+    }
+
+    // If pool is full, return the oldest one and update its source
+    const oldestAudio = this.audioObjects[0];
+    oldestAudio.src = soundFile;
+    return oldestAudio;
+  }
+};
+
+// Audio pool for water wave sounds
+const waterWaveAudioPool = {
+  audioObjects: [],
+  maxPoolSize: 10,
+
+  getAudio(soundFile) {
+    // Find an available audio object
+    for (let audio of this.audioObjects) {
+      if (audio.ended || audio.currentTime === 0) {
+        audio.src = soundFile;
+        return audio;
+      }
+    }
+
+    // Create a new audio object if pool is not full
+    if (this.audioObjects.length < this.maxPoolSize) {
+      const newAudio = new Audio(soundFile);
+      this.audioObjects.push(newAudio);
+      return newAudio;
+    }
+
+    // If pool is full, return the oldest one and update its source
+    const oldestAudio = this.audioObjects[0];
+    oldestAudio.src = soundFile;
+    return oldestAudio;
+  }
+};
+
+// Audio pool for spray sounds
+const sprayAudioPool = {
+  audioObjects: [],
+  maxPoolSize: 10,
+
+  getAudio(soundFile) {
+    // Find an available audio object
+    for (let audio of this.audioObjects) {
+      if (audio.ended || audio.currentTime === 0) {
+        audio.src = soundFile;
+        return audio;
+      }
+    }
+
+    // Create a new audio object if pool is not full
+    if (this.audioObjects.length < this.maxPoolSize) {
+      const newAudio = new Audio(soundFile);
+      this.audioObjects.push(newAudio);
+      return newAudio;
+    }
+
     // If pool is full, return the oldest one and update its source
     const oldestAudio = this.audioObjects[0];
     oldestAudio.src = soundFile;
@@ -3170,12 +3452,12 @@ function playBallBallSound(normalMomentum) {
   if (soundEnabled) {
     // Calculate volume proportional to square of normal velocity
     const volume = Math.min(Math.pow(Math.abs(normalMomentum), 2), 1);
-    
+
     // Cancel sound if gravity is on and volume is below 0.2
     if (physicsScene.gravityEnabled && volume < 0.1) {
       return;
     }
-    
+
     const ballballAudio = ballBallAudioPool.getAudio();
     ballballAudio.currentTime = 0;
     ballballAudio.volume = volume;
@@ -3185,23 +3467,23 @@ function playBallBallSound(normalMomentum) {
 
 function playBallGlassSound(normalVel) {
   // if (soundEnabled) {
-    // Set velocity threshold for long sound
-    const velocityThreshold = 5.0;
-    const absNormalVel = Math.abs(normalVel);
-    
-    // Select sound file based on velocity
-    const soundFile = absNormalVel > velocityThreshold ? "audio/ballglasslong.mp3" : "audio/ballglassshort.mp3";
-    
-    // Calculate volume based on velocity (louder for faster impacts)
-    const volume = Math.min(absNormalVel * 0.2, 1.0);
-    
-    const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
-    ballglassAudio.currentTime = 0;
-    ballglassAudio.volume = volume;
-    // Add pitch randomization (0.8 to 1.2 times original pitch)
-    ballglassAudio.pitch = (0.8 + Math.random() * 0.4) * ballglassAudio.pitch;
-    ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
-    ballglassAudio.play().catch(e => console.log("Audio play failed:", e));
+  // Set velocity threshold for long sound
+  const velocityThreshold = 5.0;
+  const absNormalVel = Math.abs(normalVel);
+
+  // Select sound file based on velocity
+  const soundFile = absNormalVel > velocityThreshold ? "audio/ballglasslong.mp3" : "audio/ballglassshort.mp3";
+
+  // Calculate volume based on velocity (louder for faster impacts)
+  const volume = Math.min(absNormalVel * 0.2, 1.0);
+
+  const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
+  ballglassAudio.currentTime = 0;
+  ballglassAudio.volume = volume;
+  // Add pitch randomization (0.8 to 1.2 times original pitch)
+  ballglassAudio.pitch = (0.8 + Math.random() * 0.4) * ballglassAudio.pitch;
+  ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
+  ballglassAudio.play().catch(e => console.log("Audio play failed:", e));
   // }
 }
 
@@ -3273,14 +3555,14 @@ function handleBallCollision(ball1, ball2, restitution) {
   var friction = 0.5; // 摩擦系数
   if (Math.abs(tangentVel) > 0.001) {
     var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
-    
+
     // 应用切向冲量
     ball1.vel.add(tangent1, -impulseTangent * invMass1);
     ball2.vel.add(tangent1, impulseTangent * invMass2);
     ball1.omega += impulseTangent * ball1.radius * invInertia1;
     ball2.omega += impulseTangent * ball2.radius * invInertia2;
   }
-  
+
   // Play ball-ball collision sound
   playBallBallSound(ballBallSoundAdjustment * ball1.mass * ball2.mass * normalVel);
 }
@@ -3298,7 +3580,7 @@ function handleWallCollision(ball, worldSize, restitution) {
   // 左墙碰撞
   if (ball.pos.x < ball.radius) {
     ball.pos.x = ball.radius;
-    
+
     // 计算碰撞点速度
     var contactPoint = new Vector2(0, ball.pos.y);
     var r = new Vector2();
@@ -3319,9 +3601,9 @@ function handleWallCollision(ball, worldSize, restitution) {
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
     // 应用法向冲量
-    ball.vel.add(normal,normalAdjustment *impulseNormal * invMass);
+    ball.vel.add(normal, normalAdjustment * impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
-    
+
     // Play wall collision sound
     playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
 
@@ -3336,7 +3618,7 @@ function handleWallCollision(ball, worldSize, restitution) {
   // 右墙碰撞
   if (ball.pos.x > worldSize.x - ball.radius) {
     ball.pos.x = worldSize.x - ball.radius;
-    
+
     var contactPoint = new Vector2(worldSize.x, ball.pos.y);
     var r = new Vector2();
     r.subtractVectors(contactPoint, ball.pos);
@@ -3352,10 +3634,10 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
+    ball.vel.add(normal, normalAdjustment * impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
-    
-// Play wall collision sound
+
+    // Play wall collision sound
     playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
 
     if (Math.abs(tangentVel) > 0.001) {
@@ -3368,7 +3650,7 @@ function handleWallCollision(ball, worldSize, restitution) {
   // 地面碰撞
   if (ball.pos.y < ball.radius) {
     ball.pos.y = ball.radius;
-    
+
     var contactPoint = new Vector2(ball.pos.x, 0);
     var r = new Vector2();
     r.subtractVectors(contactPoint, ball.pos);
@@ -3384,7 +3666,7 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
+    ball.vel.add(normal, normalAdjustment * impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
 
     // Play wall collision sound
@@ -3400,7 +3682,7 @@ function handleWallCollision(ball, worldSize, restitution) {
   // 天花板碰撞
   if (ball.pos.y > worldSize.y - ball.radius) {
     ball.pos.y = worldSize.y - ball.radius;
-    
+
     var contactPoint = new Vector2(ball.pos.x, worldSize.y);
     var r = new Vector2();
     r.subtractVectors(contactPoint, ball.pos);
@@ -3416,15 +3698,15 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     var impulseNormal = -(1 + restitution) * normalVel / (invMass + invInertia * ball.radius * ball.radius);
 
-    ball.vel.add(normal,  normalAdjustment *impulseNormal * invMass);
+    ball.vel.add(normal, normalAdjustment * impulseNormal * invMass);
     // ball.omega -= impulseNormal * ball.radius * invInertia;
-    
+
     // Play wall collision sound
     playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
 
     if (Math.abs(tangentVel) > 0.001) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
-      ball.vel.add(tangent,  impulseTangent * invMass);
+      ball.vel.add(tangent, impulseTangent * invMass);
       ball.omega += impulseTangent * ball.radius * invInertia;
     }
   }
@@ -3444,30 +3726,30 @@ function simulateGravity() {
     ball1.simulate(physicsScene.dt, physicsScene.gravity);
 
     // Calculate gravitational forces from other balls
-  if (physicsScene.gravityEnabled) {
-    for (j = 0; j < physicsScene.balls.length; j++) {
-      if (i === j) continue; // Skip self
-      // REMOVED: if (mouseDown2 && j === DRAGGABLE_BALL_INDEX) continue; // Skip dragged ball
+    if (physicsScene.gravityEnabled) {
+      for (j = 0; j < physicsScene.balls.length; j++) {
+        if (i === j) continue; // Skip self
+        // REMOVED: if (mouseDown2 && j === DRAGGABLE_BALL_INDEX) continue; // Skip dragged ball
 
-      var ball2 = physicsScene.balls[j];
+        var ball2 = physicsScene.balls[j];
 
-      // Calculate distance between balls
-      var dir = new Vector2();
-      dir.subtractVectors(ball2.pos, ball1.pos);
-      var distance = dir.length();
+        // Calculate distance between balls
+        var dir = new Vector2();
+        dir.subtractVectors(ball2.pos, ball1.pos);
+        var distance = dir.length();
 
-      // Avoid division by zero and extremely small distances
-      if (distance < 0.01) continue;
+        // Avoid division by zero and extremely small distances
+        if (distance < 0.01) continue;
 
-      // Calculate gravitational force (F = G * m1 * m2 / r^2)
-      var forceMagnitude =
-        (physicsScene.G * ball1.mass * ball2.mass) / (distance * distance);
+        // Calculate gravitational force (F = G * m1 * m2 / r^2)
+        var forceMagnitude =
+          (physicsScene.G * ball1.mass * ball2.mass) / (distance * distance);
 
-      // Normalize direction and apply force
-      dir.scale(forceMagnitude / distance);
-      ball1.vel.add(dir, physicsScene.dt / ball1.mass);
+        // Normalize direction and apply force
+        dir.scale(forceMagnitude / distance);
+        ball1.vel.add(dir, physicsScene.dt / ball1.mass);
+      }
     }
-  }
 
     // Handle collisions
     for (j = i + 1; j < physicsScene.balls.length; j++) {
