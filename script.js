@@ -2704,24 +2704,32 @@ function playConstantSound(velocity) {
 var sprayCount = 0;
 var lastSprayCount = 0;
 var sprayIncrement = 0;
-const sprayUpThreshold = 20; // Positive threshold for up sound
-const sprayDownThreshold = -20; // Negative threshold for down sound
+const sprayUpThresholdLow = 20; // Positive threshold for up sound
+const sprayUpThresholdHigh = 200; // Positive threshold for up sound high
+const sprayDownThresholdLow = -20; // Negative threshold for down sound
+const sprayDownThresholdHigh = -200; // Negative threshold for down sound sound high
 const sprayCooldown = 0; // ms between sounds
 
 // Function to play water obstacle collision sound
 function playSpraySound(sprayIntensity) {
 
+  const soundIndex = Math.floor(Math.random() * 3) + 1;
+
   let soundFile;
-  if (sprayIntensity > sprayUpThreshold) {
-    soundFile = "audio/water/maxup1.mp3";
-  } else if (sprayIntensity < sprayDownThreshold) {
-    soundFile = "audio/water/maxdown1.mp3";
+  if (sprayIntensity > sprayUpThresholdHigh) {
+    soundFile = `audio/water/maxuphigh${soundIndex}.mp3`;
+  } else if (sprayIntensity > sprayUpThresholdLow) {
+    soundFile = `audio/water/maxuplow${soundIndex}.mp3`;
+  } else if (sprayIntensity < sprayDownThresholdLow) {
+    soundFile = `audio/water/maxdownlow${soundIndex}.mp3`;
+  } else if (sprayIntensity < sprayDownThresholdHigh) {
+    soundFile = `audio/water/maxdownhigh${soundIndex}.mp3`;
   } else {
-    return; // Not enough velocity change for wave sound
+    return; // Not enough velocity change for spray sound
   }
 
   // Calculate volume based on collision intensity
-  const volume = Math.min(Math.pow(sprayIntensity > 0 ? sprayIntensity * 0.025 : -sprayIntensity * 0.025, 0.7), 1.0);
+  const volume = Math.min(Math.pow(sprayIntensity > 0 ? sprayIntensity * 0.001 : -sprayIntensity * 0.001, 0.2), 1.0);
 
   const sprayAudio = sprayAudioPool.getAudio(soundFile);
   sprayAudio.currentTime = 0;
