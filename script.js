@@ -2658,11 +2658,14 @@ const constantSoundThreshold = 0.1; // Threshold for constant sound trigger
 // Function to play wave sound based on velocity change
 function playWaveSound(velocityChange) {
 
+  // Randomly select one of the wave sound sounds
+  const soundIndex = Math.floor(Math.random() * 3) + 1;
+
   let soundFile;
   if (velocityChange > waveUpThreshold) {
-    soundFile = "audio/water/uplow1.mp3";
+    soundFile = `audio/water/up${soundIndex}.mp3`;
   } else if (velocityChange <= waveDownThreshold) {
-    soundFile = "audio/water/downlow1.mp3";
+    soundFile = `audio/water/down${soundIndex}.mp3`;
   } else {
     return; // Not enough velocity change for wave sound
   }
