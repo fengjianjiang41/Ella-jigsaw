@@ -145,6 +145,21 @@ button:hover:not(:disabled) {
     /* Text color */
 }
 
+/* Confirm button animation */
+#confirmBtn.active:not(:disabled):not(:hover) {
+    animation: buttonBounce 1s infinite alternate;
+    -webkit-animation: buttonBounce 1s infinite alternate;
+}
+
+@keyframes buttonBounce {
+    0% {
+        background-color: #dddddd;
+    }
+    100% {
+        background-color: #ffb3c2;
+    }
+}
+
 button:disabled {
     color: #808080;
     /* Grey text color when disabled */

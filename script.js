@@ -102,6 +102,14 @@ class Piece {
     this.offsetX = 0;
     this.offsetY = 0;
     this.puzzleIdx = puzzleIdx;
+    // Size animation properties
+    this.size = 1.0;
+    this.targetSize = 1.0;
+    this.sizeSpeed = 0;
+    this.animationStartTime = 0;
+    this.animationDuration = 0;
+    this.originalVx = 0;
+    this.originalVy = 0;
     // Breathing effect properties (only for apple and hongbao puzzles)
     if (puzzleIdx === 1 || puzzleIdx === 2) {
       this.alpha = 1;
@@ -120,10 +128,10 @@ class Piece {
       this.sy,
       pieceXSize,
       pieceYSize,
-      this.x,
-      this.y,
-      pieceXSize,
-      pieceYSize,
+      this.x - (pieceXSize * (this.size - 1)) / 2,
+      this.y - (pieceYSize * (this.size - 1)) / 2,
+      pieceXSize * this.size,
+      pieceYSize * this.size,
     );
     ctx.globalAlpha = 1;
   }
@@ -168,6 +176,8 @@ async function setupPuzzle(canvas, ctx, imgPath, puzzleIdx) {
     mouseOver: false,
     boundaryHighlight: false,
     mergeHighlight: false,
+    animationInProgress: false,
+    animationTimeout: null,
   };
   drawPuzzle(puzzleIdx);
 }
@@ -201,8 +211,8 @@ function drawPuzzle(idx) {
   const lensDiameter = difficultySettings[currentDifficulty].lensSize;
   const lensRadius = lensDiameter / 2;
 
-  // If it's the hongbao puzzle and mouse is over, draw with lens effect
-  if (isHongbao && mouseOver) {
+  // If it's the hongbao puzzle, mouse is over, and no animation in progress, draw with lens effect
+  if (isHongbao && mouseOver && !puzzles[idx].animationInProgress) {
     // Draw white blanket first
     ctxs[idx].fillStyle = "white";
     ctxs[idx].fillRect(0, 0, canvasXSize * 2, canvasYSize * 2);
@@ -236,7 +246,7 @@ function drawPuzzle(idx) {
     ctxs[idx].arc(mouseX, mouseY, lensRadius, 0, Math.PI * 2);
     ctxs[idx].stroke();
   } else {
-    // Not hongbao or mouse not over - draw all pieces normally
+    // Not hongbao, mouse not over, or animation in progress - draw all pieces normally
     for (const piece of pieces) {
       piece.draw(ctxs[idx]);
     }
@@ -262,6 +272,36 @@ function animatePuzzle(idx) {
 
   for (const piece of pieces) {
     if (piece.dragging) continue;
+    
+    // Handle size animation
+    if (piece.animationStartTime > 0) {
+      const elapsed = currentTime - piece.animationStartTime;
+      if (elapsed < piece.animationDuration) {
+        // Calculate size based on animation progress
+        const progress = elapsed / piece.animationDuration;
+        if (piece.targetSize > 1.0) {
+          // Expanding phase
+          piece.size = 1.0 + (piece.targetSize - 1.0) * progress;
+          // Slow down speed during expansion
+          piece.vx = piece.originalVx * 0.5;
+          piece.vy = piece.originalVy * 0.5;
+        } else {
+          // Shrinking phase
+          piece.size = piece.targetSize - (piece.targetSize - 1.0) * progress;
+          // Restore original speed during shrinking
+          piece.vx = piece.originalVx;
+          piece.vy = piece.originalVy;
+        }
+      } else {
+        // Animation complete
+        piece.size = piece.targetSize;
+        piece.animationStartTime = 0;
+        // Restore original speed
+        piece.vx = piece.originalVx;
+        piece.vy = piece.originalVy;
+      }
+    }
+    
     // Bounce
     piece.x += piece.vx;
     piece.y += piece.vy;
@@ -447,6 +487,44 @@ function tryMerge(idx, piece) {
         drawPuzzle(idx);
       }
     }, 500);
+
+    // Set animation in progress flag
+    puzzles[idx].animationInProgress = true;
+    // Clear any existing timeout
+    if (puzzles[idx].animationTimeout) {
+      clearTimeout(puzzles[idx].animationTimeout);
+    }
+    // Reset flag after animation period (400ms total)
+    puzzles[idx].animationTimeout = setTimeout(() => {
+      if (puzzles[idx]) {
+        puzzles[idx].animationInProgress = false;
+        drawPuzzle(idx);
+      }
+    }, 400);
+
+    // Animate all independent unmerged pieces
+    const independentPieces = pieces.filter(p => p.group.length === 1);
+    const currentTime = Date.now();
+    
+    independentPieces.forEach(piece => {
+      // Store original velocity
+      piece.originalVx = piece.vx;
+      piece.originalVy = piece.vy;
+      
+      // Start expansion animation (1 second)
+      piece.targetSize = 1.1;
+      piece.animationStartTime = currentTime;
+      piece.animationDuration = 300;
+      
+      // Schedule shrink animation (0.1 second) after expansion
+      setTimeout(() => {
+        if (piece && piece.group.length === 1) { // Only shrink if still independent
+          piece.targetSize = 1.0;
+          piece.animationStartTime = Date.now();
+          piece.animationDuration = 100;
+        }
+      }, 300);
+    });
   }
 }
 
@@ -475,12 +553,18 @@ function checkSolved(idx) {
   if (pieces.every((p) => p.group === pieces[0].group)) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
+    // Play bell sound for the solved puzzle
+    const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
+    bellAudio.currentTime = 0;
+    bellAudio.play();
     if (allSolved.every(Boolean)) {
       // 播放group.mp3
       const groupAudio = new Audio("audio/group.mp3");
       groupAudio.currentTime = 0;
       groupAudio.play();
-      document.getElementById("confirmBtn").disabled = false;
+      const confirmBtn = document.getElementById("confirmBtn");
+      confirmBtn.disabled = false;
+      confirmBtn.classList.add("active");
       stopTimer();
       // 自动滚动到结果页
       const resultPage = document.getElementById("page6");
@@ -925,6 +1009,7 @@ document.addEventListener("DOMContentLoaded", function () {
   stopBtn.onclick = function () {
     startBtn.disabled = !okBtn.disabled || !difficultySelected;
     confirmBtn.disabled = true;
+    confirmBtn.classList.remove("active");
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
