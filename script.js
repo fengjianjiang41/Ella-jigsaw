@@ -195,7 +195,7 @@ function drawPuzzle(idx) {
 
   // Draw boundary
   if (mergeHighlight) {
-    ctxs[idx].strokeStyle = "#00ff00";
+    ctxs[idx].strokeStyle = "#c7ffc7ff";
     ctxs[idx].lineWidth = 40000;
   } else if (boundaryHighlight) {
     ctxs[idx].strokeStyle = "#ffb3c2";
@@ -3174,6 +3174,19 @@ var physicsScene = {
   gravityEnabled: true, // Track if gravity is enabled
   ballBallSoundAdjustment: 5000,
   ballWallSoundAdjustment: 100,
+  billiardsMode: false,
+  billiardsClickCount: 0,
+  currentWallpaper: null,
+  previousWallpaper: null,
+  wallpaperOffset: { x: 0, y: 0 },
+  wallpaperImages: [
+    'images/wp1.jpg',
+    'images/wp2.jpg',
+    'images/wp3.jpg',
+    'images/wp4.jpg',
+    'images/wp5.jpg'
+  ],
+  wallpaperImage: new Image()
 };
 
 // Add a fixed index for the draggable ball (always the third ball)
@@ -3216,6 +3229,59 @@ function toggleGravity() {
     button.textContent = "取消重力";
   } else {
     button.textContent = "开启重力";
+  }
+}
+
+function toggleBilliards() {
+  physicsScene.billiardsClickCount++;
+  
+  if (physicsScene.billiardsClickCount % 2 === 1) {
+    // Single click: enable billiards mode with random wallpaper
+    physicsScene.billiardsMode = true;
+    
+    // Select random wallpaper, excluding previous one
+    let availableWallpapers = physicsScene.wallpaperImages.filter(
+      img => img !== physicsScene.previousWallpaper
+    );
+    
+    if (availableWallpapers.length === 0) {
+      // All wallpapers used, reset previous
+      physicsScene.previousWallpaper = null;
+      availableWallpapers = physicsScene.wallpaperImages;
+    }
+    
+    const randomIndex = Math.floor(Math.random() * availableWallpapers.length);
+    physicsScene.currentWallpaper = availableWallpapers[randomIndex];
+    
+    // Load the wallpaper image
+    physicsScene.wallpaperImage.src = physicsScene.currentWallpaper;
+    
+    // Set initial offset to 0 (will be updated when image loads)
+    physicsScene.wallpaperOffset.x = 0;
+    physicsScene.wallpaperOffset.y = 0;
+    
+    // Update offset when image loads
+    physicsScene.wallpaperImage.onload = function() {
+      // Calculate random offset within wallpaper bounds
+      // Ensure canvas fits within wallpaper
+      const maxOffsetX = Math.max(0, physicsScene.wallpaperImage.width - 1344);
+      const maxOffsetY = Math.max(0, physicsScene.wallpaperImage.height - 768);
+      physicsScene.wallpaperOffset.x = Math.random() * maxOffsetX;
+      physicsScene.wallpaperOffset.y = Math.random() * maxOffsetY;
+    };
+    
+    // Update button text
+    var button = document.querySelector('button[onclick="toggleBilliards()"]');
+    button.textContent = "关闭台球模式";
+  } else {
+    // Double click: disable billiards mode
+    physicsScene.billiardsMode = false;
+    physicsScene.previousWallpaper = physicsScene.currentWallpaper;
+    physicsScene.currentWallpaper = null;
+    
+    // Update button text
+    var button = document.querySelector('button[onclick="toggleBilliards()"]');
+    button.textContent = "台球模式";
   }
 }
 
@@ -3285,6 +3351,12 @@ canvas2.addEventListener(
   { passive: false },
 );
 
+// Preload wallpaper images
+physicsScene.wallpaperImages.forEach(src => {
+  const img = new Image();
+  img.src = src;
+});
+
 // draw -------------------------------------------------------
 
 // Load images for the balls
@@ -3298,7 +3370,33 @@ var moonImage = new Image();
 moonImage.src = "images/moon.png";
 
 function drawGravity() {
+  // Clear canvas
   c.clearRect(0, 0, canvas2.width, canvas2.height);
+  
+  // Draw wallpaper if in billiards mode and wallpaper is loaded
+  if (physicsScene.billiardsMode && physicsScene.currentWallpaper && physicsScene.wallpaperImage.complete) {
+    // Calculate source rectangle to ensure we don't draw outside the image
+    const srcX = Math.max(0, physicsScene.wallpaperOffset.x);
+    const srcY = Math.max(0, physicsScene.wallpaperOffset.y);
+    const srcWidth = Math.min(1344, physicsScene.wallpaperImage.width - srcX);
+    const srcHeight = Math.min(768, physicsScene.wallpaperImage.height - srcY);
+    
+    // Calculate destination rectangle to fit within canvas
+    const destWidth = (srcWidth / 1344) * canvas2.width;
+    const destHeight = (srcHeight / 768) * canvas2.height;
+    const destX = (canvas2.width - destWidth) / 2;
+    const destY = (canvas2.height - destHeight) / 2;
+    
+    c.drawImage(
+      physicsScene.wallpaperImage,
+      srcX, srcY, srcWidth, srcHeight,
+      destX, destY, destWidth, destHeight
+    );
+  } else {
+    // Draw original pink background
+    c.fillStyle = "#ffe4e1";
+    c.fillRect(0, 0, canvas2.width, canvas2.height);
+  }
 
   c.fillStyle = "#000000";
 
