@@ -77,6 +77,11 @@ function updateLoadingProgress() {
   const progress = Math.round((audioLoadedCount / audioTotalCount) * 100);
   const progressBar = document.getElementById('loadingProgress');
   const percentageText = document.getElementById('loadingPercentage');
+  const startText = document.getElementById('startText');
+
+  if (startText) {
+    startText.style.display = 'none';
+  }
   
   if (progressBar) {
     progressBar.style.width = progress + '%';
@@ -99,7 +104,7 @@ function completeLoading() {
     loadingBar.style.display = 'none';
   }
   if (startText) {
-    startText.style.display = 'block';
+    startText.style.display = 'flex';
   }
   
   // Enable keyboard event for page navigation
