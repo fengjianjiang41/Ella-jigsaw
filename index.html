@@ -36,8 +36,15 @@
             <div class="game-image">
                 <img src="images/game.png" alt="拼图游戏" style="max-width: 20%; height: auto;">
             </div>
-            <div class="flicker-text" style="font-size: 24px; letter-spacing: 4px" id="startText">
+            <div class="flicker-text" style="font-size: 24px; letter-spacing: 4px" id="startText" style="display: none;">
                 按任意键开始
+            </div>
+            <div id="loadingBar" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px;">
+                <div style="font-size: 24px; margin-bottom: 10px; color: #000000;">音频加载中</div>
+                <div style="width: 300px; height: 20px; background-color: #f0f0f0; border-radius: 10px; overflow: hidden;">
+                    <div id="loadingProgress" style="height: 100%; background-color: #ff69b4; width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+                <div id="loadingPercentage" style="margin-top: 10px; font-size: 18px; color: #000000;">0%</div>
             </div>
         </div>
 

@@ -68,15 +68,73 @@ const audioFilesPreload = [
   'audio/water/maxdownhigh2.mp3',
   'audio/water/maxdownhigh3.mp3'
 ];
-if ('requestIdleCallback' in window) {
-  requestIdleCallback(() => {
-    audioFilesPreload.forEach(src => {
-      const audio = new Audio();
-      audio.preload = 'auto';
-      audio.src = src;
+
+let audioLoadedCount = 0;
+let audioTotalCount = audioFilesPreload.length;
+let loadingComplete = false;
+
+function updateLoadingProgress() {
+  const progress = Math.round((audioLoadedCount / audioTotalCount) * 100);
+  const progressBar = document.getElementById('loadingProgress');
+  const percentageText = document.getElementById('loadingPercentage');
+  
+  if (progressBar) {
+    progressBar.style.width = progress + '%';
+  }
+  if (percentageText) {
+    percentageText.textContent = progress + '%';
+  }
+  
+  if (audioLoadedCount >= audioTotalCount && !loadingComplete) {
+    loadingComplete = true;
+    completeLoading();
+  }
+}
+
+function completeLoading() {
+  const loadingBar = document.getElementById('loadingBar');
+  const startText = document.getElementById('startText');
+  
+  if (loadingBar) {
+    loadingBar.style.display = 'none';
+  }
+  if (startText) {
+    startText.style.display = 'block';
+  }
+  
+  // Enable keyboard event for page navigation
+  document.addEventListener('keydown', onFirstKey);
+  
+  // Enable mouse scroll wheel
+  const pagesContainer = document.getElementById('pagesContainer');
+  if (pagesContainer) {
+    pagesContainer.style.overflowY = 'auto';
+  }
+}
+
+function loadAudioFiles() {
+  audioFilesPreload.forEach(src => {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = src;
+    
+    audio.addEventListener('loadeddata', () => {
+      audioLoadedCount++;
+      updateLoadingProgress();
+    });
+    
+    audio.addEventListener('error', () => {
+      // Even if there's an error, count it as loaded to avoid blocking
+      audioLoadedCount++;
+      updateLoadingProgress();
     });
   });
 }
+
+// Start loading audio files when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  loadAudioFiles();
+});
 
 const imagePaths = [
   "images/eureka.png",
@@ -805,7 +863,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // 移除了滚轮事件的阻止，允许自然滚动行为
 
   // 首次按键：显示导航并跳到第二页
-  document.addEventListener("keydown", function onFirstKey() {
+  function onFirstKey() {
     if (startText && !startText.classList.contains("hidden")) {
       startText.textContent = "本页有惊喜"; // Change the text
       pageNav.style.display = "flex";
@@ -824,7 +882,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       document.removeEventListener("keydown", onFirstKey);
     }
-  });
+  }
 
   // 分页按钮跳转
   pageBtns.forEach((btn) => {
