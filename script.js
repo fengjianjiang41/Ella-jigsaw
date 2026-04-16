@@ -108,13 +108,14 @@ function completeLoading() {
   }
   
   // Enable keyboard event for page navigation
-  document.addEventListener('keydown', onFirstKey);
+  // document.addEventListener('keydown', onFirstKey);
+  // onFirstKey();
   
   // Enable mouse scroll wheel
-  const pagesContainer = document.getElementById('pagesContainer');
-  if (pagesContainer) {
-    pagesContainer.style.overflowY = 'auto';
-  }
+  // const pagesContainer = document.getElementById('pagesContainer');
+  // if (pagesContainer) {
+  //   pagesContainer.style.overflowY = 'auto';
+  // }
 }
 
 function loadAudioFiles() {
@@ -868,8 +869,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // 移除了滚轮事件的阻止，允许自然滚动行为
 
   // 首次按键：显示导航并跳到第二页
-  function onFirstKey() {
-    if (startText && !startText.classList.contains("hidden")) {
+  document.addEventListener("keydown", function onFirstKey() {
+    if (startText && !startText.style.display.includes("none")) {
       startText.textContent = "本页有惊喜"; // Change the text
       pageNav.style.display = "flex";
       const secondPage = document.getElementById("page2");
@@ -887,7 +888,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       document.removeEventListener("keydown", onFirstKey);
     }
-  }
+  });
 
   // 分页按钮跳转
   pageBtns.forEach((btn) => {
