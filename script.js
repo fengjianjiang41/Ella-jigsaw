@@ -20,7 +20,7 @@ const audioFilesPreload = [
   'audio/ua.m4a',
   'audio/ui.m4a',
   'audio/KevinVillecco-Yoshigemia.mp3',
-  
+
   // dragging 文件夹
   'audio/dragging/slow1.mp3',
   'audio/dragging/slow2.mp3',
@@ -34,7 +34,7 @@ const audioFilesPreload = [
   'audio/dragging/superfast1.mp3',
   'audio/dragging/superfast2.mp3',
   'audio/dragging/superfast3.mp3',
-  
+
   // water 文件夹
   'audio/water/into1.mp3',
   'audio/water/into2.mp3',
@@ -79,17 +79,13 @@ function updateLoadingProgress() {
   const percentageText = document.getElementById('loadingPercentage');
   const startText = document.getElementById('startText');
 
-  if (startText) {
-    startText.style.display = 'none';
-  }
-  
   if (progressBar) {
     progressBar.style.width = progress + '%';
   }
   if (percentageText) {
     percentageText.textContent = progress + '%';
   }
-  
+
   if (audioLoadedCount >= audioTotalCount && !loadingComplete) {
     loadingComplete = true;
     completeLoading();
@@ -99,23 +95,16 @@ function updateLoadingProgress() {
 function completeLoading() {
   const loadingBar = document.getElementById('loadingBar');
   const startText = document.getElementById('startText');
-  
+
   if (loadingBar) {
     loadingBar.style.display = 'none';
   }
   if (startText) {
     startText.style.display = 'flex';
   }
-  
-  // Enable keyboard event for page navigation
-  // document.addEventListener('keydown', onFirstKey);
-  // onFirstKey();
-  
-  // Enable mouse scroll wheel
-  // const pagesContainer = document.getElementById('pagesContainer');
-  // if (pagesContainer) {
-  //   pagesContainer.style.overflowY = 'auto';
-  // }
+
+  // 移除滚动阻止
+  removeScrollBlock();
 }
 
 function loadAudioFiles() {
@@ -123,12 +112,12 @@ function loadAudioFiles() {
     const audio = new Audio();
     audio.preload = 'auto';
     audio.src = src;
-    
+
     audio.addEventListener('loadeddata', () => {
       audioLoadedCount++;
       updateLoadingProgress();
     });
-    
+
     audio.addEventListener('error', () => {
       // Even if there's an error, count it as loaded to avoid blocking
       audioLoadedCount++;
@@ -138,7 +127,12 @@ function loadAudioFiles() {
 }
 
 // Start loading audio files when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+  // 初始隐藏startText
+  const startText = document.getElementById('startText');
+  if (startText) {
+    startText.style.display = 'none';
+  }
   loadAudioFiles();
 });
 
@@ -416,7 +410,7 @@ function animatePuzzle(idx) {
 
   for (const piece of pieces) {
     if (piece.dragging) continue;
-    
+
     // Handle size animation
     if (piece.animationStartTime > 0) {
       const elapsed = currentTime - piece.animationStartTime;
@@ -445,7 +439,7 @@ function animatePuzzle(idx) {
         piece.vy = piece.originalVy;
       }
     }
-    
+
     // Bounce
     piece.x += piece.vx;
     piece.y += piece.vy;
@@ -649,17 +643,17 @@ function tryMerge(idx, piece) {
     // Animate all independent unmerged pieces
     const independentPieces = pieces.filter(p => p.group.length === 1);
     const currentTime = Date.now();
-    
+
     independentPieces.forEach(piece => {
       // Store original velocity
       piece.originalVx = piece.vx;
       piece.originalVy = piece.vy;
-      
+
       // Start expansion animation (1 second)
       piece.targetSize = 1.1;
       piece.animationStartTime = currentTime;
       piece.animationDuration = 300;
-      
+
       // Schedule shrink animation (0.1 second) after expansion
       setTimeout(() => {
         if (piece && piece.group.length === 1) { // Only shrink if still independent
@@ -866,10 +860,28 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // 启用鼠标滚轮滚动所有页面
-  // 移除了滚轮事件的阻止，允许自然滚动行为
+  // 阻止滚动直到加载完成
+  function handleScroll(e) {
+    if (!loadingComplete) {
+      e.preventDefault();
+      return false;
+    }
+  }
+  pagesContainer.addEventListener('wheel', handleScroll, { passive: false });
+
+  // 加载完成后移除滚动阻止
+  function removeScrollBlock() {
+    pagesContainer.removeEventListener('wheel', handleScroll);
+  }
 
   // 首次按键：显示导航并跳到第二页
-  document.addEventListener("keydown", function onFirstKey() {
+  function onFirstKey(e) {
+    if (!loadingComplete) return; // Lock until loading complete
+
+    const startText = document.getElementById('startText');
+    const pageNav = document.getElementById('pageNav');
+    const pageBtns = document.querySelectorAll('.page-btn');
+
     if (startText && !startText.style.display.includes("none")) {
       startText.textContent = "本页有惊喜"; // Change the text
       pageNav.style.display = "flex";
@@ -888,7 +900,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       document.removeEventListener("keydown", onFirstKey);
     }
-  });
+  }
+  document.addEventListener("keydown", onFirstKey);
 
   // 分页按钮跳转
   pageBtns.forEach((btn) => {
@@ -3378,34 +3391,34 @@ function toggleGravity() {
 
 function toggleBilliards() {
   physicsScene.billiardsClickCount++;
-  
+
   if (physicsScene.billiardsClickCount % 2 === 1) {
     // Single click: enable billiards mode with random wallpaper
     physicsScene.billiardsMode = true;
-    
+
     // Select random wallpaper, excluding previous one
     let availableWallpapers = physicsScene.wallpaperImages.filter(
       img => img !== physicsScene.previousWallpaper
     );
-    
+
     if (availableWallpapers.length === 0) {
       // All wallpapers used, reset previous
       physicsScene.previousWallpaper = null;
       availableWallpapers = physicsScene.wallpaperImages;
     }
-    
+
     const randomIndex = Math.floor(Math.random() * availableWallpapers.length);
     physicsScene.currentWallpaper = availableWallpapers[randomIndex];
-    
+
     // Load the wallpaper image
     physicsScene.wallpaperImage.src = physicsScene.currentWallpaper;
-    
+
     // Set initial offset to 0 (will be updated when image loads)
     physicsScene.wallpaperOffset.x = 0;
     physicsScene.wallpaperOffset.y = 0;
-    
+
     // Update offset when image loads
-    physicsScene.wallpaperImage.onload = function() {
+    physicsScene.wallpaperImage.onload = function () {
       // Calculate random offset within wallpaper bounds
       // Ensure canvas fits within wallpaper
       const maxOffsetX = Math.max(0, physicsScene.wallpaperImage.width - 1344);
@@ -3413,7 +3426,7 @@ function toggleBilliards() {
       physicsScene.wallpaperOffset.x = Math.random() * maxOffsetX;
       physicsScene.wallpaperOffset.y = Math.random() * maxOffsetY;
     };
-    
+
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
     button.textContent = "关闭台球模式";
@@ -3422,7 +3435,7 @@ function toggleBilliards() {
     physicsScene.billiardsMode = false;
     physicsScene.previousWallpaper = physicsScene.currentWallpaper;
     physicsScene.currentWallpaper = null;
-    
+
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
     button.textContent = "台球模式";
@@ -3516,7 +3529,7 @@ moonImage.src = "images/moon.png";
 function drawGravity() {
   // Clear canvas
   c.clearRect(0, 0, canvas2.width, canvas2.height);
-  
+
   // Draw wallpaper if in billiards mode and wallpaper is loaded
   if (physicsScene.billiardsMode && physicsScene.currentWallpaper && physicsScene.wallpaperImage.complete) {
     // Calculate source rectangle to ensure we don't draw outside the image
@@ -3524,13 +3537,13 @@ function drawGravity() {
     const srcY = Math.max(0, physicsScene.wallpaperOffset.y);
     const srcWidth = Math.min(1344, physicsScene.wallpaperImage.width - srcX);
     const srcHeight = Math.min(768, physicsScene.wallpaperImage.height - srcY);
-    
+
     // Calculate destination rectangle to fit within canvas
     const destWidth = (srcWidth / 1344) * canvas2.width;
     const destHeight = (srcHeight / 768) * canvas2.height;
     const destX = (canvas2.width - destWidth) / 2;
     const destY = (canvas2.height - destHeight) / 2;
-    
+
     c.drawImage(
       physicsScene.wallpaperImage,
       srcX, srcY, srcWidth, srcHeight,
