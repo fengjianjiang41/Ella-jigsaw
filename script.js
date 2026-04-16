@@ -1,3 +1,83 @@
+// 预加载所有音频文件
+const audioFilesPreload = [
+  // 根音频文件夹
+  'audio/button.m4a',
+  'audio/bouncing.m4a',
+  'audio/dragging.m4a',
+  'audio/success.m4a',
+  'audio/bell1.mp3',
+  'audio/bell2.mp3',
+  'audio/bell3.mp3',
+  'audio/fast.mp3',
+  'audio/group.mp3',
+  'audio/pagebtn.mp3',
+  'audio/jcxbroken.m4a',
+  'audio/ballwall.mp3',
+  'audio/ballball.mp3',
+  'audio/ballglasslong.mp3',
+  'audio/ballglassshort.mp3',
+  'audio/emo.m4a',
+  'audio/ua.m4a',
+  'audio/ui.m4a',
+  'audio/KevinVillecco-Yoshigemia.mp3',
+  
+  // dragging 文件夹
+  'audio/dragging/slow1.mp3',
+  'audio/dragging/slow2.mp3',
+  'audio/dragging/slow3.mp3',
+  'audio/dragging/medium1.mp3',
+  'audio/dragging/medium2.mp3',
+  'audio/dragging/medium3.mp3',
+  'audio/dragging/fast1.mp3',
+  'audio/dragging/fast2.mp3',
+  'audio/dragging/fast3.mp3',
+  'audio/dragging/superfast1.mp3',
+  'audio/dragging/superfast2.mp3',
+  'audio/dragging/superfast3.mp3',
+  
+  // water 文件夹
+  'audio/water/into1.mp3',
+  'audio/water/into2.mp3',
+  'audio/water/into3.mp3',
+  'audio/water/into4.mp3',
+  'audio/water/into5.mp3',
+  'audio/water/high1.mp3',
+  'audio/water/high2.mp3',
+  'audio/water/high3.mp3',
+  'audio/water/low1.mp3',
+  'audio/water/low2.mp3',
+  'audio/water/low3.mp3',
+  'audio/water/up1.mp3',
+  'audio/water/up2.mp3',
+  'audio/water/up3.mp3',
+  'audio/water/down1.mp3',
+  'audio/water/down2.mp3',
+  'audio/water/down3.mp3',
+  'audio/water/constant1.mp3',
+  'audio/water/constant2.mp3',
+  'audio/water/maxuphigh1.mp3',
+  'audio/water/maxuphigh2.mp3',
+  'audio/water/maxuphigh3.mp3',
+  'audio/water/maxuplow1.mp3',
+  'audio/water/maxuplow2.mp3',
+  'audio/water/maxuplow3.mp3',
+  'audio/water/maxdownlow1.mp3',
+  'audio/water/maxdownlow2.mp3',
+  'audio/water/maxdownlow3.mp3',
+  'audio/water/maxdownhigh1.mp3',
+  'audio/water/maxdownhigh2.mp3',
+  'audio/water/maxdownhigh3.mp3'
+];
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(() => {
+    audioFilesPreload.forEach(src => {
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.src = src;
+    });
+  });
+}
+
 const imagePaths = [
   "images/eureka.png",
   "images/apple.png",
