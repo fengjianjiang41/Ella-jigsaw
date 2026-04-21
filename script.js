@@ -477,7 +477,7 @@ function animatePuzzle(idx) {
         piece.alpha =
           0.5 +
           0.5 *
-            Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
+          Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
       } else {
         // Stop breathing once connected
         piece.alpha = 1;
@@ -723,7 +723,10 @@ function checkSolved(idx) {
         const activeBtn = document.querySelector(
           ".page-btn[data-page='page6']",
         );
-        if (activeBtn) activeBtn.classList.add("active");
+        if (activeBtn) {
+          activeBtn.classList.add("active");
+          activeBtn.classList.add("has-been-active");
+        }
       } catch (e) {
         // ignore if DOM structure is different
       }
@@ -757,7 +760,10 @@ function scrollToFirstUnsolved() {
     const activeBtn = document.querySelector(
       `.page-btn[data-page="${targetPageId}"]`,
     );
-    if (activeBtn) activeBtn.classList.add("active");
+    if (activeBtn) {
+      activeBtn.classList.add("active");
+      activeBtn.classList.add("has-been-active");
+    }
   } catch (e) {
     // ignore if DOM structure is different
   }
@@ -839,6 +845,22 @@ document.addEventListener("DOMContentLoaded", function () {
   difficulty2Btn.addEventListener("click", () => setDifficulty(2));
   difficulty3Btn.addEventListener("click", () => setDifficulty(3));
 
+  // Nickname input event listener
+  nicknameInput.addEventListener("input", function () {
+    if (this.value.trim() !== "") {
+      okBtn.textContent = "写好了";
+      okBtn.classList.add("active");
+    } else {
+      okBtn.textContent = "我叫……";
+      okBtn.classList.remove("active");
+    }
+  });
+
+  // Remove active class when okBtn is clicked
+  okBtn.addEventListener("click", function () {
+    this.classList.remove("active");
+  });
+
   // 初始化拼图（3个）
   for (let i = 0; i < imagePaths.length; i++) {
     canvases[i].addEventListener("mousedown", (e) => onMouseDown(i, e));
@@ -861,9 +883,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // 启用鼠标滚轮滚动所有页面
-  // 阻止滚动直到加载完成
+  // 阻止滚动直到加载完成和confirmBtn首次点击
+  let confirmBtnClicked = false;
   function handleScroll(e) {
-    if (!loadingComplete) {
+    if (!loadingComplete || !confirmBtnClicked) {
       e.preventDefault();
       return false;
     }
@@ -872,7 +895,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 加载完成后移除滚动阻止
   function removeScrollBlock() {
-    pagesContainer.removeEventListener("wheel", handleScroll);
+    // 只在confirmBtn点击后移除滚动阻止
+    if (confirmBtnClicked) {
+      pagesContainer.removeEventListener("wheel", handleScroll);
+    }
   }
 
   // 首次按键：显示导航并跳到第二页
@@ -891,7 +917,10 @@ document.addEventListener("DOMContentLoaded", function () {
         secondPage.scrollIntoView({ behavior: "smooth", block: "start" });
         pageBtns.forEach((btn) => {
           btn.classList.remove("active");
-          if (btn.dataset.page === "page2") btn.classList.add("active");
+          if (btn.dataset.page === "page2") {
+            btn.classList.add("active");
+            btn.classList.add("has-been-active"); // 标记为已激活过
+          }
         });
       }
       // // Toggle music when first key is pressed
@@ -908,6 +937,7 @@ document.addEventListener("DOMContentLoaded", function () {
   pageBtns.forEach((btn) => {
     // 添加悬停事件播放音频
     btn.addEventListener("mouseenter", function () {
+      if (!confirmBtnClicked) return;
       const pageBtnAudio = new Audio("audio/pagebtn.mp3");
       pageBtnAudio.currentTime = 0;
       pageBtnAudio.volume = 0.3; // 调整音量，范围0-1
@@ -915,6 +945,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     btn.addEventListener("click", function () {
+      if (!loadingComplete || !confirmBtnClicked) return;
       const targetPageId = this.dataset.page;
       const targetPage = document.getElementById(targetPageId);
       if (targetPage) {
@@ -929,6 +960,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         pageBtns.forEach((b) => b.classList.remove("active"));
         this.classList.add("active");
+        this.classList.add("has-been-active"); // 标记为已激活过
         currentActivePage = targetPageId; // Update current active page
       }
       // Handle page5 active state
@@ -1033,9 +1065,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!start) start = ts;
       const progress = ts - start;
       const percent = Math.min(progress / duration, 1);
-      floating.style.top = `${
-        bunRect.top + topOffset - percent * riseDistance
-      }px`;
+      floating.style.top = `${bunRect.top + topOffset - percent * riseDistance
+        }px`;
       floating.style.opacity = `${1 - percent}`;
       if (percent < 1) {
         requestAnimationFrame(animate);
@@ -1159,7 +1190,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // 显示浮动控件
     pageBtns.forEach((btn) => {
       btn.classList.remove("active");
-      if (btn.dataset.page === "page3") btn.classList.add("active");
+      if (btn.dataset.page === "page3") {
+        btn.classList.add("active");
+        btn.classList.add("has-been-active"); // 标记为已激活过
+      }
     });
     floatingControls.style.display = "flex";
   };
@@ -1201,6 +1235,12 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
     okBtn.disabled = false;
+    // Set active state for okBtn based on nickname input
+    if (nicknameInput.value.trim() !== "") {
+      okBtn.classList.add("active");
+    } else {
+      okBtn.classList.remove("active");
+    }
     // Enable difficulty buttons when game restarts
     [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
@@ -1229,7 +1269,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if (pageNav) pageNav.style.display = "flex";
       pageBtns.forEach((b) => b.classList.remove("active"));
       const btn = Array.from(pageBtns).find((b) => b.dataset.page === "page2");
-      if (btn) btn.classList.add("active");
+      if (btn) {
+        btn.classList.add("active");
+        btn.classList.add("has-been-active"); // 标记为已激活过
+      }
     }
     // 重置为 "往下有惊喜" 当重启按钮被点击
     const congratulationsText = document.getElementById("congratulationsText");
@@ -1243,6 +1286,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Confirm：保存成绩并更新排行
   confirmBtn.onclick = function () {
+    // 标记confirmBtn首次点击
+    if (!confirmBtnClicked) {
+      confirmBtnClicked = true;
+      removeScrollBlock();
+    }
+
+    // 标记page6按钮为已激活过
+    const page6Btn = Array.from(pageBtns).find((btn) => btn.dataset.page === "page6");
+    if (page6Btn) {
+      page6Btn.classList.add("has-been-active");
+    }
+
     // use timer (ms) convert to seconds
     const timeSeconds = timer / 1000;
     let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
@@ -1334,7 +1389,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const firstPageBtn = Array.from(pageBtns).find(
       (btn) => btn.dataset.page === "page1",
     );
-    if (firstPageBtn) firstPageBtn.classList.add("active");
+    if (firstPageBtn) {
+      firstPageBtn.classList.add("active");
+      firstPageBtn.classList.add("has-been-active"); // 标记为已激活过
+    }
 
     // Handle page5 active state
     if (page5Active) {
@@ -1345,6 +1403,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 初始按钮状态
   okBtn.disabled = false;
+  // Set initial active state for okBtn based on nickname input
+  if (nicknameInput.value.trim() !== "") {
+    okBtn.classList.add("active");
+  } else {
+    okBtn.classList.remove("active");
+  }
   startBtn.disabled = true;
   confirmBtn.disabled = true;
   stopBtn.disabled = true;
@@ -1816,22 +1880,22 @@ class FlipFluid {
           var offset = component == 0 ? n : 1;
           var valid0 =
             this.cellType[nr0] != AIR_CELL ||
-            this.cellType[nr0 - offset] != AIR_CELL
+              this.cellType[nr0 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid1 =
             this.cellType[nr1] != AIR_CELL ||
-            this.cellType[nr1 - offset] != AIR_CELL
+              this.cellType[nr1 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid2 =
             this.cellType[nr2] != AIR_CELL ||
-            this.cellType[nr2 - offset] != AIR_CELL
+              this.cellType[nr2 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid3 =
             this.cellType[nr3] != AIR_CELL ||
-            this.cellType[nr3 - offset] != AIR_CELL
+              this.cellType[nr3 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
 
@@ -2087,13 +2151,13 @@ class FlipFluid {
       );
       this.particleColor[3 * i + 1] = clamp(
         this.particleColor[3 * i + 1] +
-          (TARGET_G - this.particleColor[3 * i + 1]) * s,
+        (TARGET_G - this.particleColor[3 * i + 1]) * s,
         0.0,
         1.0,
       );
       this.particleColor[3 * i + 2] = clamp(
         this.particleColor[3 * i + 2] +
-          (TARGET_B - this.particleColor[3 * i + 2]) * s,
+        (TARGET_B - this.particleColor[3 * i + 2]) * s,
         0.0,
         1.0,
       );
