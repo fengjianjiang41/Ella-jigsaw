@@ -3485,7 +3485,7 @@ function toggleBilliards() {
 
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
-    button.textContent = "关闭台球模式";
+    button.textContent = "不要壁纸";
   } else {
     // Double click: disable billiards mode
     physicsScene.billiardsMode = false;
@@ -3494,7 +3494,7 @@ function toggleBilliards() {
 
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
-    button.textContent = "台球模式";
+    button.textContent = "来张壁纸";
   }
 }
 
