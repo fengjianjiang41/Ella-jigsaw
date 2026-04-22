@@ -16,24 +16,10 @@ const audioFilesPreload = [
   "audio/ballball.mp3",
   "audio/ballglasslong.mp3",
   "audio/ballglassshort.mp3",
-  "audio/emo.m4a",
-  "audio/ua.m4a",
-  "audio/ui.m4a",
+  "audio/emo.mp3",
+  "audio/ua.mp3",
+  "audio/ui.mp3",
   "audio/KevinVillecco-Yoshigemia.mp3",
-
-  // dragging 文件夹
-  "audio/dragging/slow1.mp3",
-  "audio/dragging/slow2.mp3",
-  "audio/dragging/slow3.mp3",
-  "audio/dragging/medium1.mp3",
-  "audio/dragging/medium2.mp3",
-  "audio/dragging/medium3.mp3",
-  "audio/dragging/fast1.mp3",
-  "audio/dragging/fast2.mp3",
-  "audio/dragging/fast3.mp3",
-  "audio/dragging/superfast1.mp3",
-  "audio/dragging/superfast2.mp3",
-  "audio/dragging/superfast3.mp3",
 
   // water 文件夹
   "audio/water/into1.mp3",
@@ -141,7 +127,7 @@ const imagePaths = [
   "images/apple.png",
   "images/hongbao.png",
 ];
-const audioFiles = ["audio/emo.m4a", "audio/ua.m4a", "audio/ui.m4a"];
+const audioFiles = ["audio/emo.mp3", "audio/ua.mp3", "audio/ui.mp3"];
 let bunClickCount = 0;
 
 // Difficulty settings
@@ -2821,11 +2807,6 @@ function drawTank() {
 }
 
 var mouseDown = false;
-var lastDragTime = 0;
-var lastDragX = 0;
-var lastDragY = 0;
-var currentSound = null;
-var soundPlaying = false;
 
 function startDrag(x, y) {
   let bounds = canvas1.getBoundingClientRect();
@@ -2836,9 +2817,6 @@ function startDrag(x, y) {
   scene.obstacleY = (canvas1.height - my) / cScaleY; // Flip Y for WebGL
   scene.obstacleVx = 0.0;
   scene.obstacleVy = 0.0;
-  lastDragTime = Date.now();
-  lastDragX = mx;
-  lastDragY = my;
 }
 
 function drag(x, y) {
@@ -2854,76 +2832,15 @@ function drag(x, y) {
     scene.obstacleVx = (newX - scene.obstacleX) / scene.dt;
     scene.obstacleVy = (newY - scene.obstacleY) / scene.dt;
 
-    // Calculate speed in pixels per second
-    let currentTime = Date.now();
-    let timeDiff = currentTime - lastDragTime;
-    if (timeDiff > 0) {
-      let distance = Math.sqrt(
-        Math.pow(mx - lastDragX, 2) + Math.pow(my - lastDragY, 2),
-      );
-      let speed = (distance / timeDiff) * 1000; // pixels per second
-
-      // Determine sound level based on speed
-      if (!soundPlaying) {
-        playDragSound(speed);
-      }
-    }
-
-    lastDragTime = currentTime;
-    lastDragX = mx;
-    lastDragY = my;
-
     scene.obstacleX = newX;
     scene.obstacleY = newY;
   }
 }
 
-function playDragSound(speed) {
-  // Define speed thresholds (adjust as needed)
-  const slowThreshold = 100;
-  const mediumThreshold = 300;
-  const fastThreshold = 600;
 
-  let soundLevel;
-  if (speed < slowThreshold) {
-    soundLevel = "slow";
-  } else if (speed < mediumThreshold) {
-    soundLevel = "medium";
-  } else if (speed < fastThreshold) {
-    soundLevel = "fast";
-  } else {
-    soundLevel = "superfast";
-  }
-
-  // Choose random file (1 or 2)
-  const fileNumber = Math.floor(Math.random() * 3) + 1;
-  const soundPath = `audio/dragging/${soundLevel}${fileNumber}.mp3`;
-
-  // Stop any currently playing sound
-  if (currentSound) {
-    currentSound.pause();
-    currentSound.currentTime = 0;
-  }
-
-  // Create and play new sound
-  currentSound = new Audio(soundPath);
-  currentSound.volume = 0.5;
-  soundPlaying = true;
-
-  currentSound.onended = function () {
-    soundPlaying = false;
-  };
-
-  currentSound.play().catch((e) => console.log("Audio play failed:", e));
-}
 
 function endDrag() {
   mouseDown = false;
-  soundPlaying = false;
-  if (currentSound) {
-    currentSound.pause();
-    currentSound.currentTime = 0;
-  }
 }
 
 // Water obstacle collision tracking
