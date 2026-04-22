@@ -20,6 +20,7 @@ const audioFilesPreload = [
   "audio/ua.mp3",
   "audio/ui.mp3",
   "audio/KevinVillecco-Yoshigemia.mp3",
+  "audio/confirm.mp3",
 
   // water 文件夹
   "audio/water/into1.mp3",
@@ -53,6 +54,7 @@ const audioFilesPreload = [
   "audio/water/maxdownhigh1.mp3",
   "audio/water/maxdownhigh2.mp3",
   "audio/water/maxdownhigh3.mp3",
+  "audio/turn.mp3",
 ];
 
 let audioLoadedCount = 0;
@@ -131,12 +133,13 @@ const audioFiles = ["audio/emo.mp3", "audio/ua.mp3", "audio/ui.mp3"];
 let bunClickCount = 0;
 
 // Difficulty settings
-let currentDifficulty = 1; // 1: 简单, 2: 中等, 3: 困难
+let currentDifficulty = 1; // 1: 简单, 2: 中等, 3: 困难, 4: 炼狱
 let difficultySelected = false; // 标记是否已选择难度
 const difficultySettings = {
   1: { gridSize: 2, speed: 4, lensSize: 600 }, // 2x2, 慢, 大镜头
   2: { gridSize: 3, speed: 6, lensSize: 400 }, // 3x3, 中, 中镜头
   3: { gridSize: 4, speed: 8, lensSize: 300 }, // 4x4, 快, 小镜头
+  4: { gridSize: 4, speed: 8, lensSize: 300 }, // 4x4, 炼狱难度
 };
 let gridSize = difficultySettings[currentDifficulty].gridSize;
 const canvasXSize = 1344;
@@ -556,8 +559,28 @@ function onMouseUp(idx, e) {
   if (piece) {
     piece.dragging = false;
     puzzles[idx].draggingPiece = null;
+    
+    // Store original velocity before trying to merge
+    const originalVx = piece.vx;
+    const originalVy = piece.vy;
+    
     // Snap logic
     tryMerge(idx, piece);
+    
+    // Check if piece was NOT merged (still has original group size of 1)
+    if (piece.group.length === 1 && currentDifficulty === 4) {
+      // Change direction randomly and accelerate to 1.2x speed
+      const speedMultiplier = 1.2;
+      const newSpeed = Math.sqrt(originalVx * originalVx + originalVy * originalVy) * speedMultiplier;
+      
+      // Generate random angle for new direction
+      const angle = Math.random() * Math.PI * 2;
+      
+      // Calculate new velocity components
+      piece.vx = Math.cos(angle) * newSpeed;
+      piece.vy = Math.sin(angle) * newSpeed;
+    }
+    
     drawPuzzle(idx);
     checkSolved(idx);
   }
@@ -826,10 +849,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const difficulty1Btn = document.getElementById("difficulty1");
   const difficulty2Btn = document.getElementById("difficulty2");
   const difficulty3Btn = document.getElementById("difficulty3");
+  const difficulty4Btn = document.getElementById("difficulty4");
 
   difficulty1Btn.addEventListener("click", () => setDifficulty(1));
   difficulty2Btn.addEventListener("click", () => setDifficulty(2));
   difficulty3Btn.addEventListener("click", () => setDifficulty(3));
+  difficulty4Btn.addEventListener("click", () => setDifficulty(4));
 
   // Nickname input event listener
   nicknameInput.addEventListener("input", function () {
@@ -913,6 +938,11 @@ document.addEventListener("DOMContentLoaded", function () {
       // if (toggleMusicFunction) {
       //   toggleMusicFunction();
       // }
+      
+      // Play turn.mp3 audio when first key is pressed
+      const turnAudio = new Audio("audio/turn.mp3");
+      turnAudio.currentTime = 0;
+      turnAudio.play().catch(e => console.log("Audio play failed:", e));
 
       document.removeEventListener("keydown", onFirstKey);
     }
@@ -1133,7 +1163,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Update button styles
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn, idx) => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn, idx) => {
       if (idx + 1 === level) {
         btn.style.backgroundColor = "#d5d5d5";
         btn.style.color = "white";
@@ -1159,7 +1189,7 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
     // Disable difficulty buttons when game starts
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
       btn.disabled = true;
     });
     allSolved = [false, false, false];
@@ -1193,7 +1223,7 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
     // Enable difficulty buttons when game stops
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
       btn.disabled = false;
     });
     stopTimer();
@@ -1228,7 +1258,7 @@ document.addEventListener("DOMContentLoaded", function () {
       okBtn.classList.remove("active");
     }
     // Enable difficulty buttons when game restarts
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
       btn.disabled = false;
     });
     // Set default difficulty
@@ -1272,6 +1302,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Confirm：保存成绩并更新排行
   confirmBtn.onclick = function () {
+    // Play confirmation sound
+    const confirmAudio = new Audio("audio/confirm.mp3");
+    confirmAudio.currentTime = 0;
+    confirmAudio.volume = 0.2;
+    confirmAudio.play().catch(e => console.log("Audio play failed:", e));
+    
     // 标记confirmBtn首次点击
     if (!confirmBtnClicked) {
       confirmBtnClicked = true;
@@ -1401,7 +1437,7 @@ document.addEventListener("DOMContentLoaded", function () {
   restartBtn.disabled = true;
   restartBtnFloat.disabled = true;
   // Enable difficulty buttons initially
-  [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
+  [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
     btn.disabled = false;
   });
   // Set default difficulty
