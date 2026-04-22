@@ -21,6 +21,8 @@ const audioFilesPreload = [
   "audio/ui.mp3",
   "audio/KevinVillecco-Yoshigemia.mp3",
   "audio/confirm.mp3",
+  "audio/turn.mp3",
+  "audio/solved1.mp3",
 
   // water 文件夹
   "audio/water/into1.mp3",
@@ -183,6 +185,22 @@ function startTimer() {
 }
 function stopTimer() {
   clearInterval(timerInterval);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+}
+
+function resumeTimer() {
+  const floatingTimer = document.getElementById("floatingTimer");
+  const page6Timer = document.getElementById("page6Timer");
+  if (floatingTimer) floatingTimer.textContent = formatTime(timer);
+  if (page6Timer) page6Timer.textContent = formatTime(timer);
+  timerInterval = setInterval(() => {
+    timer += 10;
+    if (floatingTimer) floatingTimer.textContent = formatTime(timer);
+    if (page6Timer) page6Timer.textContent = formatTime(timer);
+  }, 10);
 }
 
 // Page5 active timer functions
@@ -559,28 +577,28 @@ function onMouseUp(idx, e) {
   if (piece) {
     piece.dragging = false;
     puzzles[idx].draggingPiece = null;
-    
+
     // Store original velocity before trying to merge
     const originalVx = piece.vx;
     const originalVy = piece.vy;
-    
+
     // Snap logic
     tryMerge(idx, piece);
-    
+
     // Check if piece was NOT merged (still has original group size of 1)
     if (piece.group.length === 1 && currentDifficulty === 4) {
       // Change direction randomly and accelerate to 1.2x speed
       const speedMultiplier = 1.2;
       const newSpeed = Math.sqrt(originalVx * originalVx + originalVy * originalVy) * speedMultiplier;
-      
+
       // Generate random angle for new direction
       const angle = Math.random() * Math.PI * 2;
-      
+
       // Calculate new velocity components
       piece.vx = Math.cos(angle) * newSpeed;
       piece.vy = Math.sin(angle) * newSpeed;
     }
-    
+
     drawPuzzle(idx);
     checkSolved(idx);
   }
@@ -696,6 +714,152 @@ function showPage5Hint() {
   page5Hint.style.display = "block";
 }
 
+function solvedScroll() {
+  if (allSolved.every(Boolean)) {
+    // 播放group.mp3
+    const groupAudio = new Audio("audio/group.mp3");
+    groupAudio.currentTime = 0;
+    groupAudio.play();
+    const confirmBtn = document.getElementById("confirmBtn");
+    confirmBtn.disabled = false;
+    confirmBtn.classList.add("active");
+    stopTimer();
+    // 自动滚动到结果页
+    const resultPage = document.getElementById("page6");
+    if (resultPage)
+      resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
+    // 显示恭喜文字
+    const congratulationsText = document.getElementById(
+      "congratulationsText",
+    );
+    if (congratulationsText) {
+      congratulationsText.innerHTML = "<h2>恭  喜</h2>";
+    }
+    // 激活页面6按钮并停用其他按钮
+    try {
+      const allBtns = document.querySelectorAll(".page-btn");
+      allBtns.forEach((b) => b.classList.remove("active"));
+      const activeBtn = document.querySelector(
+        ".page-btn[data-page='page6']",
+      );
+      if (activeBtn) {
+        activeBtn.classList.add("active");
+        activeBtn.classList.add("has-been-active");
+      }
+    } catch (e) {
+      // ignore if DOM structure is different
+    }
+  } else {
+    // 播放fast.mp3
+    const fastAudio = new Audio("audio/fast.mp3");
+    fastAudio.currentTime = 0;
+    fastAudio.play();
+    // If not all solved, scroll to the first unsolved puzzle (frontest unsolved)
+    scrollToFirstUnsolved();
+  }
+}
+
+// Function to handle the first puzzle solved effects
+function handleSolvedEffects(idx) {
+  // Disable all buttons during the effect
+  const allButtons = document.querySelectorAll('button, .page-btn');
+  allButtons.forEach(button => {
+    button.disabled = true;
+    button.style.pointerEvents = 'none';
+  });
+
+  // Create overlay for darkening background
+  const overlay = document.createElement('div');
+  overlay.id = 'puzzle-solved-overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)'; // 90% dark
+  overlay.style.zIndex = '9998';
+  overlay.style.opacity = '0';
+  document.body.appendChild(overlay);
+
+  // Fade in overlay
+  setTimeout(() => {
+    overlay.style.transition = 'opacity 0.3s ease';
+    overlay.style.opacity = '1';
+  }, 10);
+
+  // Create eureka image element
+  const showImg = document.createElement('img');
+  switch (idx) {
+    case 0:
+      showImg.src = 'images/eureka.png';
+      break;
+    case 1:
+      showImg.src = 'images/apple.png';
+      break;
+    case 2:
+      showImg.src = 'images/hongbao.png';
+      break;
+  }
+  showImg.style.position = 'fixed';
+  showImg.style.bottom = '0px'; // Start from bottom
+  showImg.style.left = '50%';
+  showImg.style.transform = 'translateX(-50%)';
+  showImg.style.zIndex = '9999';
+  showImg.style.maxWidth = '60vw';
+  showImg.style.maxHeight = '60vh';
+  showImg.style.opacity = '0';
+  document.body.appendChild(showImg);
+
+  // Play solved1.mp3
+  const solvedAudio = new Audio('audio/solved1.mp3');
+  solvedAudio.currentTime = 0;
+  solvedAudio.play().catch(e => console.log('Solved audio play failed:', e));
+
+  pauseTimer();
+
+  // Animate eureka image from bottom to center
+  setTimeout(() => {
+    showImg.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // Quick bounce effect
+    showImg.style.bottom = '50%';
+    showImg.style.transform = 'translate(-50%, 50%)';
+    showImg.style.opacity = '1';
+  }, 50);
+
+  // After 3 seconds, move to top and fade out
+  setTimeout(() => {
+    showImg.style.transition = 'all 0.8s ease-out';
+    showImg.style.bottom = '100%';
+    showImg.style.opacity = '0';
+  }, 3000);
+
+  // After eureka disappears, play turn.mp3 and restore everything
+  setTimeout(() => {
+    // Play turn.mp3
+    const turnAudio = new Audio('audio/turn.mp3');
+    turnAudio.currentTime = 0;
+    turnAudio.play().catch(e => console.log('Turn audio play failed:', e));
+
+    // Remove overlay
+    overlay.style.transition = 'opacity 0.5s ease';
+    overlay.style.opacity = '0';
+
+    // Re-enable buttons after fade out completes
+    setTimeout(() => {
+      overlay.remove();
+      showImg.remove();
+
+      allButtons.forEach(button => {
+        button.disabled = false;
+        button.style.pointerEvents = 'auto';
+      });
+    }, 500);
+
+    resumeTimer();
+    solvedScroll();
+  }, 3800);
+
+}
+
 function checkSolved(idx) {
   const { pieces } = puzzles[idx];
   if (pieces.every((p) => p.group === pieces[0].group)) {
@@ -705,48 +869,8 @@ function checkSolved(idx) {
     const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
     bellAudio.currentTime = 0;
     bellAudio.play();
-    if (allSolved.every(Boolean)) {
-      // 播放group.mp3
-      const groupAudio = new Audio("audio/group.mp3");
-      groupAudio.currentTime = 0;
-      groupAudio.play();
-      const confirmBtn = document.getElementById("confirmBtn");
-      confirmBtn.disabled = false;
-      confirmBtn.classList.add("active");
-      stopTimer();
-      // 自动滚动到结果页
-      const resultPage = document.getElementById("page6");
-      if (resultPage)
-        resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
-      // 显示恭喜文字
-      const congratulationsText = document.getElementById(
-        "congratulationsText",
-      );
-      if (congratulationsText) {
-        congratulationsText.innerHTML = "<h2>恭  喜</h2>";
-      }
-      // 激活页面6按钮并停用其他按钮
-      try {
-        const allBtns = document.querySelectorAll(".page-btn");
-        allBtns.forEach((b) => b.classList.remove("active"));
-        const activeBtn = document.querySelector(
-          ".page-btn[data-page='page6']",
-        );
-        if (activeBtn) {
-          activeBtn.classList.add("active");
-          activeBtn.classList.add("has-been-active");
-        }
-      } catch (e) {
-        // ignore if DOM structure is different
-      }
-    } else {
-      // 播放fast.mp3
-      const fastAudio = new Audio("audio/fast.mp3");
-      fastAudio.currentTime = 0;
-      fastAudio.play();
-      // If not all solved, scroll to the first unsolved puzzle (frontest unsolved)
-      scrollToFirstUnsolved();
-    }
+
+    handleSolvedEffects(idx);
   }
 }
 
@@ -938,7 +1062,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // if (toggleMusicFunction) {
       //   toggleMusicFunction();
       // }
-      
+
       // Play turn.mp3 audio when first key is pressed
       const turnAudio = new Audio("audio/turn.mp3");
       turnAudio.currentTime = 0;
@@ -1307,7 +1431,7 @@ document.addEventListener("DOMContentLoaded", function () {
     confirmAudio.currentTime = 0;
     confirmAudio.volume = 0.2;
     confirmAudio.play().catch(e => console.log("Audio play failed:", e));
-    
+
     // 标记confirmBtn首次点击
     if (!confirmBtnClicked) {
       confirmBtnClicked = true;
