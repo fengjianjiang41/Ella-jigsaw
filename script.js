@@ -23,6 +23,8 @@ const audioFilesPreload = [
   "audio/confirm.mp3",
   "audio/turn.mp3",
   "audio/solved1.mp3",
+  "audio/solved2.mp3",
+  "audio/solved3.mp3",
 
   // water 文件夹
   "audio/water/into1.mp3",
@@ -134,9 +136,13 @@ const imagePaths = [
 const audioFiles = ["audio/emo.mp3", "audio/ua.mp3", "audio/ui.mp3"];
 let bunClickCount = 0;
 
+let confirmBtnClicked = false;
+
 // Difficulty settings
-let currentDifficulty = 1; // 1: 简单, 2: 中等, 3: 困难, 4: 炼狱
+let currentDifficulty = 1; // 1: 休闲, 2: 普通, 3: 困难, 4: 炼狱
 let difficultySelected = false; // 标记是否已选择难度
+let difficulty4Unlocked = false; // 标记难度4是否已解锁
+let difficulty3SolvedOnce = false; // 标记难度3是否已解决一次
 const difficultySettings = {
   1: { gridSize: 2, speed: 4, lensSize: 600 }, // 2x2, 慢, 大镜头
   2: { gridSize: 3, speed: 6, lensSize: 400 }, // 3x3, 中, 中镜头
@@ -723,6 +729,12 @@ function solvedScroll() {
     const confirmBtn = document.getElementById("confirmBtn");
     confirmBtn.disabled = false;
     confirmBtn.classList.add("active");
+    if (currentDifficulty === 3 && !difficulty3SolvedOnce) {
+      difficulty3SolvedOnce = true;
+      // 解锁难度4
+      difficulty4Unlocked = true;
+      document.getElementById("difficulty4").disabled = false;
+    }
     stopTimer();
     // 自动滚动到结果页
     const resultPage = document.getElementById("page6");
@@ -810,8 +822,8 @@ function handleSolvedEffects(idx) {
   showImg.style.opacity = '0';
   document.body.appendChild(showImg);
 
-  // Play solved1.mp3
-  const solvedAudio = new Audio('audio/solved1.mp3');
+
+  const solvedAudio = new Audio(`audio/solved${idx + 1}.mp3`);
   solvedAudio.currentTime = 0;
   solvedAudio.play().catch(e => console.log('Solved audio play failed:', e));
 
@@ -827,8 +839,9 @@ function handleSolvedEffects(idx) {
 
   // After 3 seconds, move to top and fade out
   setTimeout(() => {
-    showImg.style.transition = 'all 0.8s ease-out';
+    showImg.style.transition = 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
     showImg.style.bottom = '100%';
+    showImg.style.transform = 'translate(-50%, 60%)';
     showImg.style.opacity = '0';
   }, 3000);
 
@@ -870,7 +883,7 @@ function checkSolved(idx) {
     bellAudio.currentTime = 0;
     bellAudio.play();
 
-    handleSolvedEffects(idx);
+    if (!confirmBtnClicked) handleSolvedEffects(idx); else solvedScroll();
   }
 }
 
@@ -919,10 +932,10 @@ function updatePersonalList() {
     const li = document.createElement("li");
     const difficultyText =
       record.difficulty === 1
-        ? "简单"
+        ? "休闲"
         : record.difficulty === 2
-          ? "中等"
-          : "困难";
+          ? "普通"
+          : record.difficulty === 3 ? "困难" : "炼狱";
     li.textContent = `${nickname}: ${record.time.toFixed(2)} 秒 (${difficultyText})`;
     ol.appendChild(li);
   });
@@ -935,10 +948,10 @@ function updateGlobalList() {
     const li = document.createElement("li");
     const difficultyText =
       globalBests.difficulty === 1
-        ? "简单"
+        ? "休闲"
         : globalBests.difficulty === 2
-          ? "中等"
-          : "困难";
+          ? "普通"
+          : globalBests.difficulty === 3 ? "困难" : "炼狱";
     li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒 (${difficultyText})`;
     ol.appendChild(li);
   });
@@ -974,9 +987,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const difficulty2Btn = document.getElementById("difficulty2");
   const difficulty3Btn = document.getElementById("difficulty3");
   const difficulty4Btn = document.getElementById("difficulty4");
+  difficulty4Btn.disabled = true;
 
-  difficulty1Btn.addEventListener("click", () => setDifficulty(1));
-  difficulty2Btn.addEventListener("click", () => setDifficulty(2));
+  difficulty1Btn.addEventListener("click", () => setDifficulty(2));
   difficulty3Btn.addEventListener("click", () => setDifficulty(3));
   difficulty4Btn.addEventListener("click", () => setDifficulty(4));
 
@@ -1019,7 +1032,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 启用鼠标滚轮滚动所有页面
   // 阻止滚动直到加载完成和confirmBtn首次点击
-  let confirmBtnClicked = false;
   function handleScroll(e) {
     if (!loadingComplete || !confirmBtnClicked) {
       e.preventDefault();
@@ -1347,9 +1359,14 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
     // Enable difficulty buttons when game stops
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
     });
+    if (difficulty4Unlocked) {
+      difficulty4Btn.disabled = false;
+    } else {
+      difficulty4Btn.disabled = true;
+    }
     stopTimer();
     stopPage5Timer();
     page5Active = false;
@@ -1382,9 +1399,14 @@ document.addEventListener("DOMContentLoaded", function () {
       okBtn.classList.remove("active");
     }
     // Enable difficulty buttons when game restarts
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
     });
+    if (difficulty4Unlocked) {
+      difficulty4Btn.disabled = false;
+    } else {
+      difficulty4Btn.disabled = true;
+    }
     // Set default difficulty
     setDifficulty(1);
     stopTimer();
@@ -1461,6 +1483,11 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+    if (difficulty4Unlocked) {
+      difficulty4Btn.disabled = false;
+    } else {
+      difficulty4Btn.disabled = true;
+    }
 
     // Update page6 timer with final time
     const page6Timer = document.getElementById("page6Timer");
@@ -1561,9 +1588,14 @@ document.addEventListener("DOMContentLoaded", function () {
   restartBtn.disabled = true;
   restartBtnFloat.disabled = true;
   // Enable difficulty buttons initially
-  [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
+  [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
     btn.disabled = false;
   });
+  if (difficulty4Unlocked) {
+    difficulty4Btn.disabled = false;
+  } else {
+    difficulty4Btn.disabled = true;
+  }
   // Set default difficulty
   setDifficulty(1);
   localStorage.removeItem("jigsaw_records"); // 可以移除或注释掉以保留记录
@@ -3023,7 +3055,7 @@ function playWaterObstacleSound(collisionIntensity) {
   const waterAudio = waterObstacleAudioPool.getAudio(soundFile);
   waterAudio.currentTime = 0;
   waterAudio.volume = volume;
-  waterAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
+  waterAudio.playbackRate = 0.8 + Math.random() * 0.4; // Slight pitch variation
   waterAudio.play().catch((e) => console.log("Audio play failed:", e));
 }
 
@@ -3173,7 +3205,7 @@ function playSpraySound(sprayIntensity) {
     const sprayAudio = sprayAudioPool.getAudio(soundFile);
     sprayAudio.currentTime = 0;
     sprayAudio.volume = volume;
-    sprayAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
+    sprayAudio.playbackRate = 0.8 + Math.random() * 0.4; // Slight pitch variation
     sprayAudio.play().catch((e) => console.log("Audio play failed:", e));
     lastSprayTime = currentTime;
   }
