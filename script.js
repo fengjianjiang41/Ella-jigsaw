@@ -774,18 +774,7 @@ function solvedScroll() {
 }
 
 // Function to handle the first puzzle solved effects
-function handleSolvedEffects(idx, glowOptions = {}) {
-  // Default glow options
-  const options = {
-    color: glowOptions.color || '#ffd700', // Gold by default
-    size: glowOptions.size || '150%', // 150% of image size
-    intensity: glowOptions.intensity || '0.8', // Opacity
-    blur: glowOptions.blur || '20px', // Blur radius
-    duration: glowOptions.duration || '0.5s', // Animation duration
-    ease: glowOptions.ease || 'cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Easing function
-    ...glowOptions
-  };
-
+function handleSolvedEffects(idx) {
   // Disable all buttons during the effect
   const allButtons = document.querySelectorAll('button, .page-btn');
   allButtons.forEach(button => {
@@ -835,24 +824,6 @@ function handleSolvedEffects(idx, glowOptions = {}) {
   showImg.style.opacity = '0';
   document.body.appendChild(showImg);
 
-  // Create glowing effect element
-  const glowEffect = document.createElement('div');
-  glowEffect.id = 'puzzle-solved-glow';
-  glowEffect.style.position = 'fixed';
-  glowEffect.style.bottom = '0px'; // Start from bottom
-  glowEffect.style.left = '50%';
-  glowEffect.style.transform = 'translateX(-50%)';
-  glowEffect.style.zIndex = '9998.5'; // Between overlay and showImg
-  glowEffect.style.width = options.size;
-  glowEffect.style.height = options.size;
-  glowEffect.style.maxWidth = '60vw';
-  glowEffect.style.maxHeight = '60vh';
-  glowEffect.style.borderRadius = '50%';
-  glowEffect.style.backgroundColor = options.color;
-  glowEffect.style.boxShadow = `0 0 ${options.blur} ${options.color}`;
-  glowEffect.style.opacity = '0';
-  glowEffect.style.filter = `blur(${options.blur})`;
-  document.body.appendChild(glowEffect);
 
   const solvedAudio = new Audio(`audio/solved${idx + 1}.mp3`);
   solvedAudio.currentTime = 0;
@@ -860,34 +831,20 @@ function handleSolvedEffects(idx, glowOptions = {}) {
 
   pauseTimer();
 
-  // Animate eureka image and glow from bottom to center
+  // Animate eureka image from bottom to center
   setTimeout(() => {
-    // Animate showImg
-    showImg.style.transition = `all ${options.duration} ${options.ease}`;
+    showImg.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // Quick bounce effect
     showImg.style.bottom = '50%';
     showImg.style.transform = 'translate(-50%, 50%)';
     showImg.style.opacity = '1';
-
-    // Animate glow effect
-    glowEffect.style.transition = `all ${options.duration} ${options.ease}`;
-    glowEffect.style.bottom = '50%';
-    glowEffect.style.transform = 'translate(-50%, 50%)';
-    glowEffect.style.opacity = options.intensity;
   }, 50);
 
   // After 3 seconds, move to top and fade out
   setTimeout(() => {
-    // Animate showImg
-    showImg.style.transition = `all 0.8s ${options.ease}`;
+    showImg.style.transition = 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
     showImg.style.bottom = '100%';
     showImg.style.transform = 'translate(-50%, 60%)';
     showImg.style.opacity = '0';
-
-    // Animate glow effect
-    glowEffect.style.transition = `all 0.8s ${options.ease}`;
-    glowEffect.style.bottom = '100%';
-    glowEffect.style.transform = 'translate(-50%, 60%)';
-    glowEffect.style.opacity = '0';
   }, 3000);
 
   // After eureka disappears, play turn.mp3 and restore everything
@@ -895,18 +852,17 @@ function handleSolvedEffects(idx, glowOptions = {}) {
     // Remove overlay
     overlay.style.transition = 'opacity 0.5s ease';
     overlay.style.opacity = '0';
-    
+
     // Re-enable buttons after fade out completes
     setTimeout(() => {
       overlay.remove();
       showImg.remove();
-      glowEffect.remove();
-      
+
       allButtons.forEach(button => {
         button.disabled = false;
         button.style.pointerEvents = 'auto';
       });
-      
+
       resumeTimer();
       solvedScroll();
 
@@ -1080,7 +1036,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // 启用鼠标滚轮滚动所有页面
   // 阻止滚动直到加载完成和confirmBtn首次点击
   function handleScroll(e) {
-    if (!loadingComplete || !confirmBtnClicked) {
+    if (!loadingComplete) {
+      // || !confirmBtnClicked
       e.preventDefault();
       return false;
     }
@@ -1097,7 +1054,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 首次按键：显示导航并跳到第二页
   function onFirstKey(e) {
-    if (!loadingComplete) return; // Lock until loading complete
+    if (!loadingComplete) return; // until loading complete
 
     const startText = document.getElementById("startText");
     const pageNav = document.getElementById("pageNav");
@@ -2485,6 +2442,15 @@ var scene = {
   obstacleInertia: 0.0, // Moment of inertia
   isDynamic: true,
 
+  // Force mode settings
+  forceMode: false,
+  mouseX: 0,
+  mouseY: 0,
+  mouseDown: false,
+  forceMagnitude: 10.0,
+  minDistance: 1,
+  maxDistance: 5,
+
   paused: true,
   showParticles: true,
   showGrid: false,
@@ -2691,8 +2657,10 @@ function handleObstacleWallCollision() {
 
 function updateObstaclePhysics(dt) {
   if (scene.isDynamic && !mouseDown) {
-    // 1. Gravity
-    scene.obstacleVy += scene.gravity * dt;
+    // 1. Gravity (only when force mode is disabled)
+    if (!scene.forceMode) {
+      scene.obstacleVy += scene.gravity * dt;
+    }
 
     // 2. Fluid Forces (Buoyancy/Pressure Integration)
     let fluidForces = scene.fluid.calculateFluidForces(
@@ -3050,6 +3018,7 @@ function drawTank() {
 var mouseDown = false;
 
 function startDrag(x, y) {
+  if (scene.forceMode) return;
   let bounds = canvas1.getBoundingClientRect();
   let mx = x - bounds.left - canvas1.clientLeft;
   let my = y - bounds.top - canvas1.clientTop;
@@ -3061,6 +3030,7 @@ function startDrag(x, y) {
 }
 
 function drag(x, y) {
+  if (scene.forceMode) return;
   if (mouseDown) {
     let bounds = canvas1.getBoundingClientRect();
     let mx = x - bounds.left - canvas1.clientLeft;
@@ -3459,13 +3429,81 @@ function calculateVelocity() {
   avgAbsoluteVelocity = totalAbsoluteVelocity / scene.fluid.numParticles;
 }
 
+function applyForceToParticles() {
+  if (!scene.forceMode || !scene.mouseDown) return;
+
+  var f = scene.fluid;
+  var dx, dy, distance, force, fx, fy;
+
+  for (var i = 0; i < f.numParticles; i++) {
+    var px = f.particlePos[2 * i];
+    var py = f.particlePos[2 * i + 1];
+
+    dx = scene.mouseX - px;
+    dy = scene.mouseY - py;
+    distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance > 0 && distance < scene.maxDistance) {
+      // Calculate force magnitude: constant within minDistance, then 1/distance
+      if (distance < scene.minDistance) {
+        force = scene.forceMagnitude;
+      } else {
+        force = scene.forceMagnitude * (scene.minDistance / distance);
+      }
+
+      // Normalize direction
+      fx = (dx / distance) * force;
+      fy = (dy / distance) * force;
+
+      // Apply force to particle velocity
+      f.particleVel[2 * i] += fx * scene.dt;
+      f.particleVel[2 * i + 1] += fy * scene.dt;
+    }
+  }
+}
+
+function applyForceToObstacle() {
+  if (!scene.forceMode || !scene.mouseDown) return;
+
+  var dx = scene.mouseX - scene.obstacleX;
+  var dy = scene.mouseY - scene.obstacleY;
+  var distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance > 0 && distance < scene.maxDistance) {
+    // Calculate force magnitude: constant within minDistance, then 1/distance
+    var force;
+    if (distance < scene.minDistance) {
+      force = scene.forceMagnitude;
+    } else {
+      force = scene.forceMagnitude * (scene.minDistance / distance);
+    }
+
+    // Normalize direction
+    var fx = (dx / distance) * force;
+    var fy = (dy / distance) * force;
+
+    // Apply force to obstacle
+    scene.obstacleVx += (fx / scene.obstacleMass) * scene.dt;
+    scene.obstacleVy += (fy / scene.obstacleMass) * scene.dt;
+  }
+}
+
 function simulateTank() {
   if (!scene.paused) {
     var sdt = scene.dt;
+
+    // Apply force mode if enabled
+    if (scene.forceMode) {
+      applyForceToParticles();
+      applyForceToObstacle();
+    }
+
     // Add the obstacle physics right before integrating the fluid step
     updateObstaclePhysics(sdt);
 
-    scene.fluid.integrateParticles(sdt, scene.gravity);
+    // Use zero gravity when force mode is enabled
+    var gravity = scene.forceMode ? 0 : scene.gravity;
+    scene.fluid.integrateParticles(sdt, gravity);
     if (scene.separateParticles)
       scene.fluid.pushParticlesApart(scene.numParticleIters);
     scene.fluid.handleParticleCollisions(
@@ -4401,11 +4439,54 @@ function simulateGravity() {
   }
 }
 
+function toggleForce() {
+  scene.forceMode = !scene.forceMode;
+  var button = document.querySelector('button[onclick="toggleForce()"]');
+  if (button) {
+    button.textContent = scene.forceMode ? "原力散去" : "原力同在";
+  }
+}
+
+// Handle mouse events for force mode
+function handleTankMouseDown(e) {
+  if (!scene.forceMode) return;
+
+  var rect = canvas1.getBoundingClientRect();
+  var mx = (e.x - rect.left - canvas1.clientLeft);
+  var my = (e.y - rect.top - canvas1.clientTop);
+
+  scene.mouseX = mx / cScaleX;
+  scene.mouseY = (canvas1.height - my) / cScaleY;
+  scene.mouseDown = true;
+}
+
+function handleTankMouseMove(e) {
+  if (!scene.forceMode || !scene.mouseDown) return;
+
+  var rect = canvas1.getBoundingClientRect();
+  var mx = (e.x - rect.left - canvas1.clientLeft);
+  var my = (e.y - rect.top - canvas1.clientTop);
+
+  scene.mouseX = mx / cScaleX;
+  scene.mouseY = (canvas1.height - my) / cScaleY;
+}
+
+function handleTankMouseUp(e) {
+  if (!scene.forceMode) return;
+  scene.mouseDown = false;
+}
+
 function updateTank() {
   simulateTank();
   drawTank();
   requestAnimationFrame(updateTank);
 }
+
+// Add mouse event listeners for force mode
+canvas1.addEventListener('mousedown', handleTankMouseDown);
+canvas1.addEventListener('mousemove', handleTankMouseMove);
+canvas1.addEventListener('mouseup', handleTankMouseUp);
+canvas1.addEventListener('mouseleave', handleTankMouseUp);
 
 setupSceneTank();
 updateTank();

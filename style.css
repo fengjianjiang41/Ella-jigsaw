@@ -379,7 +379,7 @@ body {
     position: fixed;
     bottom: 330px;
     left: 30px;
-    z-index: 99999;
+    z-index: 999;
     display: flex;
     flex-direction: column;
     align-items: center;
