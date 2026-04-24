@@ -728,6 +728,8 @@ function solvedScroll() {
     groupAudio.play();
     const confirmBtn = document.getElementById("confirmBtn");
     confirmBtn.disabled = false;
+    const topBtn = document.getElementById("topBtn");
+    topBtn.disabled = true;
     confirmBtn.classList.add("active");
     if (currentDifficulty === 3 && !difficulty3SolvedOnce) {
       difficulty3SolvedOnce = true;
@@ -772,7 +774,18 @@ function solvedScroll() {
 }
 
 // Function to handle the first puzzle solved effects
-function handleSolvedEffects(idx) {
+function handleSolvedEffects(idx, glowOptions = {}) {
+  // Default glow options
+  const options = {
+    color: glowOptions.color || '#ffd700', // Gold by default
+    size: glowOptions.size || '150%', // 150% of image size
+    intensity: glowOptions.intensity || '0.8', // Opacity
+    blur: glowOptions.blur || '20px', // Blur radius
+    duration: glowOptions.duration || '0.5s', // Animation duration
+    ease: glowOptions.ease || 'cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Easing function
+    ...glowOptions
+  };
+
   // Disable all buttons during the effect
   const allButtons = document.querySelectorAll('button, .page-btn');
   allButtons.forEach(button => {
@@ -822,6 +835,24 @@ function handleSolvedEffects(idx) {
   showImg.style.opacity = '0';
   document.body.appendChild(showImg);
 
+  // Create glowing effect element
+  const glowEffect = document.createElement('div');
+  glowEffect.id = 'puzzle-solved-glow';
+  glowEffect.style.position = 'fixed';
+  glowEffect.style.bottom = '0px'; // Start from bottom
+  glowEffect.style.left = '50%';
+  glowEffect.style.transform = 'translateX(-50%)';
+  glowEffect.style.zIndex = '9998.5'; // Between overlay and showImg
+  glowEffect.style.width = options.size;
+  glowEffect.style.height = options.size;
+  glowEffect.style.maxWidth = '60vw';
+  glowEffect.style.maxHeight = '60vh';
+  glowEffect.style.borderRadius = '50%';
+  glowEffect.style.backgroundColor = options.color;
+  glowEffect.style.boxShadow = `0 0 ${options.blur} ${options.color}`;
+  glowEffect.style.opacity = '0';
+  glowEffect.style.filter = `blur(${options.blur})`;
+  document.body.appendChild(glowEffect);
 
   const solvedAudio = new Audio(`audio/solved${idx + 1}.mp3`);
   solvedAudio.currentTime = 0;
@@ -829,48 +860,62 @@ function handleSolvedEffects(idx) {
 
   pauseTimer();
 
-  // Animate eureka image from bottom to center
+  // Animate eureka image and glow from bottom to center
   setTimeout(() => {
-    showImg.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // Quick bounce effect
+    // Animate showImg
+    showImg.style.transition = `all ${options.duration} ${options.ease}`;
     showImg.style.bottom = '50%';
     showImg.style.transform = 'translate(-50%, 50%)';
     showImg.style.opacity = '1';
+
+    // Animate glow effect
+    glowEffect.style.transition = `all ${options.duration} ${options.ease}`;
+    glowEffect.style.bottom = '50%';
+    glowEffect.style.transform = 'translate(-50%, 50%)';
+    glowEffect.style.opacity = options.intensity;
   }, 50);
 
   // After 3 seconds, move to top and fade out
   setTimeout(() => {
-    showImg.style.transition = 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    // Animate showImg
+    showImg.style.transition = `all 0.8s ${options.ease}`;
     showImg.style.bottom = '100%';
     showImg.style.transform = 'translate(-50%, 60%)';
     showImg.style.opacity = '0';
+
+    // Animate glow effect
+    glowEffect.style.transition = `all 0.8s ${options.ease}`;
+    glowEffect.style.bottom = '100%';
+    glowEffect.style.transform = 'translate(-50%, 60%)';
+    glowEffect.style.opacity = '0';
   }, 3000);
 
   // After eureka disappears, play turn.mp3 and restore everything
   setTimeout(() => {
-    // Play turn.mp3
-    const turnAudio = new Audio('audio/turn.mp3');
-    turnAudio.currentTime = 0;
-    turnAudio.play().catch(e => console.log('Turn audio play failed:', e));
-
     // Remove overlay
     overlay.style.transition = 'opacity 0.5s ease';
     overlay.style.opacity = '0';
-
+    
     // Re-enable buttons after fade out completes
     setTimeout(() => {
       overlay.remove();
       showImg.remove();
-
+      glowEffect.remove();
+      
       allButtons.forEach(button => {
         button.disabled = false;
         button.style.pointerEvents = 'auto';
       });
+      
+      resumeTimer();
+      solvedScroll();
+
+      // Play turn.mp3
+      const turnAudio = new Audio('audio/turn.mp3');
+      turnAudio.currentTime = 0;
+      turnAudio.play().catch(e => console.log('Turn audio play failed:', e));
     }, 500);
-
-    resumeTimer();
-    solvedScroll();
   }, 3800);
-
 }
 
 function checkSolved(idx) {
@@ -879,9 +924,11 @@ function checkSolved(idx) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
     // Play bell sound for the solved puzzle
-    const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
-    bellAudio.currentTime = 0;
-    bellAudio.play();
+    if (confirmBtnClicked) {
+      const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
+      bellAudio.currentTime = 0;
+      bellAudio.play();
+    }
 
     if (!confirmBtnClicked) handleSolvedEffects(idx); else solvedScroll();
   }
@@ -1324,6 +1371,7 @@ document.addEventListener("DOMContentLoaded", function () {
     confirmBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
+    topBtn.disabled = true;
     // Disable difficulty buttons when game starts
     [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
       btn.disabled = true;
@@ -1483,6 +1531,7 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+    topBtn.disabled = false;
     if (difficulty4Unlocked) {
       difficulty4Btn.disabled = false;
     } else {
