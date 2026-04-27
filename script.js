@@ -1036,8 +1036,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // 启用鼠标滚轮滚动所有页面
   // 阻止滚动直到加载完成和confirmBtn首次点击
   function handleScroll(e) {
-    if (!loadingComplete) {
-      // || !confirmBtnClicked
+    if (!loadingComplete || !confirmBtnClicked) {
       e.preventDefault();
       return false;
     }
@@ -4471,8 +4470,69 @@ function handleTankMouseMove(e) {
   scene.mouseY = (canvas1.height - my) / cScaleY;
 }
 
+function applyExplosionForce() {
+  if (!scene.forceMode) return;
+
+  var explosionForce = scene.forceMagnitude * 100;
+  
+  var f = scene.fluid;
+  var dx, dy, distance, force, fx, fy;
+  
+  // Apply explosion force to particles
+  for (var i = 0; i < f.numParticles; i++) {
+    var px = f.particlePos[2 * i];
+    var py = f.particlePos[2 * i + 1];
+    
+    // Direction away from mouse
+    dx = px - scene.mouseX;
+    dy = py - scene.mouseY;
+    distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 0 && distance < scene.maxDistance) {
+      // Calculate force magnitude: 10x the attraction force
+      if (distance < scene.minDistance) {
+        force = explosionForce;
+      } else {
+        force = explosionForce * (scene.minDistance / distance);
+      }
+      
+      // Normalize direction
+      fx = (dx / distance) * force;
+      fy = (dy / distance) * force;
+      
+      // Apply force to particle velocity
+      f.particleVel[2 * i] += fx * scene.dt;
+      f.particleVel[2 * i + 1] += fy * scene.dt;
+    }
+  }
+  
+  // Apply explosion force to obstacle
+  dx = scene.obstacleX - scene.mouseX;
+  dy = scene.obstacleY - scene.mouseY;
+  distance = Math.sqrt(dx * dx + dy * dy);
+  
+  if (distance > 0 && distance < scene.maxDistance) {
+    // Calculate force magnitude: 10x the attraction force
+    if (distance < scene.minDistance) {
+      force = scene.forceMagnitude * 10;
+    } else {
+      force = scene.forceMagnitude * 10 * (scene.minDistance / distance);
+    }
+    
+    // Normalize direction
+    fx = (dx / distance) * force;
+    fy = (dy / distance) * force;
+    
+    // Apply force to obstacle
+    scene.obstacleVx += (fx / scene.obstacleMass) * scene.dt;
+    scene.obstacleVy += (fy / scene.obstacleMass) * scene.dt;
+  }
+}
+
 function handleTankMouseUp(e) {
   if (!scene.forceMode) return;
+  // Apply explosion force when mouse is released
+  applyExplosionForce();
   scene.mouseDown = false;
 }
 
