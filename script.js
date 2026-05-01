@@ -141,16 +141,21 @@ const imagePaths = [
   "images/apple.png",
   "images/hongbao.png",
 ];
-const audioFiles = ["audio/emo.m4a", "audio/ua.m4a", "audio/ui.m4a"];
+const audioFiles = ["audio/emo.mp3", "audio/ua.mp3", "audio/ui.mp3"];
 let bunClickCount = 0;
 
+let confirmBtnClicked = false;
+
 // Difficulty settings
-let currentDifficulty = 1; // 1: 简单, 2: 中等, 3: 困难
+let currentDifficulty = 1; // 1: 休闲, 2: 普通, 3: 困难, 4: 炼狱
 let difficultySelected = false; // 标记是否已选择难度
+let difficulty4Unlocked = false; // 标记难度4是否已解锁
+let difficulty3SolvedOnce = false; // 标记难度3是否已解决一次
 const difficultySettings = {
   1: { gridSize: 2, speed: 4, lensSize: 600 }, // 2x2, 慢, 大镜头
   2: { gridSize: 3, speed: 6, lensSize: 400 }, // 3x3, 中, 中镜头
   3: { gridSize: 4, speed: 8, lensSize: 300 }, // 4x4, 快, 小镜头
+  4: { gridSize: 4, speed: 8, lensSize: 300 }, // 4x4, 炼狱难度
 };
 let gridSize = difficultySettings[currentDifficulty].gridSize;
 const canvasXSize = 1344;
@@ -194,6 +199,22 @@ function startTimer() {
 }
 function stopTimer() {
   clearInterval(timerInterval);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+}
+
+function resumeTimer() {
+  const floatingTimer = document.getElementById("floatingTimer");
+  const page6Timer = document.getElementById("page6Timer");
+  if (floatingTimer) floatingTimer.textContent = formatTime(timer);
+  if (page6Timer) page6Timer.textContent = formatTime(timer);
+  timerInterval = setInterval(() => {
+    timer += 10;
+    if (floatingTimer) floatingTimer.textContent = formatTime(timer);
+    if (page6Timer) page6Timer.textContent = formatTime(timer);
+  }, 10);
 }
 
 // Page5 active timer functions
@@ -570,8 +591,30 @@ function onMouseUp(idx, e) {
   if (piece) {
     piece.dragging = false;
     puzzles[idx].draggingPiece = null;
+
+    // Store original velocity before trying to merge
+    const originalVx = piece.vx;
+    const originalVy = piece.vy;
+
     // Snap logic
     tryMerge(idx, piece);
+
+    // Check if piece was NOT merged (still has original group size of 1)
+    if (piece.group.length === 1 && currentDifficulty === 4) {
+      // Change direction randomly and accelerate to 1.2x speed
+      const speedMultiplier = 1.2;
+      const newSpeed =
+        Math.sqrt(originalVx * originalVx + originalVy * originalVy) *
+        speedMultiplier;
+
+      // Generate random angle for new direction
+      const angle = Math.random() * Math.PI * 2;
+
+      // Calculate new velocity components
+      piece.vx = Math.cos(angle) * newSpeed;
+      piece.vy = Math.sin(angle) * newSpeed;
+    }
+
     drawPuzzle(idx);
     checkSolved(idx);
   }
@@ -687,54 +730,171 @@ function showPage5Hint() {
   page5Hint.style.display = "block";
 }
 
+function solvedScroll() {
+  if (allSolved.every(Boolean)) {
+    // 播放group.mp3
+    const groupAudio = new Audio("audio/group.mp3");
+    groupAudio.currentTime = 0;
+    groupAudio.play();
+    const confirmBtn = document.getElementById("confirmBtn");
+    confirmBtn.disabled = false;
+    const topBtn = document.getElementById("topBtn");
+    topBtn.disabled = true;
+    confirmBtn.classList.add("active");
+    if (currentDifficulty === 3 && !difficulty3SolvedOnce) {
+      difficulty3SolvedOnce = true;
+      // 解锁难度4
+      difficulty4Unlocked = true;
+      document.getElementById("difficulty4").disabled = false;
+    }
+    stopTimer();
+    // 自动滚动到结果页
+    const resultPage = document.getElementById("page6");
+    if (resultPage)
+      resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
+    // 显示恭喜文字
+    const congratulationsText = document.getElementById("congratulationsText");
+    if (congratulationsText) {
+      congratulationsText.innerHTML = "<h2>恭  喜</h2>";
+    }
+    // 激活页面6按钮并停用其他按钮
+    try {
+      const allBtns = document.querySelectorAll(".page-btn");
+      allBtns.forEach((b) => b.classList.remove("active"));
+      const activeBtn = document.querySelector(".page-btn[data-page='page6']");
+      if (activeBtn) {
+        activeBtn.classList.add("active");
+        activeBtn.classList.add("has-been-active");
+      }
+    } catch (e) {
+      // ignore if DOM structure is different
+    }
+  } else {
+    // 播放fast.mp3
+    const fastAudio = new Audio("audio/fast.mp3");
+    fastAudio.currentTime = 0;
+    fastAudio.play();
+    // If not all solved, scroll to the first unsolved puzzle (frontest unsolved)
+    scrollToFirstUnsolved();
+  }
+}
+
+// Function to handle the first puzzle solved effects
+function handleSolvedEffects(idx) {
+  // Disable all buttons during the effect
+  const allButtons = document.querySelectorAll("button, .page-btn");
+  allButtons.forEach((button) => {
+    button.disabled = true;
+    button.style.pointerEvents = "none";
+  });
+
+  // Create overlay for darkening background
+  const overlay = document.createElement("div");
+  overlay.id = "puzzle-solved-overlay";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.9)"; // 90% dark
+  overlay.style.zIndex = "9998";
+  overlay.style.opacity = "0";
+  document.body.appendChild(overlay);
+
+  // Fade in overlay
+  setTimeout(() => {
+    overlay.style.transition = "opacity 0.3s ease";
+    overlay.style.opacity = "1";
+  }, 10);
+
+  // Create eureka image element
+  const showImg = document.createElement("img");
+  switch (idx) {
+    case 0:
+      showImg.src = "images/eureka.png";
+      break;
+    case 1:
+      showImg.src = "images/apple.png";
+      break;
+    case 2:
+      showImg.src = "images/hongbao.png";
+      break;
+  }
+  showImg.style.position = "fixed";
+  showImg.style.bottom = "0px"; // Start from bottom
+  showImg.style.left = "50%";
+  showImg.style.transform = "translateX(-50%)";
+  showImg.style.zIndex = "9999";
+  showImg.style.maxWidth = "60vw";
+  showImg.style.maxHeight = "60vh";
+  showImg.style.opacity = "0";
+  document.body.appendChild(showImg);
+
+  const solvedAudio = new Audio(`audio/solved${idx + 1}.mp3`);
+  solvedAudio.currentTime = 0;
+  solvedAudio.play().catch((e) => console.log("Solved audio play failed:", e));
+
+  pauseTimer();
+
+  // Animate eureka image from bottom to center
+  setTimeout(() => {
+    showImg.style.transition =
+      "all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)"; // Quick bounce effect
+    showImg.style.bottom = "50%";
+    showImg.style.transform = "translate(-50%, 50%)";
+    showImg.style.opacity = "1";
+  }, 50);
+
+  // After 3 seconds, move to top and fade out
+  setTimeout(() => {
+    showImg.style.transition =
+      "all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+    showImg.style.bottom = "100%";
+    showImg.style.transform = "translate(-50%, 60%)";
+    showImg.style.opacity = "0";
+  }, 3000);
+
+  // After eureka disappears, play turn.mp3 and restore everything
+  setTimeout(() => {
+    // Remove overlay
+    overlay.style.transition = "opacity 0.5s ease";
+    overlay.style.opacity = "0";
+
+    // Re-enable buttons after fade out completes
+    setTimeout(() => {
+      overlay.remove();
+      showImg.remove();
+
+      allButtons.forEach((button) => {
+        button.disabled = false;
+        button.style.pointerEvents = "auto";
+      });
+
+      resumeTimer();
+      solvedScroll();
+
+      // Play turn.mp3
+      const turnAudio = new Audio("audio/turn.mp3");
+      turnAudio.currentTime = 0;
+      turnAudio.play().catch((e) => console.log("Turn audio play failed:", e));
+    }, 500);
+  }, 3800);
+}
+
 function checkSolved(idx) {
   const { pieces } = puzzles[idx];
   if (pieces.every((p) => p.group === pieces[0].group)) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
     // Play bell sound for the solved puzzle
-    const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
-    bellAudio.currentTime = 0;
-    bellAudio.play();
-    if (allSolved.every(Boolean)) {
-      // 播放group.mp3
-      const groupAudio = new Audio("audio/group.mp3");
-      groupAudio.currentTime = 0;
-      groupAudio.play();
-      const confirmBtn = document.getElementById("confirmBtn");
-      confirmBtn.disabled = false;
-      confirmBtn.classList.add("active");
-      stopTimer();
-      // 自动滚动到结果页
-      const resultPage = document.getElementById("page6");
-      if (resultPage)
-        resultPage.scrollIntoView({ behavior: "smooth", block: "start" });
-      // 显示恭喜文字
-      const congratulationsText = document.getElementById(
-        "congratulationsText",
-      );
-      if (congratulationsText) {
-        congratulationsText.innerHTML = "<h2>恭  喜</h2>";
-      }
-      // 激活页面6按钮并停用其他按钮
-      try {
-        const allBtns = document.querySelectorAll(".page-btn");
-        allBtns.forEach((b) => b.classList.remove("active"));
-        const activeBtn = document.querySelector(
-          ".page-btn[data-page='page6']",
-        );
-        if (activeBtn) activeBtn.classList.add("active");
-      } catch (e) {
-        // ignore if DOM structure is different
-      }
-    } else {
-      // 播放fast.mp3
-      const fastAudio = new Audio("audio/fast.mp3");
-      fastAudio.currentTime = 0;
-      fastAudio.play();
-      // If not all solved, scroll to the first unsolved puzzle (frontest unsolved)
-      scrollToFirstUnsolved();
+    if (confirmBtnClicked) {
+      const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
+      bellAudio.currentTime = 0;
+      bellAudio.play();
     }
+
+    if (!confirmBtnClicked) handleSolvedEffects(idx);
+    else solvedScroll();
   }
 }
 
@@ -757,7 +917,10 @@ function scrollToFirstUnsolved() {
     const activeBtn = document.querySelector(
       `.page-btn[data-page="${targetPageId}"]`,
     );
-    if (activeBtn) activeBtn.classList.add("active");
+    if (activeBtn) {
+      activeBtn.classList.add("active");
+      activeBtn.classList.add("has-been-active");
+    }
   } catch (e) {
     // ignore if DOM structure is different
   }
@@ -780,10 +943,12 @@ function updatePersonalList() {
     const li = document.createElement("li");
     const difficultyText =
       record.difficulty === 1
-        ? "简单"
+        ? "休闲"
         : record.difficulty === 2
-          ? "中等"
-          : "困难";
+          ? "普通"
+          : record.difficulty === 3
+            ? "困难"
+            : "炼狱";
     li.textContent = `${nickname}: ${record.time.toFixed(2)} 秒 (${difficultyText})`;
     ol.appendChild(li);
   });
@@ -796,10 +961,12 @@ function updateGlobalList() {
     const li = document.createElement("li");
     const difficultyText =
       globalBests.difficulty === 1
-        ? "简单"
+        ? "休闲"
         : globalBests.difficulty === 2
-          ? "中等"
-          : "困难";
+          ? "普通"
+          : globalBests.difficulty === 3
+            ? "困难"
+            : "炼狱";
     li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒 (${difficultyText})`;
     ol.appendChild(li);
   });
@@ -834,10 +1001,29 @@ document.addEventListener("DOMContentLoaded", function () {
   const difficulty1Btn = document.getElementById("difficulty1");
   const difficulty2Btn = document.getElementById("difficulty2");
   const difficulty3Btn = document.getElementById("difficulty3");
+  const difficulty4Btn = document.getElementById("difficulty4");
+  difficulty4Btn.disabled = true;
 
   difficulty1Btn.addEventListener("click", () => setDifficulty(1));
   difficulty2Btn.addEventListener("click", () => setDifficulty(2));
   difficulty3Btn.addEventListener("click", () => setDifficulty(3));
+  difficulty4Btn.addEventListener("click", () => setDifficulty(4));
+
+  // Nickname input event listener
+  nicknameInput.addEventListener("input", function () {
+    if (this.value.trim() !== "") {
+      okBtn.textContent = "写好了";
+      okBtn.classList.add("active");
+    } else {
+      okBtn.textContent = "我叫……";
+      okBtn.classList.remove("active");
+    }
+  });
+
+  // Remove active class when okBtn is clicked
+  okBtn.addEventListener("click", function () {
+    this.classList.remove("active");
+  });
 
   // 初始化拼图（3个）
   for (let i = 0; i < imagePaths.length; i++) {
@@ -861,9 +1047,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // 启用鼠标滚轮滚动所有页面
-  // 阻止滚动直到加载完成
+  // 阻止滚动直到加载完成和confirmBtn首次点击
   function handleScroll(e) {
-    if (!loadingComplete) {
+    if (!loadingComplete || !confirmBtnClicked) {
       e.preventDefault();
       return false;
     }
@@ -877,7 +1063,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 首次按键：显示导航并跳到第二页
   function onFirstKey(e) {
-    if (!loadingComplete) return; // Lock until loading complete
+    if (!loadingComplete) return; // until loading complete
 
     const startText = document.getElementById("startText");
     const pageNav = document.getElementById("pageNav");
@@ -891,13 +1077,21 @@ document.addEventListener("DOMContentLoaded", function () {
         secondPage.scrollIntoView({ behavior: "smooth", block: "start" });
         pageBtns.forEach((btn) => {
           btn.classList.remove("active");
-          if (btn.dataset.page === "page2") btn.classList.add("active");
+          if (btn.dataset.page === "page2") {
+            btn.classList.add("active");
+            btn.classList.add("has-been-active"); // 标记为已激活过
+          }
         });
       }
       // // Toggle music when first key is pressed
       // if (toggleMusicFunction) {
       //   toggleMusicFunction();
       // }
+
+      // Play turn.mp3 audio when first key is pressed
+      const turnAudio = new Audio("audio/turn.mp3");
+      turnAudio.currentTime = 0;
+      turnAudio.play().catch((e) => console.log("Audio play failed:", e));
 
       document.removeEventListener("keydown", onFirstKey);
     }
@@ -908,6 +1102,7 @@ document.addEventListener("DOMContentLoaded", function () {
   pageBtns.forEach((btn) => {
     // 添加悬停事件播放音频
     btn.addEventListener("mouseenter", function () {
+      if (!confirmBtnClicked) return;
       const pageBtnAudio = new Audio("audio/pagebtn.mp3");
       pageBtnAudio.currentTime = 0;
       pageBtnAudio.volume = 0.3; // 调整音量，范围0-1
@@ -915,6 +1110,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     btn.addEventListener("click", function () {
+      if (!loadingComplete || !confirmBtnClicked) return;
       const targetPageId = this.dataset.page;
       const targetPage = document.getElementById(targetPageId);
       if (targetPage) {
@@ -929,6 +1125,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         pageBtns.forEach((b) => b.classList.remove("active"));
         this.classList.add("active");
+        this.classList.add("has-been-active"); // 标记为已激活过
         currentActivePage = targetPageId; // Update current active page
       }
       // Handle page5 active state
@@ -1116,15 +1313,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Update button styles
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn, idx) => {
-      if (idx + 1 === level) {
-        btn.style.backgroundColor = "#d5d5d5";
-        btn.style.color = "white";
-      } else {
-        btn.style.backgroundColor = "";
-        btn.style.color = "";
-      }
-    });
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach(
+      (btn, idx) => {
+        if (idx + 1 === level) {
+          btn.style.backgroundColor = "#d5d5d5";
+          btn.style.color = "white";
+        } else {
+          btn.style.backgroundColor = "";
+          btn.style.color = "";
+        }
+      },
+    );
 
     // Check if start button should be enabled
     if (okBtn.disabled) {
@@ -1141,10 +1340,13 @@ document.addEventListener("DOMContentLoaded", function () {
     confirmBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
+    topBtn.disabled = true;
     // Disable difficulty buttons when game starts
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
-      btn.disabled = true;
-    });
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach(
+      (btn) => {
+        btn.disabled = true;
+      },
+    );
     allSolved = [false, false, false];
     for (let i = 0; i < imagePaths.length; i++) {
       puzzles[i].started = true;
@@ -1159,7 +1361,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // 显示浮动控件
     pageBtns.forEach((btn) => {
       btn.classList.remove("active");
-      if (btn.dataset.page === "page3") btn.classList.add("active");
+      if (btn.dataset.page === "page3") {
+        btn.classList.add("active");
+        btn.classList.add("has-been-active"); // 标记为已激活过
+      }
     });
     floatingControls.style.display = "flex";
   };
@@ -1176,6 +1381,11 @@ document.addEventListener("DOMContentLoaded", function () {
     [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
     });
+    if (difficulty4Unlocked) {
+      difficulty4Btn.disabled = false;
+    } else {
+      difficulty4Btn.disabled = true;
+    }
     stopTimer();
     stopPage5Timer();
     page5Active = false;
@@ -1201,10 +1411,21 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
     okBtn.disabled = false;
+    // Set active state for okBtn based on nickname input
+    if (nicknameInput.value.trim() !== "") {
+      okBtn.classList.add("active");
+    } else {
+      okBtn.classList.remove("active");
+    }
     // Enable difficulty buttons when game restarts
     [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
     });
+    if (difficulty4Unlocked) {
+      difficulty4Btn.disabled = false;
+    } else {
+      difficulty4Btn.disabled = true;
+    }
     // Set default difficulty
     setDifficulty(1);
     stopTimer();
@@ -1229,7 +1450,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if (pageNav) pageNav.style.display = "flex";
       pageBtns.forEach((b) => b.classList.remove("active"));
       const btn = Array.from(pageBtns).find((b) => b.dataset.page === "page2");
-      if (btn) btn.classList.add("active");
+      if (btn) {
+        btn.classList.add("active");
+        btn.classList.add("has-been-active"); // 标记为已激活过
+      }
     }
     // 重置为 "往下有惊喜" 当重启按钮被点击
     const congratulationsText = document.getElementById("congratulationsText");
@@ -1243,6 +1467,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Confirm：保存成绩并更新排行
   confirmBtn.onclick = function () {
+    // Play confirmation sound
+    const confirmAudio = new Audio("audio/confirm.mp3");
+    confirmAudio.currentTime = 0;
+    confirmAudio.volume = 0.2;
+    confirmAudio.play().catch((e) => console.log("Audio play failed:", e));
+
+    // 标记confirmBtn首次点击
+    if (!confirmBtnClicked) {
+      confirmBtnClicked = true;
+      removeScrollBlock();
+    }
+
+    // 标记page6按钮为已激活过
+    const page6Btn = Array.from(pageBtns).find(
+      (btn) => btn.dataset.page === "page6",
+    );
+    if (page6Btn) {
+      page6Btn.classList.add("has-been-active");
+    }
+
     // use timer (ms) convert to seconds
     const timeSeconds = timer / 1000;
     let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
@@ -1260,6 +1504,12 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+    topBtn.disabled = false;
+    if (difficulty4Unlocked) {
+      difficulty4Btn.disabled = false;
+    } else {
+      difficulty4Btn.disabled = true;
+    }
 
     // Update page6 timer with final time
     const page6Timer = document.getElementById("page6Timer");
@@ -1334,7 +1584,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const firstPageBtn = Array.from(pageBtns).find(
       (btn) => btn.dataset.page === "page1",
     );
-    if (firstPageBtn) firstPageBtn.classList.add("active");
+    if (firstPageBtn) {
+      firstPageBtn.classList.add("active");
+      firstPageBtn.classList.add("has-been-active"); // 标记为已激活过
+    }
 
     // Handle page5 active state
     if (page5Active) {
@@ -1345,6 +1598,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 初始按钮状态
   okBtn.disabled = false;
+  // Set initial active state for okBtn based on nickname input
+  if (nicknameInput.value.trim() !== "") {
+    okBtn.classList.add("active");
+  } else {
+    okBtn.classList.remove("active");
+  }
   startBtn.disabled = true;
   confirmBtn.disabled = true;
   stopBtn.disabled = true;
@@ -1354,6 +1613,11 @@ document.addEventListener("DOMContentLoaded", function () {
   [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
     btn.disabled = false;
   });
+  if (difficulty4Unlocked) {
+    difficulty4Btn.disabled = false;
+  } else {
+    difficulty4Btn.disabled = true;
+  }
   // Set default difficulty
   setDifficulty(1);
   localStorage.removeItem("jigsaw_records"); // 可以移除或注释掉以保留记录
@@ -2068,10 +2332,11 @@ class FlipFluid {
 
   updateParticleColors() {
     var h1 = this.fInvSpacing;
-    // Target sky blue color for dense/calm particles (135, 206, 235)/256
-    const TARGET_R = 135 / 256; // ≈ 0.527
-    const TARGET_G = 206 / 256; // ≈ 0.805
-    const TARGET_B = 235 / 256; // ≈ 0.918
+    // Get current target color from scene
+    var colorMode = scene.colorMode || 0;
+    const TARGET_R = scene.targetColors[colorMode].r;
+    const TARGET_G = scene.targetColors[colorMode].g;
+    const TARGET_B = scene.targetColors[colorMode].b;
 
     // Color for sparse particles
     const SPARSE_R = 0.8;
@@ -2194,10 +2459,27 @@ var scene = {
   obstacleInertia: 0.0, // Moment of inertia
   isDynamic: true,
 
+  // Force mode settings
+  forceMode: false,
+  mouseX: 0,
+  mouseY: 0,
+  mouseDown: false,
+  forceMagnitude: 10.0,
+  minDistance: 1,
+  maxDistance: 5,
+
   paused: true,
   showParticles: true,
   showGrid: false,
   fluid: null,
+
+  // Color cycling settings
+  colorMode: 0, // 0: original sky blue, 1: dark blue, 2: dark gray
+  targetColors: [
+    { r: 135 / 256, g: 206 / 256, b: 235 / 256 }, // Original sky blue
+    { r: 11 / 256, g: 61 / 256, b: 146 / 256 }, // Dark blue
+    { r: 20 / 256, g: 20 / 256, b: 20 / 256 }, // Dark gray
+  ],
 };
 
 function setupSceneTank() {
@@ -2400,8 +2682,10 @@ function handleObstacleWallCollision() {
 
 function updateObstaclePhysics(dt) {
   if (scene.isDynamic && !mouseDown) {
-    // 1. Gravity
-    scene.obstacleVy += scene.gravity * dt;
+    // 1. Gravity (only when force mode is disabled)
+    if (!scene.forceMode) {
+      scene.obstacleVy += scene.gravity * dt;
+    }
 
     // 2. Fluid Forces (Buoyancy/Pressure Integration)
     let fluidForces = scene.fluid.calculateFluidForces(
@@ -2757,13 +3041,9 @@ function drawTank() {
 }
 
 var mouseDown = false;
-var lastDragTime = 0;
-var lastDragX = 0;
-var lastDragY = 0;
-var currentSound = null;
-var soundPlaying = false;
 
 function startDrag(x, y) {
+  if (scene.forceMode) return;
   let bounds = canvas1.getBoundingClientRect();
   let mx = x - bounds.left - canvas1.clientLeft;
   let my = y - bounds.top - canvas1.clientTop;
@@ -2772,12 +3052,10 @@ function startDrag(x, y) {
   scene.obstacleY = (canvas1.height - my) / cScaleY; // Flip Y for WebGL
   scene.obstacleVx = 0.0;
   scene.obstacleVy = 0.0;
-  lastDragTime = Date.now();
-  lastDragX = mx;
-  lastDragY = my;
 }
 
 function drag(x, y) {
+  if (scene.forceMode) return;
   if (mouseDown) {
     let bounds = canvas1.getBoundingClientRect();
     let mx = x - bounds.left - canvas1.clientLeft;
@@ -2855,11 +3133,6 @@ function playDragSound(speed) {
 
 function endDrag() {
   mouseDown = false;
-  soundPlaying = false;
-  if (currentSound) {
-    currentSound.pause();
-    currentSound.currentTime = 0;
-  }
 }
 
 // Water obstacle collision tracking
@@ -3034,7 +3307,6 @@ function playSpraySound(sprayIntensity) {
     sprayAudio.volume = volume;
     sprayAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
     sprayAudio.play().catch((e) => console.log("Audio play failed:", e));
-    lastSprayTime = currentTime;
   }
 }
 
@@ -3237,13 +3509,81 @@ function calculateVelocity() {
   avgAbsoluteVelocity = totalAbsoluteVelocity / scene.fluid.numParticles;
 }
 
+function applyForceToParticles() {
+  if (!scene.forceMode || !scene.mouseDown) return;
+
+  var f = scene.fluid;
+  var dx, dy, distance, force, fx, fy;
+
+  for (var i = 0; i < f.numParticles; i++) {
+    var px = f.particlePos[2 * i];
+    var py = f.particlePos[2 * i + 1];
+
+    dx = scene.mouseX - px;
+    dy = scene.mouseY - py;
+    distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance > 0 && distance < scene.maxDistance) {
+      // Calculate force magnitude: constant within minDistance, then 1/distance
+      if (distance < scene.minDistance) {
+        force = scene.forceMagnitude;
+      } else {
+        force = scene.forceMagnitude * (scene.minDistance / distance);
+      }
+
+      // Normalize direction
+      fx = (dx / distance) * force;
+      fy = (dy / distance) * force;
+
+      // Apply force to particle velocity
+      f.particleVel[2 * i] += fx * scene.dt;
+      f.particleVel[2 * i + 1] += fy * scene.dt;
+    }
+  }
+}
+
+function applyForceToObstacle() {
+  if (!scene.forceMode || !scene.mouseDown) return;
+
+  var dx = scene.mouseX - scene.obstacleX;
+  var dy = scene.mouseY - scene.obstacleY;
+  var distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance > 0 && distance < scene.maxDistance) {
+    // Calculate force magnitude: constant within minDistance, then 1/distance
+    var force;
+    if (distance < scene.minDistance) {
+      force = scene.forceMagnitude;
+    } else {
+      force = scene.forceMagnitude * (scene.minDistance / distance);
+    }
+
+    // Normalize direction
+    var fx = (dx / distance) * force;
+    var fy = (dy / distance) * force;
+
+    // Apply force to obstacle
+    scene.obstacleVx += (fx / scene.obstacleMass) * scene.dt;
+    scene.obstacleVy += (fy / scene.obstacleMass) * scene.dt;
+  }
+}
+
 function simulateTank() {
   if (!scene.paused) {
     var sdt = scene.dt;
+
+    // Apply force mode if enabled
+    if (scene.forceMode) {
+      applyForceToParticles();
+      applyForceToObstacle();
+    }
+
     // Add the obstacle physics right before integrating the fluid step
     updateObstaclePhysics(sdt);
 
-    scene.fluid.integrateParticles(sdt, scene.gravity);
+    // Use zero gravity when force mode is enabled
+    var gravity = scene.forceMode ? 0 : scene.gravity;
+    scene.fluid.integrateParticles(sdt, gravity);
     if (scene.separateParticles)
       scene.fluid.pushParticlesApart(scene.numParticleIters);
     scene.fluid.handleParticleCollisions(
@@ -3485,7 +3825,7 @@ function toggleBilliards() {
 
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
-    button.textContent = "关闭台球模式";
+    button.textContent = "不要壁纸";
   } else {
     // Double click: disable billiards mode
     physicsScene.billiardsMode = false;
@@ -3494,7 +3834,7 @@ function toggleBilliards() {
 
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
-    button.textContent = "台球模式";
+    button.textContent = "来张壁纸";
   }
 }
 
@@ -3777,7 +4117,6 @@ const waterWaveAudioPool = {
       this.audioObjects.push(newAudio);
       return newAudio;
     }
-
 
     // If all are playing, create a new one anyway (temporary fix)
     const newAudio = new Audio(soundFile);
@@ -4179,11 +4518,127 @@ function simulateGravity() {
   }
 }
 
+function toggleForce() {
+  scene.forceMode = !scene.forceMode;
+  var button = document.querySelector('button[onclick="toggleForce()"]');
+  if (button) {
+    button.textContent = scene.forceMode ? "原力散去" : "原力同在";
+  }
+}
+
+function toggleColor() {
+  // Cycle through color modes: 0 → 1 → 2 → 0
+  scene.colorMode = (scene.colorMode + 1) % scene.targetColors.length;
+  
+  // Update button text to show current color mode
+  var button = document.querySelector('button[onclick="toggleColor()"]');
+  if (button) {
+    var colorNames = ["游泳池", "青花瓷", "水墨画"];
+    button.textContent = colorNames[scene.colorMode] || "换个颜色";
+  }
+}
+
+// Handle mouse events for force mode
+function handleTankMouseDown(e) {
+  if (!scene.forceMode) return;
+
+  var rect = canvas1.getBoundingClientRect();
+  var mx = e.x - rect.left - canvas1.clientLeft;
+  var my = e.y - rect.top - canvas1.clientTop;
+
+  scene.mouseX = mx / cScaleX;
+  scene.mouseY = (canvas1.height - my) / cScaleY;
+  scene.mouseDown = true;
+}
+
+function handleTankMouseMove(e) {
+  if (!scene.forceMode || !scene.mouseDown) return;
+
+  var rect = canvas1.getBoundingClientRect();
+  var mx = e.x - rect.left - canvas1.clientLeft;
+  var my = e.y - rect.top - canvas1.clientTop;
+
+  scene.mouseX = mx / cScaleX;
+  scene.mouseY = (canvas1.height - my) / cScaleY;
+}
+
+function applyExplosionForce() {
+  if (!scene.forceMode) return;
+
+  var explosionForce = scene.forceMagnitude * 100;
+
+  var f = scene.fluid;
+  var dx, dy, distance, force, fx, fy;
+
+  // Apply explosion force to particles
+  for (var i = 0; i < f.numParticles; i++) {
+    var px = f.particlePos[2 * i];
+    var py = f.particlePos[2 * i + 1];
+
+    // Direction away from mouse
+    dx = px - scene.mouseX;
+    dy = py - scene.mouseY;
+    distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance > 0 && distance < scene.maxDistance) {
+      // Calculate force magnitude: 10x the attraction force
+      if (distance < scene.minDistance) {
+        force = explosionForce;
+      } else {
+        force = explosionForce * (scene.minDistance / distance);
+      }
+
+      // Normalize direction
+      fx = (dx / distance) * force;
+      fy = (dy / distance) * force;
+
+      // Apply force to particle velocity
+      f.particleVel[2 * i] += fx * scene.dt;
+      f.particleVel[2 * i + 1] += fy * scene.dt;
+    }
+  }
+
+  // Apply explosion force to obstacle
+  dx = scene.obstacleX - scene.mouseX;
+  dy = scene.obstacleY - scene.mouseY;
+  distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance > 0 && distance < scene.maxDistance) {
+    // Calculate force magnitude: 10x the attraction force
+    if (distance < scene.minDistance) {
+      force = scene.forceMagnitude * 10;
+    } else {
+      force = scene.forceMagnitude * 10 * (scene.minDistance / distance);
+    }
+
+    // Normalize direction
+    fx = (dx / distance) * force;
+    fy = (dy / distance) * force;
+
+    // Apply force to obstacle
+    scene.obstacleVx += (fx / scene.obstacleMass) * scene.dt;
+    scene.obstacleVy += (fy / scene.obstacleMass) * scene.dt;
+  }
+}
+
+function handleTankMouseUp(e) {
+  if (!scene.forceMode) return;
+  // Apply explosion force when mouse is released
+  applyExplosionForce();
+  scene.mouseDown = false;
+}
+
 function updateTank() {
   simulateTank();
   drawTank();
   requestAnimationFrame(updateTank);
 }
+
+// Add mouse event listeners for force mode
+canvas1.addEventListener("mousedown", handleTankMouseDown);
+canvas1.addEventListener("mousemove", handleTankMouseMove);
+canvas1.addEventListener("mouseup", handleTankMouseUp);
+canvas1.addEventListener("mouseleave", handleTankMouseUp);
 
 setupSceneTank();
 updateTank();
