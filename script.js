@@ -1754,6 +1754,22 @@ function startColorRandomWalk(element) {
 
 // ------------------------------------------------------------------
 
+// Global volume variable for tank scene sounds
+let tankSceneVolume = 0.5;
+
+// Initialize volume slider event listener
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('tankVolumeSlider');
+    if (slider) {
+        slider.addEventListener('input', function(e) {
+            tankSceneVolume = parseFloat(e.target.value);
+            slider.style.setProperty('--value', slider.value * 100 + '%');
+        });
+        slider.style.setProperty('--value', slider.value * 100 + '%');
+    }
+});
+
+
 var canvas1 = document.getElementById("myCanvas1");
 var gl = canvas1.getContext("webgl");
 canvas1.width = parseInt(getComputedStyle(canvas1).width, 10);
@@ -3218,7 +3234,7 @@ function playWaterObstacleSound(collisionIntensity) {
 
   const waterAudio = waterObstacleAudioPool.getAudio(soundFile);
   waterAudio.currentTime = 0;
-  waterAudio.volume = volume;
+  waterAudio.volume = volume * tankSceneVolume;
   waterAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
   waterAudio.play().catch((e) => console.log("Audio play failed:", e));
 }
@@ -3253,7 +3269,7 @@ function playSplashSound(velocitySum) {
   splashAudio.currentTime = 0;
   // Calculate volume based on velocity sum
   const volume = Math.min(Math.pow(velocitySum * 0.005, 0.7), 1.0);
-  splashAudio.volume = volume;
+  splashAudio.volume = volume * tankSceneVolume;
   splashAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
   splashAudio.play().catch((e) => console.log("Audio play failed:", e));
 
@@ -3295,7 +3311,7 @@ function playWaveSound(velocityChange) {
       velocityChange > 0 ? velocityChange * 10 : -velocityChange * 25,
       1.0,
     );
-    waveAudio.volume = volume;
+    waveAudio.volume = volume * tankSceneVolume;
     waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
     waveAudio.play().catch((e) => console.log("Audio play failed:", e));
     lastWaveTime = currentTime;
@@ -3320,7 +3336,7 @@ function playConstantSound(velocity) {
     waveAudio.currentTime = 0;
     // Calculate volume based on velocity change magnitude
     const volume = Math.min(Math.pow(velocity * 0.5, 1.5), 1.0);
-    waveAudio.volume = volume;
+    waveAudio.volume = volume * tankSceneVolume;
     waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
     waveAudio.play().catch((e) => console.log("Audio play failed:", e));
     lastConstantTime = currentTime;
@@ -3368,7 +3384,7 @@ function playSpraySound(sprayIntensity) {
 
     const sprayAudio = sprayAudioPool.getAudio(soundFile);
     sprayAudio.currentTime = 0;
-    sprayAudio.volume = volume;
+    sprayAudio.volume = volume * tankSceneVolume;
     sprayAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
     sprayAudio.play().catch((e) => console.log("Audio play failed:", e));
   }
