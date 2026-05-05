@@ -1,5 +1,17 @@
 // 预加载所有音频文件
 const audioFilesPreload = [
+  // thunder 文件夹 (用于困难和炼狱难度)
+  "audio/thunder/rain1.mp3",
+  "audio/thunder/rain2.mp3",
+  "audio/thunder/rain3.mp3",
+  "audio/thunder/clap1.mp3",
+  "audio/thunder/clap2.mp3",
+  "audio/thunder/clap3.mp3",
+  "audio/thunder/clap4.mp3",
+  "audio/thunder/clap5.mp3",
+  "audio/thunder/clap6.mp3",
+  "audio/thunder/clap7.mp3",
+  "audio/thunder/clap8.mp3",
   // 根音频文件夹
   "audio/button.m4a",
   "audio/bouncing.m4a",
@@ -145,6 +157,37 @@ const audioFiles = ["audio/emo.mp3", "audio/ua.mp3", "audio/ui.mp3"];
 let bunClickCount = 0;
 
 let confirmBtnClicked = false;
+
+// Rain audio for difficulty 3 and 4
+let rainAudio = null;
+let rainIndex = 1;
+let rainInterval = null;
+
+function startRainLoop() {
+  stopRainLoop(); // Stop any existing rain loop
+  rainIndex = 1;
+  
+  function playNextRain() {
+    rainAudio = new Audio(`audio/thunder/rain${rainIndex}.mp3`);
+    rainAudio.volume = 0.3;
+    rainAudio.play().catch((e) => console.log("Rain audio play failed:", e));
+    
+    rainIndex = rainIndex % 3 + 1; // Cycle through 1, 2, 3
+  }
+  
+  playNextRain();
+  rainInterval = setInterval(playNextRain, 2000); // Play next rain sound every 2 seconds
+}
+function stopRainLoop() {
+  if (rainInterval) {
+    clearInterval(rainInterval);
+    rainInterval = null;
+  }
+  if (rainAudio) {
+    rainAudio.pause();
+    rainAudio = null;
+  }
+}
 
 // Difficulty settings
 let currentDifficulty = 1; // 1: 休闲, 2: 普通, 3: 困难, 4: 炼狱
@@ -600,19 +643,29 @@ function onMouseUp(idx, e) {
     tryMerge(idx, piece);
 
     // Check if piece was NOT merged (still has original group size of 1)
-    if (piece.group.length === 1 && currentDifficulty === 4) {
-      // Change direction randomly and accelerate to 1.2x speed
-      const speedMultiplier = 1.2;
-      const newSpeed =
-        Math.sqrt(originalVx * originalVx + originalVy * originalVy) *
-        speedMultiplier;
+    if (piece.group.length === 1) {
+      // Play random clap sound for difficulty 3 and 4
+      if (currentDifficulty === 3 || currentDifficulty === 4) {
+        const clapIndex = Math.floor(Math.random() * 8) + 1;
+        const clapAudio = new Audio(`audio/thunder/clap${clapIndex}.mp3`);
+        clapAudio.volume = 0.3;
+        clapAudio.play().catch((e) => console.log("Clap audio play failed:", e));
+      }
 
-      // Generate random angle for new direction
-      const angle = Math.random() * Math.PI * 2;
+      if (currentDifficulty === 4) {
+        // Change direction randomly and accelerate to 1.2x speed
+        const speedMultiplier = 1.2;
+        const newSpeed =
+          Math.sqrt(originalVx * originalVx + originalVy * originalVy) *
+          speedMultiplier;
 
-      // Calculate new velocity components
-      piece.vx = Math.cos(angle) * newSpeed;
-      piece.vy = Math.sin(angle) * newSpeed;
+        // Generate random angle for new direction
+        const angle = Math.random() * Math.PI * 2;
+
+        // Calculate new velocity components
+        piece.vx = Math.cos(angle) * newSpeed;
+        piece.vy = Math.sin(angle) * newSpeed;
+      }
     }
 
     drawPuzzle(idx);
@@ -1355,6 +1408,12 @@ document.addEventListener("DOMContentLoaded", function () {
       animatePuzzle(i);
     }
     startTimer();
+    
+    // Start rain sound for difficulty 3 and 4
+    if (currentDifficulty === 3 || currentDifficulty === 4) {
+      startRainLoop();
+    }
+    
     // 跳到第3页
     const page3 = document.getElementById("page3");
     if (page3) page3.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1371,6 +1430,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Stop：停止计时与动画（重置为初始未开始状态）
   stopBtn.onclick = function () {
+    stopRainLoop(); // Stop rain audio
     startBtn.disabled = !okBtn.disabled || !difficultySelected;
     confirmBtn.disabled = true;
     confirmBtn.classList.remove("active");
@@ -1405,6 +1465,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 重启（页面底部/浮动重启共用）
   function doRestart() {
+    stopRainLoop(); // Stop rain audio
     startBtn.disabled = true;
     confirmBtn.disabled = true;
     stopBtn.disabled = true;
@@ -1467,6 +1528,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Confirm：保存成绩并更新排行
   confirmBtn.onclick = function () {
+    // Stop rain sound for difficulty 3 and 4
+    stopRainLoop();
+    
     // Play confirmation sound
     const confirmAudio = new Audio("audio/confirm.mp3");
     confirmAudio.currentTime = 0;
@@ -1689,6 +1753,22 @@ function startColorRandomWalk(element) {
 // ...existing code...
 
 // ------------------------------------------------------------------
+
+// Global volume variable for tank scene sounds
+let tankSceneVolume = 0.5;
+
+// Initialize volume slider event listener
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('tankVolumeSlider');
+    if (slider) {
+        slider.addEventListener('input', function(e) {
+            tankSceneVolume = parseFloat(e.target.value);
+            slider.style.setProperty('--value', slider.value * 100 + '%');
+        });
+        slider.style.setProperty('--value', slider.value * 100 + '%');
+    }
+});
+
 
 var canvas1 = document.getElementById("myCanvas1");
 var gl = canvas1.getContext("webgl");
@@ -3154,7 +3234,7 @@ function playWaterObstacleSound(collisionIntensity) {
 
   const waterAudio = waterObstacleAudioPool.getAudio(soundFile);
   waterAudio.currentTime = 0;
-  waterAudio.volume = volume;
+  waterAudio.volume = volume * tankSceneVolume;
   waterAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
   waterAudio.play().catch((e) => console.log("Audio play failed:", e));
 }
@@ -3189,7 +3269,7 @@ function playSplashSound(velocitySum) {
   splashAudio.currentTime = 0;
   // Calculate volume based on velocity sum
   const volume = Math.min(Math.pow(velocitySum * 0.005, 0.7), 1.0);
-  splashAudio.volume = volume;
+  splashAudio.volume = volume * tankSceneVolume;
   splashAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
   splashAudio.play().catch((e) => console.log("Audio play failed:", e));
 
@@ -3231,7 +3311,7 @@ function playWaveSound(velocityChange) {
       velocityChange > 0 ? velocityChange * 10 : -velocityChange * 25,
       1.0,
     );
-    waveAudio.volume = volume;
+    waveAudio.volume = volume * tankSceneVolume;
     waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
     waveAudio.play().catch((e) => console.log("Audio play failed:", e));
     lastWaveTime = currentTime;
@@ -3256,7 +3336,7 @@ function playConstantSound(velocity) {
     waveAudio.currentTime = 0;
     // Calculate volume based on velocity change magnitude
     const volume = Math.min(Math.pow(velocity * 0.5, 1.5), 1.0);
-    waveAudio.volume = volume;
+    waveAudio.volume = volume * tankSceneVolume;
     waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
     waveAudio.play().catch((e) => console.log("Audio play failed:", e));
     lastConstantTime = currentTime;
@@ -3304,7 +3384,7 @@ function playSpraySound(sprayIntensity) {
 
     const sprayAudio = sprayAudioPool.getAudio(soundFile);
     sprayAudio.currentTime = 0;
-    sprayAudio.volume = volume;
+    sprayAudio.volume = volume * tankSceneVolume;
     sprayAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
     sprayAudio.play().catch((e) => console.log("Audio play failed:", e));
   }

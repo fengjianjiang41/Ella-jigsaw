@@ -555,14 +555,51 @@ body {
 }
 
 
-.slider {
-    -webkit-appearance: none;
-    width: 80px;
-    height: 6px;
-    border-radius: 5px;
-    background: #d3d3d3;
-    outline: none;
-    opacity: 0.7;
-    -webkit-transition: .2s;
-    transition: opacity .2s;
+/* Tank Volume Slider Styles */
+#tankVolumeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 8px;
+  border-radius: 4px;
+  background: #ddd;
+  outline: none;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+#tankVolumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffb3c2;
+  cursor: pointer;
+  border: 2px solid #ff8fab;
+  margin-top: -5px; /* Center thumb vertically */
+}
+
+/* Mozilla Firefox */
+#tankVolumeSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffb3c2;
+  cursor: pointer;
+  border: 2px solid #ff8fab;
+}
+
+/* WebKit track styling for filled portion */
+#tankVolumeSlider::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #ffb3c2 0%, #ffb3c2 var(--value), #ddd var(--value), #ddd 100%);
+}
+
+/* Firefox track styling */
+#tankVolumeSlider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #ddd;
 }
