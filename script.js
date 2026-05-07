@@ -726,7 +726,7 @@ function showPage5Hint() {
       page5.appendChild(page5Hint);
     }
   }
-  page5Hint.textContent = "鼠标挪出来，啥都能看见~！";
+  page5Hint.textContent = window.getTranslatedText ? window.getTranslatedText("鼠标挪出来，啥都能看见~！") : "鼠标挪出来，啥都能看见~！";
   page5Hint.style.display = "block";
 }
 
@@ -939,17 +939,26 @@ function updatePersonalList() {
   const ol = document.getElementById("personalList");
   if (!ol) return;
   ol.innerHTML = "";
+  
+  // Get translated texts
+  const getText = window.getTranslatedText || function(k) { return k; };
+  const timeUnit = getText("秒");
+  const easyText = getText("休闲");
+  const mediumText = getText("普通");
+  const hardText = getText("困难");
+  const hellText = getText("炼狱");
+  
   list.forEach((record, i) => {
     const li = document.createElement("li");
     const difficultyText =
       record.difficulty === 1
-        ? "休闲"
+        ? easyText
         : record.difficulty === 2
-          ? "普通"
+          ? mediumText
           : record.difficulty === 3
-            ? "困难"
-            : "炼狱";
-    li.textContent = `${nickname}: ${record.time.toFixed(2)} 秒 (${difficultyText})`;
+            ? hardText
+            : hellText;
+    li.textContent = `${nickname}: ${record.time.toFixed(2)} ${timeUnit} (${difficultyText})`;
     ol.appendChild(li);
   });
 }
@@ -957,17 +966,26 @@ function updateGlobalList() {
   const ol = document.getElementById("globalList");
   if (!ol) return;
   ol.innerHTML = "";
+  
+  // Get translated texts
+  const getText = window.getTranslatedText || function(k) { return k; };
+  const timeUnit = getText("秒");
+  const easyText = getText("休闲");
+  const mediumText = getText("普通");
+  const hardText = getText("困难");
+  const hellText = getText("炼狱");
+  
   globalBests.slice(0, 5).forEach((item, i) => {
     const li = document.createElement("li");
     const difficultyText =
-      globalBests.difficulty === 1
-        ? "休闲"
-        : globalBests.difficulty === 2
-          ? "普通"
-          : globalBests.difficulty === 3
-            ? "困难"
-            : "炼狱";
-    li.textContent = `${item.nickname}: ${item.time.toFixed(2)} 秒 (${difficultyText})`;
+      item.difficulty === 1
+        ? easyText
+        : item.difficulty === 2
+          ? mediumText
+          : item.difficulty === 3
+            ? hardText
+            : hellText;
+    li.textContent = `${item.nickname}: ${item.time.toFixed(2)} ${timeUnit} (${difficultyText})`;
     ol.appendChild(li);
   });
 }
@@ -1458,7 +1476,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // 重置为 "往下有惊喜" 当重启按钮被点击
     const congratulationsText = document.getElementById("congratulationsText");
     if (congratulationsText) {
-      congratulationsText.innerHTML = "<h2>往下有惊喜</h2>";
+      congratulationsText.innerHTML = currentLang === "zh" ? "<h2>往下有惊喜</h2>" : "<h2>surprise below</h2>";
     }
   }
 
@@ -1555,7 +1573,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Restore original content but with "往下有惊喜"
-        congratulationsText.innerHTML = "<h2>往下有惊喜</h2>";
+        congratulationsText.innerHTML = currentLang === "zh" ? "<h2>往下有惊喜</h2>" : "<h2>surprise below</h2>";
 
         // Reset positioning
         congratulationsText.style.position = "";
@@ -3330,7 +3348,9 @@ canvas1.addEventListener(
 function togglePause() {
   var button = document.getElementById("pauseButton");
   scene.paused = !scene.paused;
-  button.innerHTML = scene.paused ? "继续" : "暂停";
+  button.innerHTML = scene.paused ? 
+    (window.getTranslatedText ? window.getTranslatedText("继续") : "继续") : 
+    (window.getTranslatedText ? window.getTranslatedText("暂停") : "暂停");
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -3340,13 +3360,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (pauseBtn && dragHint) {
     // Initial check - use visibility instead of display
+    const pauseTextZh = "暂停";
+    const pauseTextEn = window.getTranslatedText ? window.getTranslatedText("暂停") : "暂停";
     dragHint.style.visibility =
-      pauseBtn.textContent.trim() === "暂停" ? "visible" : "hidden";
+      (pauseBtn.textContent.trim() === pauseTextZh || pauseBtn.textContent.trim() === pauseTextEn) ? "visible" : "hidden";
 
     // Observe text content changes
     const observer = new MutationObserver(() => {
       dragHint.style.visibility =
-        pauseBtn.textContent.trim() === "暂停" ? "visible" : "hidden";
+        (pauseBtn.textContent.trim() === pauseTextZh || pauseBtn.textContent.trim() === pauseTextEn) ? "visible" : "hidden";
     });
 
     observer.observe(pauseBtn, {
@@ -3357,13 +3379,15 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   if (pauseBtn && dragHint2) {
     // Initial check - use visibility instead of display
+    const pauseTextZh2 = "暂停";
+    const pauseTextEn2 = window.getTranslatedText ? window.getTranslatedText("暂停") : "暂停";
     dragHint2.style.visibility =
-      pauseBtn.textContent.trim() === "暂停" ? "visible" : "hidden";
+      (pauseBtn.textContent.trim() === pauseTextZh2 || pauseBtn.textContent.trim() === pauseTextEn2) ? "visible" : "hidden";
 
     // Observe text content changes
     const observer = new MutationObserver(() => {
       dragHint2.style.visibility =
-        pauseBtn.textContent.trim() === "暂停" ? "visible" : "hidden";
+        (pauseBtn.textContent.trim() === pauseTextZh2 || pauseBtn.textContent.trim() === pauseTextEn2) ? "visible" : "hidden";
     });
 
     observer.observe(pauseBtn, {
@@ -3490,6 +3514,165 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make toggleMusic available globally
   toggleMusicFunction = toggleMusic;
 });
+
+// Floating Language Switch Button Functionality
+document.addEventListener("DOMContentLoaded", function () {
+  const langBtn = document.getElementById("floatingLangBtn");
+
+  // Translation mapping with element selectors
+  const translationElements = [
+    // Page 1 - Home
+    { selector: '#startText', zh: '按任意键开始', en: 'press any key to start' },
+    { selector: '#startText', zh: '本页有惊喜', en: 'this page has surprises for you' },
+    { selector: '#loadingBar div:first-child', zh: '音频加载中', en: 'loading audio...' },
+    
+    // Page 2 - Registration
+    { selector: '#page2 .text-row p:first-child', zh: '拼 图 侠 注 册 页', en: 'Puzzle Hero Registration' },
+    { selector: '#page2 .text-row p:last-child', zh: '榜上有名，只是时间问题', en: 'fame is just a matter of time' },
+    { selector: '#nicknameInput', zh: '输入昵称', en: 'enter nickname', attr: 'placeholder' },
+    { selector: '#okBtn', zh: '写好了', en: 'done' },
+    { selector: '.difficulty-settings p', zh: '请选择难度：', en: 'select difficulty:' },
+    { selector: '#difficulty1', zh: '休闲', en: 'easy' },
+    { selector: '#difficulty2', zh: '普通', en: 'medium' },
+    { selector: '#difficulty3', zh: '困难', en: 'hard' },
+    { selector: '#difficulty4', zh: '炼狱', en: 'HELL' },
+    { selector: '#startBtn', zh: '点我开始！', en: 'start!' },
+    
+    // Page 3 - Puzzle 1
+    { selector: '#page3Title', zh: '会动的拼图怎么不算 动 作 游 戏 呢', en: 'a moving puzzle is totally an action game' },
+    
+    // Page 4 - Puzzle 2
+    { selector: '#page4Title', zh: '防止你胜利的秘诀在于 隐身', en: 'the secret to prevent your victory is invisibility' },
+    
+    // Page 5 - Puzzle 3
+    { selector: '#page5Title', zh: '你只能在最近最近的位置找到我！', en: 'you can only find me at the closest position!' },
+    
+    // Page 6 - Results & Ranking
+    { selector: '#page6 h2:first-child', zh: '结果与排名', en: 'Results & Ranking' },
+    { selector: '#confirmBtn', zh: '确认', en: 'confirm' }, 
+    { selector: '#restartBtn', zh: '重新开始', en: 'restart' },
+    { selector: '#topBtn', zh: '回到首页', en: 'back to home' },
+    { selector: '.personal-ranking h3', zh: '个人历史成绩', en: 'personal history' },
+    { selector: '.global-ranking h3', zh: '全服最佳', en: 'global best' },
+    { selector: '#congratulationsText h2', zh: '往下有惊喜', en: 'surprise below' },
+    { selector: '#pauseButton', zh: '开始', en: 'start' },
+    { selector: '[onclick="toggleForce()"]', zh: '原力同在', en: 'may the Force be with you' },
+    { selector: '[onclick="toggleColor()"]', zh: '换个颜色', en: 'change color' },
+    { selector: 'label[for="tankVolumeSlider"]', zh: '音量', en: 'volume' },
+    { selector: '#dragHint', zh: '试着鼠标拽一下我', en: 'try dragging me' },
+    { selector: '[onclick="setupSceneGravity()"]', zh: '重来', en: 'reset' },
+    { selector: '[onclick="toggleGravity()"]', zh: '取消重力', en: 'toggle gravity' },
+    { selector: '[onclick="toggleSound()"]', zh: '来点动静', en: 'toggle sound' },
+    { selector: '[onclick="toggleBilliards()"]', zh: '试下壁纸', en: 'try billiards' },
+    { selector: '#dragHint2', zh: '试着鼠标拽一下我', en: 'try dragging me' },
+    
+    // Navigation tooltips
+    { selector: '.page-btn[data-page="page1"]', zh: '首页', en: 'Home', attr: 'title' },
+    { selector: '.page-btn[data-page="page2"]', zh: '注册页', en: 'Registration', attr: 'title' },
+    { selector: '.page-btn[data-page="page3"]', zh: '拼图1', en: 'Puzzle 1', attr: 'title' },
+    { selector: '.page-btn[data-page="page4"]', zh: '拼图2', en: 'Puzzle 2', attr: 'title' },
+    { selector: '.page-btn[data-page="page5"]', zh: '拼图3', en: 'Puzzle 3', attr: 'title' },
+    { selector: '.page-btn[data-page="page6"]', zh: '结果/排行', en: 'Results/Ranking', attr: 'title' }
+  ];
+
+    // Dynamic text translations (used in functions)
+  const dynamicTexts = {
+    // Page 5 hint
+    "鼠标挪出来，啥都能看见~！": "Move mouse out to see everything!",
+    
+    // Time unit
+    "秒": "sec",
+    
+    // Difficulty levels
+    "休闲": "easy",
+    "普通": "medium",
+    "困难": "hard",
+    "炼狱": "HELL",
+    
+    // Tank scene
+    "继续": "Resume",
+    "暂停": "Pause",
+    "青花瓷": "Blue Porcelain",
+    "水墨画": "Ink Painting",
+    "游泳池": "Swimming Pool",
+    "原力同在": "May the Force be with you",
+    "原力散去": "Force dissipates",
+    
+    // Gravity scene
+    "开启重力": "Enable Gravity",
+    "取消重力": "Disable Gravity",
+    "来点动静": "Toggle Sound",
+    "安静一下": "Mute",
+    "来张壁纸": "Add Wallpaper",
+    "不要壁纸": "Remove Wallpaper"
+  };
+
+  // Function to toggle language
+  function toggleLanguage() {
+    if (currentLang === "zh") {
+      // Switch to English
+      currentLang = "en";
+      langBtn.textContent = "中文";
+      translatePage("en");
+    } else {
+      // Switch to Chinese
+      currentLang = "zh";
+      langBtn.textContent = "EN";
+      translatePage("zh");
+    }
+    
+    // Re-render records with new language
+    if (typeof updatePersonalList === "function") {
+      updatePersonalList();
+    }
+    if (typeof updateGlobalList === "function") {
+      updateGlobalList();
+    }
+    
+    // Note: Language preference is not saved to localStorage
+  }
+
+  // Function to translate the page
+  function translatePage(targetLang) {
+    translationElements.forEach(item => {
+      const element = document.querySelector(item.selector);
+      if (element) {
+        const text = targetLang === "en" ? item.en : item.zh;
+        if (item.attr) {
+          element.setAttribute(item.attr, text);
+        } else {
+          element.textContent = text;
+        }
+      }
+    });
+    
+    // Update document language attribute
+    document.documentElement.lang = targetLang;
+  }
+
+  // Initialize language: default is Chinese
+  langBtn.textContent = "EN";
+
+  // Add click event listener
+  if (langBtn) {
+    langBtn.addEventListener("click", toggleLanguage);
+  }
+
+  // Helper function to get translated text
+  function getText(key) {
+    if (currentLang === "en" && dynamicTexts[key]) {
+      return dynamicTexts[key];
+    }
+    return key;
+  }
+
+  // Make functions available globally
+  window.toggleLanguage = toggleLanguage;
+  window.getCurrentLang = function() { return currentLang; };
+  window.getTranslatedText = getText;
+});
+
+// Note: Translation is now handled directly in the language switch functionality above
 
 // Add this function to calculate average absolute velocity
 function calculateVelocity() {
@@ -3779,9 +3962,9 @@ function toggleGravity() {
   physicsScene.gravityEnabled = !physicsScene.gravityEnabled;
   var button = document.querySelector('button[onclick="toggleGravity()"]');
   if (physicsScene.gravityEnabled) {
-    button.textContent = "取消重力";
+    button.textContent = window.getTranslatedText ? window.getTranslatedText("取消重力") : "取消重力";
   } else {
-    button.textContent = "开启重力";
+    button.textContent = window.getTranslatedText ? window.getTranslatedText("开启重力") : "开启重力";
   }
 }
 
@@ -3825,7 +4008,7 @@ function toggleBilliards() {
 
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
-    button.textContent = "不要壁纸";
+    button.textContent = window.getTranslatedText ? window.getTranslatedText("不要壁纸") : "不要壁纸";
   } else {
     // Double click: disable billiards mode
     physicsScene.billiardsMode = false;
@@ -3834,7 +4017,7 @@ function toggleBilliards() {
 
     // Update button text
     var button = document.querySelector('button[onclick="toggleBilliards()"]');
-    button.textContent = "来张壁纸";
+    button.textContent = window.getTranslatedText ? window.getTranslatedText("来张壁纸") : "来张壁纸";
   }
 }
 
@@ -4160,7 +4343,9 @@ function toggleSound() {
   soundEnabled = !soundEnabled;
   const button = document.querySelector('button[onclick="toggleSound()"]');
   if (button) {
-    button.textContent = soundEnabled ? "安静一下" : "来点动静";
+    button.textContent = soundEnabled ? 
+      (window.getTranslatedText ? window.getTranslatedText("安静一下") : "安静一下") : 
+      (window.getTranslatedText ? window.getTranslatedText("来点动静") : "来点动静");
   }
 }
 
@@ -4522,7 +4707,9 @@ function toggleForce() {
   scene.forceMode = !scene.forceMode;
   var button = document.querySelector('button[onclick="toggleForce()"]');
   if (button) {
-    button.textContent = scene.forceMode ? "原力散去" : "原力同在";
+    button.textContent = scene.forceMode ? 
+      (window.getTranslatedText ? window.getTranslatedText("原力散去") : "原力散去") : 
+      (window.getTranslatedText ? window.getTranslatedText("原力同在") : "原力同在");
   }
 }
 
@@ -4533,8 +4720,13 @@ function toggleColor() {
   // Update button text to show current color mode
   var button = document.querySelector('button[onclick="toggleColor()"]');
   if (button) {
-    var colorNames = ["游泳池", "青花瓷", "水墨画"];
-    button.textContent = colorNames[scene.colorMode] || "换个颜色";
+    var colorNames = [
+      window.getTranslatedText ? window.getTranslatedText("游泳池") : "游泳池",
+      window.getTranslatedText ? window.getTranslatedText("青花瓷") : "青花瓷",
+      window.getTranslatedText ? window.getTranslatedText("水墨画") : "水墨画"
+    ];
+    button.textContent = colorNames[scene.colorMode] || 
+      (window.getTranslatedText ? window.getTranslatedText("换个颜色") : "换个颜色");
   }
 }
 
