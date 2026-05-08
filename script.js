@@ -146,6 +146,8 @@ let bunClickCount = 0;
 
 let confirmBtnClicked = false;
 
+let currentLang = "zh"; // Default language: Chinese
+
 // Difficulty settings
 let currentDifficulty = 1; // 1: 休闲, 2: 普通, 3: 困难, 4: 炼狱
 let difficultySelected = false; // 标记是否已选择难度
@@ -1088,7 +1090,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const pageBtns = document.querySelectorAll(".page-btn");
 
     if (startText && !startText.style.display.includes("none")) {
-      startText.textContent = "本页有惊喜"; // Change the text
+      startText.textContent = window.getTranslatedText ? window.getTranslatedText("本页有惊喜") : "本页有惊喜"; // Change the text
       pageNav.style.display = "flex";
       const secondPage = document.getElementById("page2");
       if (secondPage) {
@@ -3523,7 +3525,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const translationElements = [
     // Page 1 - Home
     { selector: '#startText', zh: '按任意键开始', en: 'press any key to start' },
-    { selector: '#startText', zh: '本页有惊喜', en: 'this page has surprises for you' },
     { selector: '#loadingBar div:first-child', zh: '音频加载中', en: 'loading audio...' },
     
     // Page 2 - Registration
@@ -3563,16 +3564,12 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: '[onclick="setupSceneGravity()"]', zh: '重来', en: 'reset' },
     { selector: '[onclick="toggleGravity()"]', zh: '取消重力', en: 'toggle gravity' },
     { selector: '[onclick="toggleSound()"]', zh: '来点动静', en: 'toggle sound' },
-    { selector: '[onclick="toggleBilliards()"]', zh: '试下壁纸', en: 'try billiards' },
+    { selector: '[onclick="toggleBilliards()"]', zh: '试下壁纸', en: 'try wallpaper' },
     { selector: '#dragHint2', zh: '试着鼠标拽一下我', en: 'try dragging me' },
     
-    // Navigation tooltips
-    { selector: '.page-btn[data-page="page1"]', zh: '首页', en: 'Home', attr: 'title' },
-    { selector: '.page-btn[data-page="page2"]', zh: '注册页', en: 'Registration', attr: 'title' },
-    { selector: '.page-btn[data-page="page3"]', zh: '拼图1', en: 'Puzzle 1', attr: 'title' },
-    { selector: '.page-btn[data-page="page4"]', zh: '拼图2', en: 'Puzzle 2', attr: 'title' },
-    { selector: '.page-btn[data-page="page5"]', zh: '拼图3', en: 'Puzzle 3', attr: 'title' },
-    { selector: '.page-btn[data-page="page6"]', zh: '结果/排行', en: 'Results/Ranking', attr: 'title' }
+    // Floating controls (拼图页)
+    { selector: '#stopBtn', zh: '停止', en: 'stop' },
+    { selector: '#restartBtnFloat', zh: '重新开始', en: 'restart' }
   ];
 
     // Dynamic text translations (used in functions)
@@ -3589,22 +3586,26 @@ document.addEventListener("DOMContentLoaded", function () {
     "困难": "hard",
     "炼狱": "HELL",
     
+    // Dynamic start text
+    "按任意键开始": "press any key to start",
+    "本页有惊喜": "this page has surprises",
+    
     // Tank scene
-    "继续": "Resume",
-    "暂停": "Pause",
+    "继续": "resume",
+    "暂停": "pause",
     "青花瓷": "Blue Porcelain",
     "水墨画": "Ink Painting",
     "游泳池": "Swimming Pool",
-    "原力同在": "May the Force be with you",
-    "原力散去": "Force dissipates",
+    "原力同在": "may the FORCE be with you",
+    "原力散去": "FORCE dissipates",
     
     // Gravity scene
-    "开启重力": "Enable Gravity",
-    "取消重力": "Disable Gravity",
-    "来点动静": "Toggle Sound",
-    "安静一下": "Mute",
-    "来张壁纸": "Add Wallpaper",
-    "不要壁纸": "Remove Wallpaper"
+    "开启重力": "enable gravity",
+    "取消重力": "disable gravity",
+    "来点动静": "make sound",
+    "安静一下": "mute sound",
+    "来张壁纸": "add wallpaper",
+    "不要壁纸": "remove wallpaper"
   };
 
   // Function to toggle language
@@ -3613,12 +3614,12 @@ document.addEventListener("DOMContentLoaded", function () {
       // Switch to English
       currentLang = "en";
       langBtn.textContent = "中文";
-      translatePage("en");
+      translatePage(currentLang);
     } else {
       // Switch to Chinese
       currentLang = "zh";
       langBtn.textContent = "EN";
-      translatePage("zh");
+      translatePage(currentLang);
     }
     
     // Re-render records with new language
@@ -3629,7 +3630,53 @@ document.addEventListener("DOMContentLoaded", function () {
       updateGlobalList();
     }
     
+    // Update navigation button images using dynamic CSS injection
+    updateNavImages(currentLang);
+    
     // Note: Language preference is not saved to localStorage
+  }
+
+  // Function to update navigation button images
+  function updateNavImages(lang) {
+    // Remove existing style element if it exists
+    const existingStyle = document.getElementById('nav-lang-style');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    
+    // Create new style element
+    const style = document.createElement('style');
+    style.id = 'nav-lang-style';
+    
+    if (lang === 'en') {
+      style.textContent = `
+        .page-nav .page-btn:nth-child(2).active,
+        .page-nav .page-btn:nth-child(2).has-been-active {
+          background: url('images/b2en.png') no-repeat center center !important;
+          background-size: 110% !important;
+        }
+        .page-nav .page-btn:nth-child(6).active,
+        .page-nav .page-btn:nth-child(6).has-been-active {
+          background: url('images/b6en.png') no-repeat center center !important;
+          background-size: 110% !important;
+        }
+      `;
+    } else {
+      style.textContent = `
+        .page-nav .page-btn:nth-child(2).active,
+        .page-nav .page-btn:nth-child(2).has-been-active {
+          background: url('images/b2.png') no-repeat center center !important;
+          background-size: 110% !important;
+        }
+        .page-nav .page-btn:nth-child(6).active,
+        .page-nav .page-btn:nth-child(6).has-been-active {
+          background: url('images/b6.png') no-repeat center center !important;
+          background-size: 110% !important;
+        }
+      `;
+    }
+    
+    document.head.appendChild(style);
   }
 
   // Function to translate the page
