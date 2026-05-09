@@ -136,11 +136,18 @@ document.addEventListener("DOMContentLoaded", function () {
   loadAudioFiles();
 });
 
-const imagePaths = [
+// Default image paths (source1)
+const defaultImagePaths = [
   "images/eureka.png",
   "images/apple.png",
   "images/hongbao.png",
 ];
+
+// Paintings image paths (source2) - will be populated dynamically
+const paintingImages = [];
+
+// Current image paths being used
+let imagePaths = [...defaultImagePaths];
 const audioFiles = ["audio/emo.mp3", "audio/ua.mp3", "audio/ui.mp3"];
 let bunClickCount = 0;
 
@@ -153,6 +160,11 @@ let currentDifficulty = 1; // 1: 休闲, 2: 普通, 3: 困难, 4: 炼狱
 let difficultySelected = false; // 标记是否已选择难度
 let difficulty4Unlocked = false; // 标记难度4是否已解锁
 let difficulty3SolvedOnce = false; // 标记难度3是否已解决一次
+
+// Image source settings
+let currentSource = 1; // 1: 经典三连, 2: 世界名画, 3: 敬请期待
+let sourceSelected = true; // 默认已选择source1
+let source2Unlocked = false; // 标记source2是否已解锁
 const difficultySettings = {
   1: { gridSize: 2, speed: 4, lensSize: 600 }, // 2x2, 慢, 大镜头
   2: { gridSize: 3, speed: 6, lensSize: 400 }, // 3x3, 中, 中镜头
@@ -748,6 +760,9 @@ function solvedScroll() {
       // 解锁难度4
       difficulty4Unlocked = true;
       document.getElementById("difficulty4").disabled = false;
+      // 解锁source2
+      source2Unlocked = true;
+      source2Btn.disabled = false;
     }
     stopTimer();
     // 自动滚动到结果页
@@ -1029,6 +1044,58 @@ document.addEventListener("DOMContentLoaded", function () {
   difficulty3Btn.addEventListener("click", () => setDifficulty(3));
   difficulty4Btn.addEventListener("click", () => setDifficulty(4));
 
+  // Source buttons event listeners
+  const source1Btn = document.getElementById("source1");
+  const source2Btn = document.getElementById("source2");
+  const source3Btn = document.getElementById("source3");
+  source2Btn.disabled = true;
+  source3Btn.disabled = true;
+
+  source1Btn.addEventListener("click", () => setSource(1));
+  source2Btn.addEventListener("click", () => setSource(2));
+
+  function setSource(source) {
+    if (source === 2 && !source2Unlocked) return;
+    if (source === 3) return; // source3 is always locked
+
+    currentSource = source;
+    sourceSelected = true;
+
+    // Update image paths based on source
+    if (source === 1) {
+      imagePaths = [...defaultImagePaths];
+    } else if (source === 2) {
+      imagePaths = selectRandomPaintings();
+    }
+
+    // Re-setup puzzles with new images
+    for (let i = 0; i < imagePaths.length; i++) {
+      if (puzzles[i]) {
+        puzzles[i].started = false;
+        puzzles[i].solved = false;
+      }
+      setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
+    }
+
+    // Update button styles
+    [source1Btn, source2Btn, source3Btn].forEach((btn, idx) => {
+      if (idx + 1 === source) {
+        btn.style.backgroundColor = "#d5d5d5";
+        btn.style.color = "white";
+      } else {
+        btn.style.backgroundColor = "";
+        btn.style.color = "";
+      }
+    });
+
+    // Check if start button should be enabled
+    checkStartButtonEnabled();
+  }
+
+  function checkStartButtonEnabled() {
+    startBtn.disabled = !(okBtn.disabled && difficultySelected && sourceSelected);
+  }
+
   // Nickname input event listener
   nicknameInput.addEventListener("input", function () {
     if (this.value.trim() !== "") {
@@ -1044,6 +1111,22 @@ document.addEventListener("DOMContentLoaded", function () {
   okBtn.addEventListener("click", function () {
     this.classList.remove("active");
   });
+
+  // 初始化绘画图片列表
+  function initPaintingImages() {
+    // Assume paintings are named painting1.png, painting2.png, etc.
+    // This is a placeholder - in real implementation, you would load from server
+    for (let i = 1; i <= 6; i++) {
+      paintingImages.push(`images/paintings/painting${i}.png`);
+    }
+  }
+  initPaintingImages();
+
+  // 随机选择3张绘画图片
+  function selectRandomPaintings() {
+    const shuffled = [...paintingImages].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3);
+  }
 
   // 初始化拼图（3个）
   for (let i = 0; i < imagePaths.length; i++) {
@@ -1311,8 +1394,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!nickname) return alert("请输入昵称");
     localStorage.setItem("jigsaw_nickname", nickname);
     okBtn.disabled = true;
-    // Enable start button only if difficulty is selected
-    startBtn.disabled = !difficultySelected;
+    // Enable start button only if difficulty and source are selected
+    checkStartButtonEnabled();
     updatePersonalList();
   };
 
@@ -1346,27 +1429,29 @@ document.addEventListener("DOMContentLoaded", function () {
     );
 
     // Check if start button should be enabled
-    if (okBtn.disabled) {
-      startBtn.disabled = false;
-    }
+    checkStartButtonEnabled();
   }
 
   // Start：在注册页点击，开始所有拼图并跳到 page3，显示浮动控件
   startBtn.onclick = function () {
     if (!nickname) return alert("请先输入昵称并点击OK!");
     if (!difficultySelected) return alert("请选择难度!");
+    if (!sourceSelected) return alert("请选择图包!");
     startBtn.disabled = true;
     stopBtn.disabled = false;
     confirmBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
     topBtn.disabled = true;
-    // Disable difficulty buttons when game starts
+    // Disable difficulty and source buttons when game starts
     [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach(
       (btn) => {
         btn.disabled = true;
       },
     );
+    [source1Btn, source2Btn].forEach((btn) => {
+      btn.disabled = true;
+    });
     allSolved = [false, false, false];
     for (let i = 0; i < imagePaths.length; i++) {
       puzzles[i].started = true;
@@ -1391,7 +1476,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Stop：停止计时与动画（重置为初始未开始状态）
   stopBtn.onclick = function () {
-    startBtn.disabled = !okBtn.disabled || !difficultySelected;
+    checkStartButtonEnabled();
     confirmBtn.disabled = true;
     confirmBtn.classList.remove("active");
     stopBtn.disabled = true;
@@ -1405,6 +1490,13 @@ document.addEventListener("DOMContentLoaded", function () {
       difficulty4Btn.disabled = false;
     } else {
       difficulty4Btn.disabled = true;
+    }
+    // Enable source buttons when game stops
+    source1Btn.disabled = false;
+    if (source2Unlocked) {
+      source2Btn.disabled = false;
+    } else {
+      source2Btn.disabled = true;
     }
     stopTimer();
     stopPage5Timer();
@@ -1445,6 +1537,13 @@ document.addEventListener("DOMContentLoaded", function () {
       difficulty4Btn.disabled = false;
     } else {
       difficulty4Btn.disabled = true;
+    }
+    // Enable source buttons when game restarts
+    source1Btn.disabled = false;
+    if (source2Unlocked) {
+      source2Btn.disabled = false;
+    } else {
+      source2Btn.disabled = true;
     }
     // Set default difficulty
     setDifficulty(1);
@@ -1529,6 +1628,13 @@ document.addEventListener("DOMContentLoaded", function () {
       difficulty4Btn.disabled = false;
     } else {
       difficulty4Btn.disabled = true;
+    }
+    // Enable source buttons
+    source1Btn.disabled = false;
+    if (source2Unlocked) {
+      source2Btn.disabled = false;
+    } else {
+      source2Btn.disabled = true;
     }
 
     // Update page6 timer with final time
@@ -1638,8 +1744,16 @@ document.addEventListener("DOMContentLoaded", function () {
   } else {
     difficulty4Btn.disabled = true;
   }
-  // Set default difficulty
+  // Enable source buttons initially (source1 only)
+  source1Btn.disabled = false;
+  if (source2Unlocked) {
+    source2Btn.disabled = false;
+  } else {
+    source2Btn.disabled = true;
+  }
+  // Set default difficulty and source
   setDifficulty(1);
+  setSource(1);
   localStorage.removeItem("jigsaw_records"); // 可以移除或注释掉以保留记录
   updatePersonalList();
   updateGlobalList();
@@ -3532,12 +3646,15 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: '#page2 .text-row p:last-child', zh: '榜上有名，只是时间问题', en: 'fame is just a matter of time' },
     { selector: '#nicknameInput', zh: '输入昵称', en: 'enter nickname', attr: 'placeholder' },
     { selector: '#okBtn', zh: '写好了', en: 'done' },
-    { selector: '.difficulty-settings p', zh: '请选择难度：', en: 'select difficulty:' },
+    { selector: '.difficulty-settings p', zh: '选择难度：', en: 'select difficulty:' },
     { selector: '#difficulty1', zh: '休闲', en: 'easy' },
     { selector: '#difficulty2', zh: '普通', en: 'medium' },
     { selector: '#difficulty3', zh: '困难', en: 'hard' },
     { selector: '#difficulty4', zh: '炼狱', en: 'HELL' },
     { selector: '#startBtn', zh: '点我开始！', en: 'start!' },
+    { selector: '#source1', zh: '经典三连', en: 'classic triple' },
+    { selector: '#source2', zh: '世界名画', en: 'world paintings'},
+    { selector: '#source3', zh: '敬请期待', en: 'coming soon'},
     
     // Page 3 - Puzzle 1
     { selector: '#page3Title', zh: '会动的拼图怎么不算 动 作 游 戏 呢', en: 'a moving puzzle is totally an action game' },
