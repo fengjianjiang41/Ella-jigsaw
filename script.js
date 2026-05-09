@@ -71,10 +71,46 @@ const audioFilesPreload = [
 
 let audioLoadedCount = 0;
 let audioTotalCount = audioFilesPreload.length;
+
+let imageLoadedCount = 0;
+let imageTotalCount = 6;
+
 let loadingComplete = false;
 
+
+// Paintings image paths (source2) - will be populated dynamically
+const paintingImages = [];
+
+function initPaintingImages() {
+    for (let i = 1; i <= imageTotalCount; i++) {
+      const img = new Image();
+      const src = `images/paintings/${i}.png`;
+      img.src = src;
+      
+      img.addEventListener("load", () => {
+        paintingImages.push(src);
+        imageLoadedCount++;
+        updateLoadingProgress();
+      });
+      
+      // img.addEventListener("error", () => {
+      //   // 如果第一张就加载失败，说明文件夹可能不存在，跳过后续尝试
+      //   if (i === 1) {
+      //     // 设置最小进度计数，避免卡住
+      //     for (let j = i; j <= totalCount; j++) {
+      //       imageLoadedCount++;
+      //     }
+      //     updateLoadingProgress();
+      //   } else {
+      //     imageLoadedCount++;
+      //     updateLoadingProgress();
+      //   }
+      // });
+    }
+  }
+
 function updateLoadingProgress() {
-  const progress = Math.round((audioLoadedCount / audioTotalCount) * 100);
+  const progress = Math.round((audioLoadedCount + imageLoadedCount) / (audioTotalCount + imageTotalCount));
   const progressBar = document.getElementById("loadingProgress");
   const percentageText = document.getElementById("loadingPercentage");
   const startText = document.getElementById("startText");
@@ -86,7 +122,7 @@ function updateLoadingProgress() {
     percentageText.textContent = progress + "%";
   }
 
-  if (audioLoadedCount >= audioTotalCount && !loadingComplete) {
+  if (audioLoadedCount + imageLoadedCount >= audioTotalCount + imageTotalCount && !loadingComplete) {
     loadingComplete = true;
     completeLoading();
   }
@@ -133,6 +169,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (startText) {
     startText.style.display = "none";
   }
+  initPaintingImages();
   loadAudioFiles();
 });
 
@@ -142,9 +179,6 @@ const defaultImagePaths = [
   "images/apple.png",
   "images/hongbao.png",
 ];
-
-// Paintings image paths (source2) - will be populated dynamically
-const paintingImages = [];
 
 // Current image paths being used
 let imagePaths = [...defaultImagePaths];
@@ -762,7 +796,7 @@ function solvedScroll() {
       document.getElementById("difficulty4").disabled = false;
       // 解锁source2
       source2Unlocked = true;
-      source2Btn.disabled = false;
+      document.getElementById("source2").disabled = false;
     }
     stopTimer();
     // 自动滚动到结果页
@@ -1111,16 +1145,6 @@ document.addEventListener("DOMContentLoaded", function () {
   okBtn.addEventListener("click", function () {
     this.classList.remove("active");
   });
-
-  // 初始化绘画图片列表
-  function initPaintingImages() {
-    // Assume paintings are named painting1.png, painting2.png, etc.
-    // This is a placeholder - in real implementation, you would load from server
-    for (let i = 1; i <= 6; i++) {
-      paintingImages.push(`images/paintings/painting${i}.png`);
-    }
-  }
-  initPaintingImages();
 
   // 随机选择3张绘画图片
   function selectRandomPaintings() {
