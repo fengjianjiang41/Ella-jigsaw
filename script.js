@@ -784,8 +784,8 @@ function solvedScroll() {
 // Function to handle the first puzzle solved effects
 function handleSolvedEffects(idx) {
   // Disable all buttons during the effect
-  const allButtons = document.querySelectorAll("button, .page-btn");
-  allButtons.forEach((button) => {
+  const allPageButtons = document.querySelectorAll(".page-btn");
+  allPageButtons.forEach((button) => {
     button.disabled = true;
     button.style.pointerEvents = "none";
   });
@@ -867,7 +867,7 @@ function handleSolvedEffects(idx) {
       overlay.remove();
       showImg.remove();
 
-      allButtons.forEach((button) => {
+      allPageButtons.forEach((button) => {
         button.disabled = false;
         button.style.pointerEvents = "auto";
       });
