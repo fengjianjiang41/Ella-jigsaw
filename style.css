@@ -152,9 +152,14 @@ button:hover:not(:disabled) {
 }
 
 /* OK button animation */
-#okBtn.active:not(:disabled):not(:hover) {
+#okBtn.active:not(:disabled):not(:hover):not(.clicked) {
     animation: buttonBounce 1s infinite alternate;
     -webkit-animation: buttonBounce 1s infinite alternate;
+}
+
+/* After clicked, keep grey color like other buttons */
+#okBtn.clicked.active:not(:disabled) {
+    background-color: #dddddd;
 }
 
 @keyframes buttonBounce {

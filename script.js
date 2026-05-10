@@ -198,7 +198,7 @@ let difficulty3SolvedOnce = false; // 标记难度3是否已解决一次
 // Image source settings
 let currentSource = 1; // 1: 经典三连, 2: 世界名画, 3: 敬请期待
 let sourceSelected = true; // 默认已选择source1
-let source2Unlocked = false; // 标记source2是否已解锁
+let source2Unlocked = true; // 标记source2是否已解锁
 const difficultySettings = {
   1: { gridSize: 2, speed: 4, lensSize: 600 }, // 2x2, 慢, 大镜头
   2: { gridSize: 3, speed: 6, lensSize: 400 }, // 3x3, 中, 中镜头
@@ -1127,23 +1127,35 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function checkStartButtonEnabled() {
-    startBtn.disabled = !(okBtn.disabled && difficultySelected && sourceSelected);
+    startBtn.disabled = !(difficultySelected && sourceSelected);
   }
+
+  let okBtnClicked = false;
 
   // Nickname input event listener
   nicknameInput.addEventListener("input", function () {
     if (this.value.trim() !== "") {
-      okBtn.textContent = "写好了";
+      okBtn.textContent = okBtnClicked ? "换个人" : "写好了";
       okBtn.classList.add("active");
+      // Enable okBtn if input is different from last saved nickname
+      if (okBtnClicked && this.value.trim() !== nickname) {
+        okBtn.textContent = "写好了";
+        okBtn.disabled = false;
+      }
     } else {
       okBtn.textContent = "我叫……";
       okBtn.classList.remove("active");
     }
   });
 
-  // Remove active class when okBtn is clicked
+  // Remove active class when okBtn is clicked and set clicked flag
   okBtn.addEventListener("click", function () {
     this.classList.remove("active");
+    this.classList.add("clicked");
+    okBtnClicked = true;
+    if (nicknameInput.value.trim() !== "") {
+      this.textContent = "换个人";
+    }
   });
 
   // 随机选择3张绘画图片
@@ -1463,6 +1475,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!sourceSelected) return alert("请选择图包!");
     startBtn.disabled = true;
     stopBtn.disabled = false;
+    // Disable nickname input after start button is clicked
+    nicknameInput.disabled = true;
     confirmBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
@@ -1541,12 +1555,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 重启（页面底部/浮动重启共用）
   function doRestart() {
-    startBtn.disabled = true;
+    nicknameInput.disabled = false;
+    okBtn.disabled = false;
     confirmBtn.disabled = true;
     stopBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
-    okBtn.disabled = false;
+    startBtn.disabled = false;
     // Set active state for okBtn based on nickname input
     if (nicknameInput.value.trim() !== "") {
       okBtn.classList.add("active");
@@ -1570,7 +1585,6 @@ document.addEventListener("DOMContentLoaded", function () {
       source2Btn.disabled = true;
     }
     // Set default difficulty
-    setDifficulty(1);
     stopTimer();
     stopPage5Timer();
     page5Active = false;
