@@ -81,6 +81,37 @@ let loadingComplete = false;
 // Paintings image paths (source2) - will be populated dynamically
 const paintingImages = [];
 
+// Track if current source2 paintings are all solved
+let currentSource2AllSolved = false;
+
+// Solved paintings storage
+function getSolvedPaintings() {
+    const stored = localStorage.getItem('jigsaw_solved_paintings');
+    return stored ? JSON.parse(stored) : [];
+}
+
+function addSolvedPainting(imagePath) {
+    const solved = getSolvedPaintings();
+    // Extract the number from the path (e.g., "images/paintings/1.png" -> "1")
+    const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+    if (match && !solved.includes(match[1])) {
+        solved.push(match[1]);
+        localStorage.setItem('jigsaw_solved_paintings', JSON.stringify(solved));
+    }
+}
+
+function isPaintingSolved(imagePath) {
+    const solved = getSolvedPaintings();
+    const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+    return match && solved.includes(match[1]);
+}
+
+// Check if all current source2 paintings are solved
+function checkSource2AllSolved() {
+    if (currentSource !== 2) return false;
+    return imagePaths.every(img => isPaintingSolved(img));
+}
+
 function initPaintingImages() {
     for (let i = 1; i <= imageTotalCount; i++) {
       const img = new Image();
@@ -937,6 +968,12 @@ function checkSolved(idx) {
   if (pieces.every((p) => p.group === pieces[0].group)) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
+    
+    // Record solved painting if using source2 (world paintings)
+    if (currentSource === 2 && imagePaths[idx]) {
+      addSolvedPainting(imagePaths[idx]);
+    }
+    
     // Play bell sound for the solved puzzle
     if (confirmBtnClicked) {
       const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
@@ -1066,6 +1103,23 @@ document.addEventListener("DOMContentLoaded", function () {
   const topBtn = document.getElementById("topBtn");
   const bunImg = document.getElementById("bun-img");
 
+  // Floating Door Button functionality
+  const floatingDoorBtn = document.getElementById("floatingDoorBtn");
+  const doorImg = document.getElementById("doorImg");
+  
+  if (floatingDoorBtn && doorImg) {
+    floatingDoorBtn.addEventListener("mouseenter", function() {
+      doorImg.src = "images/open.png";
+    });
+    floatingDoorBtn.addEventListener("mouseleave", function() {
+      doorImg.src = "images/close.png";
+    });
+    floatingDoorBtn.addEventListener("click", function() {
+      // Open collection portal page
+      window.open("collection.html", "_blank");
+    });
+  }
+
   // Difficulty buttons event listeners
   const difficulty1Btn = document.getElementById("difficulty1");
   const difficulty2Btn = document.getElementById("difficulty2");
@@ -1099,7 +1153,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (source === 1) {
       imagePaths = [...defaultImagePaths];
     } else if (source === 2) {
-      imagePaths = selectRandomPaintings();
+      // Only select new paintings if none are set yet
+      // Otherwise keep the current 3 paintings
+      if (!imagePaths[0] || !imagePaths[0].startsWith('images/paintings/')) {
+        imagePaths = selectRandomPaintings();
+      }
+      // Keep current imagePaths if already set to paintings
     }
 
     // Re-setup puzzles with new images
@@ -1159,8 +1218,22 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // 随机选择3张绘画图片
-  function selectRandomPaintings() {
-    const shuffled = [...paintingImages].sort(() => Math.random() - 0.5);
+  // If forceNew is true, select only unsolved paintings
+  function selectRandomPaintings(forceNew = false) {
+    let sourceArray = paintingImages;
+    
+    if (forceNew) {
+      const solved = getSolvedPaintings();
+      // Filter out solved paintings
+      const available = paintingImages.filter(img => {
+        const match = img.match(/images\/paintings\/(\d+)\.png/);
+        return match && !solved.includes(match[1]);
+      });
+      // If all paintings are solved, use all of them
+      sourceArray = available.length > 0 ? available : paintingImages;
+    }
+    
+    const shuffled = [...sourceArray].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 3);
   }
 
@@ -1473,6 +1546,24 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!nickname) return alert("请先输入昵称并点击OK!");
     if (!difficultySelected) return alert("请选择难度!");
     if (!sourceSelected) return alert("请选择图包!");
+    
+    // For source2: check if all current paintings are solved
+    // If yes, select new unsolved paintings
+    if (currentSource === 2) {
+      const allCurrentSolved = imagePaths.every(img => isPaintingSolved(img));
+      if (allCurrentSolved) {
+        imagePaths = selectRandomPaintings(true); // Force new unsolved paintings
+        // Re-setup puzzles with new images
+        for (let i = 0; i < imagePaths.length; i++) {
+          if (puzzles[i]) {
+            puzzles[i].started = false;
+            puzzles[i].solved = false;
+          }
+          setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
+        }
+      }
+    }
+    
     startBtn.disabled = true;
     stopBtn.disabled = false;
     // Disable nickname input after start button is clicked
@@ -1792,7 +1883,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // Set default difficulty and source
   setDifficulty(1);
   setSource(1);
-  localStorage.removeItem("jigsaw_records"); // 可以移除或注释掉以保留记录
   updatePersonalList();
   updateGlobalList();
 });
