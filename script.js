@@ -73,7 +73,7 @@ let audioLoadedCount = 0;
 let audioTotalCount = audioFilesPreload.length;
 
 let imageLoadedCount = 0;
-let imageTotalCount = 6;
+let imageTotalCount = 100;
 
 let loadingComplete = false;
 
