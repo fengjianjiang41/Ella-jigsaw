@@ -1219,7 +1219,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 随机选择3张绘画图片
   // If forceNew is true, select only unsolved paintings
-  function selectRandomPaintings(forceNew = false) {
+  function selectRandomPaintings(forceNew = true) {
     let sourceArray = paintingImages;
     
     if (forceNew) {
@@ -1542,7 +1542,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Start：在注册页点击，开始所有拼图并跳到 page3，显示浮动控件
-  startBtn.onclick = function () {
+  startBtn.onclick = async function () {
     if (!nickname) return alert("请先输入昵称并点击OK!");
     if (!difficultySelected) return alert("请选择难度!");
     if (!sourceSelected) return alert("请选择图包!");
@@ -1554,13 +1554,16 @@ document.addEventListener("DOMContentLoaded", function () {
       if (allCurrentSolved) {
         imagePaths = selectRandomPaintings(true); // Force new unsolved paintings
         // Re-setup puzzles with new images
+        const setupPromises = [];
         for (let i = 0; i < imagePaths.length; i++) {
           if (puzzles[i]) {
             puzzles[i].started = false;
             puzzles[i].solved = false;
           }
-          setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i);
+          setupPromises.push(setupPuzzle(canvases[i], ctxs[i], imagePaths[i], i));
         }
+        // Wait for all puzzles to be set up before continuing
+        await Promise.all(setupPromises);
       }
     }
     
@@ -1605,28 +1608,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Stop：停止计时与动画（重置为初始未开始状态）
   stopBtn.onclick = function () {
-    checkStartButtonEnabled();
     confirmBtn.disabled = true;
     confirmBtn.classList.remove("active");
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
     // Enable difficulty buttons when game stops
-    [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
-      btn.disabled = false;
+    [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach((btn) => {
+      btn.disabled = true;
     });
-    if (difficulty4Unlocked) {
-      difficulty4Btn.disabled = false;
-    } else {
-      difficulty4Btn.disabled = true;
-    }
     // Enable source buttons when game stops
-    source1Btn.disabled = false;
-    if (source2Unlocked) {
-      source2Btn.disabled = false;
-    } else {
-      source2Btn.disabled = true;
-    }
+    source1Btn.disabled = true;
+    source2Btn.disabled = true;
     stopTimer();
     stopPage5Timer();
     page5Active = false;
@@ -1759,12 +1752,8 @@ document.addEventListener("DOMContentLoaded", function () {
       difficulty4Btn.disabled = true;
     }
     // Enable source buttons
-    source1Btn.disabled = false;
-    if (source2Unlocked) {
-      source2Btn.disabled = false;
-    } else {
-      source2Btn.disabled = true;
-    }
+    source1Btn.disabled = true;
+    source2Btn.disabled = true;
 
     // Update page6 timer with final time
     const page6Timer = document.getElementById("page6Timer");
