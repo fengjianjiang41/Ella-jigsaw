@@ -449,8 +449,8 @@ function drawPuzzle(idx) {
   const lensDiameter = difficultySettings[currentDifficulty].lensSize;
   const lensRadius = lensDiameter / 2;
 
-  // If it's the hongbao puzzle, mouse is over, and no animation in progress, draw with lens effect
-  if (isHongbao && mouseOver && !puzzles[idx].animationInProgress) {
+  // If it's the hongbao puzzle, puzzle is started, mouse is over, and no animation in progress, draw with lens effect
+  if (isHongbao && puzzles[idx].started && mouseOver && !puzzles[idx].animationInProgress) {
     // Draw white blanket first
     ctxs[idx].fillStyle = "white";
     ctxs[idx].fillRect(0, 0, canvasXSize * 2, canvasYSize * 2);
@@ -1079,6 +1079,11 @@ function updateGlobalList() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Clear nickname and paintings data when page is opened/refreshed
+  localStorage.removeItem('jigsaw_nickname');
+  localStorage.removeItem('jigsaw_solved_paintings');
+  localStorage.removeItem('jigsaw_records');
+  
   // DOM 元素
   canvases = [
     document.getElementById("jigsaw1"),
@@ -1093,7 +1098,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const startText = document.getElementById("startText");
   const pages = document.querySelectorAll(".page");
   const startBtn = document.getElementById("startBtn");
-  const okBtn = document.getElementById("okBtn");
   const nicknameInput = document.getElementById("nicknameInput");
   const floatingControls = document.getElementById("floatingControls");
   const stopBtn = document.getElementById("stopBtn");
@@ -1186,35 +1190,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function checkStartButtonEnabled() {
-    startBtn.disabled = !(difficultySelected && sourceSelected);
+    const hasNickname = nicknameInput.value.trim() !== "";
+    startBtn.disabled = !(hasNickname && difficultySelected && sourceSelected);
   }
-
-  let okBtnClicked = false;
 
   // Nickname input event listener
   nicknameInput.addEventListener("input", function () {
-    if (this.value.trim() !== "") {
-      okBtn.textContent = okBtnClicked ? "换个人" : "写好了";
-      okBtn.classList.add("active");
-      // Enable okBtn if input is different from last saved nickname
-      if (okBtnClicked && this.value.trim() !== nickname) {
-        okBtn.textContent = "写好了";
-        okBtn.disabled = false;
-      }
-    } else {
-      okBtn.textContent = "我叫……";
-      okBtn.classList.remove("active");
-    }
-  });
-
-  // Remove active class when okBtn is clicked and set clicked flag
-  okBtn.addEventListener("click", function () {
-    this.classList.remove("active");
-    this.classList.add("clicked");
-    okBtnClicked = true;
-    if (nicknameInput.value.trim() !== "") {
-      this.textContent = "换个人";
-    }
+    checkStartButtonEnabled();
   });
 
   // 随机选择3张绘画图片
@@ -1498,15 +1480,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // 昵称处理
   nickname = localStorage.getItem("jigsaw_nickname") || "";
   nicknameInput.value = nickname || "";
-  okBtn.onclick = function () {
-    nickname = nicknameInput.value.trim();
-    if (!nickname) return alert("请输入昵称");
-    localStorage.setItem("jigsaw_nickname", nickname);
-    okBtn.disabled = true;
-    // Enable start button only if difficulty and source are selected
-    checkStartButtonEnabled();
-    updatePersonalList();
-  };
 
   function setDifficulty(level) {
     currentDifficulty = level;
@@ -1543,7 +1516,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Start：在注册页点击，开始所有拼图并跳到 page3，显示浮动控件
   startBtn.onclick = async function () {
-    if (!nickname) return alert("请先输入昵称并点击OK!");
+    // Save nickname when start button is clicked
+    nickname = nicknameInput.value.trim();
+    localStorage.setItem("jigsaw_nickname", nickname);
+    updatePersonalList();
+    
     if (!difficultySelected) return alert("请选择难度!");
     if (!sourceSelected) return alert("请选择图包!");
     
@@ -1640,18 +1617,12 @@ document.addEventListener("DOMContentLoaded", function () {
   // 重启（页面底部/浮动重启共用）
   function doRestart() {
     nicknameInput.disabled = false;
-    okBtn.disabled = false;
     confirmBtn.disabled = true;
     stopBtn.disabled = true;
     restartBtn.disabled = true;
     restartBtnFloat.disabled = true;
     startBtn.disabled = false;
-    // Set active state for okBtn based on nickname input
-    if (nicknameInput.value.trim() !== "") {
-      okBtn.classList.add("active");
-    } else {
-      okBtn.classList.remove("active");
-    }
+    checkStartButtonEnabled();
     // Enable difficulty buttons when game restarts
     [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
@@ -1841,14 +1812,7 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   // 初始按钮状态
-  okBtn.disabled = false;
-  // Set initial active state for okBtn based on nickname input
-  if (nicknameInput.value.trim() !== "") {
-    okBtn.classList.add("active");
-  } else {
-    okBtn.classList.remove("active");
-  }
-  startBtn.disabled = true;
+  checkStartButtonEnabled();
   confirmBtn.disabled = true;
   stopBtn.disabled = true;
   restartBtn.disabled = true;
@@ -3762,9 +3726,6 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: '#page2 .text-row p:first-child', zh: '拼 图 侠 注 册 页', en: 'Puzzle Hero Registration' },
     { selector: '#page2 .text-row p:last-child', zh: '榜上有名，只是时间问题', en: 'fame is just a matter of time' },
     { selector: '#nicknameInput', zh: '输入昵称', en: 'enter nickname', attr: 'placeholder' },
-    { selector: '#okBtn', zh: '我叫……', en: 'call me……' },
-    { selector: '#okBtn', zh: '写好了', en: 'done' },
-    { selector: '#okBtn', zh: '换个人', en: 'change' },
     { selector: '.difficulty-settings p', zh: '选择难度：', en: 'select difficulty:' },
     { selector: '#difficulty1', zh: '休闲', en: 'easy' },
     { selector: '#difficulty2', zh: '普通', en: 'medium' },
