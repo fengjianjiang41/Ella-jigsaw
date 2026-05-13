@@ -1140,8 +1140,6 @@ document.addEventListener("DOMContentLoaded", function () {
   function updateDoorButtonState() {
     const solvedCount = getSource2SolvedCount();
     
-    if (!solvedCount)
-
     // Update visited count to catch up with solved count
     if (source2VisitedCount < solvedCount) {
       source2VisitedCount = solvedCount;
