@@ -1111,17 +1111,78 @@ document.addEventListener("DOMContentLoaded", function () {
   const floatingDoorBtn = document.getElementById("floatingDoorBtn");
   const doorImg = document.getElementById("doorImg");
   
+  // Visited-or-not mechanism for source2
+  let source2VisitedCount = parseInt(localStorage.getItem('jigsaw_source2_visited')) || 0;
+  
+  function getSource2SolvedCount() {
+    const solved = getSolvedPaintings();
+    return solved.length;
+  }
+  
+  let doorAnimationInterval = null;
+  
+  function stopDoorAnimation() {
+    if (doorAnimationInterval) {
+      clearInterval(doorAnimationInterval);
+      doorAnimationInterval = null;
+    }
+  }
+  
+  function startDoorAnimation(period) {
+    stopDoorAnimation();
+    let isOpen = false;
+    doorAnimationInterval = setInterval(() => {
+      isOpen = !isOpen;
+      doorImg.src = isOpen ? "images/open.png" : "images/close.png";
+    }, period);
+  }
+  
+  function updateDoorButtonState() {
+    const solvedCount = getSource2SolvedCount();
+    
+    if (!solvedCount)
+
+    // Update visited count to catch up with solved count
+    if (source2VisitedCount < solvedCount) {
+      source2VisitedCount = solvedCount;
+      localStorage.setItem('jigsaw_source2_visited', source2VisitedCount.toString());
+    }
+    
+    const difference = source2VisitedCount - solvedCount;
+    
+    if (difference > 0 && doorImg) {
+      // Start animation: period = 10 seconds / difference
+      const period = Math.max(100, (10 * 1000) / difference); // Minimum 100ms
+      startDoorAnimation(period);
+    } else {
+      // Stop animation and reset to closed state
+      stopDoorAnimation();
+      doorImg.src = "images/close.png";
+    }
+  }
+  
   if (floatingDoorBtn && doorImg) {
     floatingDoorBtn.addEventListener("mouseenter", function() {
+      stopDoorAnimation();
       doorImg.src = "images/open.png";
     });
     floatingDoorBtn.addEventListener("mouseleave", function() {
-      doorImg.src = "images/close.png";
+      updateDoorButtonState();
     });
     floatingDoorBtn.addEventListener("click", function() {
+      // Update visited count and check state
+      source2VisitedCount++;
+      localStorage.setItem('jigsaw_source2_visited', source2VisitedCount.toString());
+      
+      // Update door button state after click
+      updateDoorButtonState();
+      
       // Open collection portal page
       window.open("collection.html", "_blank");
     });
+    
+    // Initialize door button state
+    updateDoorButtonState();
   }
 
   // Difficulty buttons event listeners
