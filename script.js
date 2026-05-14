@@ -21,20 +21,6 @@ const audioFilesPreload = [
   "audio/ui.m4a",
   "audio/KevinVillecco-Yoshigemia.mp3",
 
-  // dragging 文件夹
-  "audio/dragging/slow1.mp3",
-  "audio/dragging/slow2.mp3",
-  "audio/dragging/slow3.mp3",
-  "audio/dragging/medium1.mp3",
-  "audio/dragging/medium2.mp3",
-  "audio/dragging/medium3.mp3",
-  "audio/dragging/fast1.mp3",
-  "audio/dragging/fast2.mp3",
-  "audio/dragging/fast3.mp3",
-  "audio/dragging/superfast1.mp3",
-  "audio/dragging/superfast2.mp3",
-  "audio/dragging/superfast3.mp3",
-
   // water 文件夹
   "audio/water/into1.mp3",
   "audio/water/into2.mp3",
@@ -86,59 +72,59 @@ let currentSource2AllSolved = false;
 
 // Solved paintings storage
 function getSolvedPaintings() {
-    const stored = localStorage.getItem('jigsaw_solved_paintings');
-    return stored ? JSON.parse(stored) : [];
+  const stored = localStorage.getItem('jigsaw_solved_paintings');
+  return stored ? JSON.parse(stored) : [];
 }
 
 function addSolvedPainting(imagePath) {
-    const solved = getSolvedPaintings();
-    // Extract the number from the path (e.g., "images/paintings/1.png" -> "1")
-    const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
-    if (match && !solved.includes(match[1])) {
-        solved.push(match[1]);
-        localStorage.setItem('jigsaw_solved_paintings', JSON.stringify(solved));
-    }
+  const solved = getSolvedPaintings();
+  // Extract the number from the path (e.g., "images/paintings/1.png" -> "1")
+  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  if (match && !solved.includes(match[1])) {
+    solved.push(match[1]);
+    localStorage.setItem('jigsaw_solved_paintings', JSON.stringify(solved));
+  }
 }
 
 function isPaintingSolved(imagePath) {
-    const solved = getSolvedPaintings();
-    const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
-    return match && solved.includes(match[1]);
+  const solved = getSolvedPaintings();
+  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  return match && solved.includes(match[1]);
 }
 
 // Check if all current source2 paintings are solved
 function checkSource2AllSolved() {
-    if (currentSource !== 2) return false;
-    return imagePaths.every(img => isPaintingSolved(img));
+  if (currentSource !== 2) return false;
+  return imagePaths.every(img => isPaintingSolved(img));
 }
 
 function initPaintingImages() {
-    for (let i = 1; i <= imageTotalCount; i++) {
-      const img = new Image();
-      const src = `images/paintings/${i}.png`;
-      img.src = src;
-      
-      img.addEventListener("load", () => {
-        paintingImages.push(src);
-        imageLoadedCount++;
-        updateLoadingProgress();
-      });
-      
-      // img.addEventListener("error", () => {
-      //   // 如果第一张就加载失败，说明文件夹可能不存在，跳过后续尝试
-      //   if (i === 1) {
-      //     // 设置最小进度计数，避免卡住
-      //     for (let j = i; j <= totalCount; j++) {
-      //       imageLoadedCount++;
-      //     }
-      //     updateLoadingProgress();
-      //   } else {
-      //     imageLoadedCount++;
-      //     updateLoadingProgress();
-      //   }
-      // });
-    }
+  for (let i = 1; i <= imageTotalCount; i++) {
+    const img = new Image();
+    const src = `images/paintings/${i}.png`;
+    img.src = src;
+
+    img.addEventListener("load", () => {
+      paintingImages.push(src);
+      imageLoadedCount++;
+      updateLoadingProgress();
+    });
+
+    // img.addEventListener("error", () => {
+    //   // 如果第一张就加载失败，说明文件夹可能不存在，跳过后续尝试
+    //   if (i === 1) {
+    //     // 设置最小进度计数，避免卡住
+    //     for (let j = i; j <= totalCount; j++) {
+    //       imageLoadedCount++;
+    //     }
+    //     updateLoadingProgress();
+    //   } else {
+    //     imageLoadedCount++;
+    //     updateLoadingProgress();
+    //   }
+    // });
   }
+}
 
 function updateLoadingProgress() {
   const progress = Math.round((audioLoadedCount + imageLoadedCount) / (audioTotalCount + imageTotalCount));
@@ -219,6 +205,59 @@ let bunClickCount = 0;
 let confirmBtnClicked = false;
 
 let currentLang = "zh"; // Default language: Chinese
+
+// Door button state management
+let source2VisitedCount = 0;
+let doorAnimationInterval = null;
+
+function getSource2SolvedCount() {
+  const solved = getSolvedPaintings();
+  return solved.length;
+}
+
+function stopDoorAnimation() {
+  if (doorAnimationInterval) {
+    clearInterval(doorAnimationInterval);
+    doorAnimationInterval = null;
+  }
+}
+
+function startDoorAnimation(period) {
+  stopDoorAnimation();
+  let isOpen = false;
+  doorAnimationInterval = setInterval(() => {
+    isOpen = !isOpen;
+    const doorImg = document.getElementById("doorImg");
+    if (doorImg) {
+      doorImg.src = isOpen ? "images/open.png" : "images/close.png";
+    }
+  }, period);
+}
+
+function updateDoorButtonState(mode) {
+  const solvedCount = getSource2SolvedCount();
+  const doorImg = document.getElementById("doorImg");
+
+  // Update visited count to catch up with solved count
+  if (source2VisitedCount < solvedCount && mode === 'click') {
+    source2VisitedCount = solvedCount;
+    localStorage.setItem('jigsaw_source2_visited', source2VisitedCount.toString());
+  }
+
+  const difference = solvedCount - source2VisitedCount;
+
+  if (difference > 0 && doorImg) {
+    // Start animation: period = 10 seconds / difference
+    const period = (10 * 1000) / difference; // Minimum 100ms
+    startDoorAnimation(period);
+  } else {
+    // Stop animation and reset to closed state
+    stopDoorAnimation();
+    if (doorImg) {
+      doorImg.src = "images/close.png";
+    }
+  }
+}
 
 // Difficulty settings
 let currentDifficulty = 1; // 1: 休闲, 2: 普通, 3: 困难, 4: 炼狱
@@ -577,7 +616,7 @@ function animatePuzzle(idx) {
         piece.alpha =
           0.5 +
           0.5 *
-            Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
+          Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
       } else {
         // Stop breathing once connected
         piece.alpha = 1;
@@ -968,12 +1007,12 @@ function checkSolved(idx) {
   if (pieces.every((p) => p.group === pieces[0].group)) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
-    
+
     // Record solved painting if using source2 (world paintings)
     if (currentSource === 2 && imagePaths[idx]) {
       addSolvedPainting(imagePaths[idx]);
     }
-    
+
     // Play bell sound for the solved puzzle
     if (confirmBtnClicked) {
       const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
@@ -983,6 +1022,8 @@ function checkSolved(idx) {
 
     if (!confirmBtnClicked) handleSolvedEffects(idx);
     else solvedScroll();
+
+    updateDoorButtonState('empty');
   }
 }
 
@@ -1027,15 +1068,15 @@ function updatePersonalList() {
   const ol = document.getElementById("personalList");
   if (!ol) return;
   ol.innerHTML = "";
-  
+
   // Get translated texts
-  const getText = window.getTranslatedText || function(k) { return k; };
+  const getText = window.getTranslatedText || function (k) { return k; };
   const timeUnit = getText("秒");
   const easyText = getText("休闲");
   const mediumText = getText("普通");
   const hardText = getText("困难");
   const hellText = getText("炼狱");
-  
+
   list.forEach((record, i) => {
     const li = document.createElement("li");
     const difficultyText =
@@ -1054,15 +1095,15 @@ function updateGlobalList() {
   const ol = document.getElementById("globalList");
   if (!ol) return;
   ol.innerHTML = "";
-  
+
   // Get translated texts
-  const getText = window.getTranslatedText || function(k) { return k; };
+  const getText = window.getTranslatedText || function (k) { return k; };
   const timeUnit = getText("秒");
   const easyText = getText("休闲");
   const mediumText = getText("普通");
   const hardText = getText("困难");
   const hellText = getText("炼狱");
-  
+
   globalBests.slice(0, 5).forEach((item, i) => {
     const li = document.createElement("li");
     const difficultyText =
@@ -1083,7 +1124,8 @@ document.addEventListener("DOMContentLoaded", function () {
   localStorage.removeItem('jigsaw_nickname');
   localStorage.removeItem('jigsaw_solved_paintings');
   localStorage.removeItem('jigsaw_records');
-  
+  localStorage.removeItem('jigsaw_source2_visited');
+
   // DOM 元素
   canvases = [
     document.getElementById("jigsaw1"),
@@ -1110,77 +1152,29 @@ document.addEventListener("DOMContentLoaded", function () {
   // Floating Door Button functionality
   const floatingDoorBtn = document.getElementById("floatingDoorBtn");
   const doorImg = document.getElementById("doorImg");
-  
-  // Visited-or-not mechanism for source2
-  let source2VisitedCount = parseInt(localStorage.getItem('jigsaw_source2_visited')) || 0;
-  
-  function getSource2SolvedCount() {
-    const solved = getSolvedPaintings();
-    return solved.length;
-  }
-  
-  let doorAnimationInterval = null;
-  
-  function stopDoorAnimation() {
-    if (doorAnimationInterval) {
-      clearInterval(doorAnimationInterval);
-      doorAnimationInterval = null;
-    }
-  }
-  
-  function startDoorAnimation(period) {
-    stopDoorAnimation();
-    let isOpen = false;
-    doorAnimationInterval = setInterval(() => {
-      isOpen = !isOpen;
-      doorImg.src = isOpen ? "images/open.png" : "images/close.png";
-    }, period);
-  }
-  
-  function updateDoorButtonState() {
-    const solvedCount = getSource2SolvedCount();
-    
-    // Update visited count to catch up with solved count
-    if (source2VisitedCount < solvedCount) {
-      source2VisitedCount = solvedCount;
-      localStorage.setItem('jigsaw_source2_visited', source2VisitedCount.toString());
-    }
-    
-    const difference = source2VisitedCount - solvedCount;
-    
-    if (difference > 0 && doorImg) {
-      // Start animation: period = 10 seconds / difference
-      const period = Math.max(100, (10 * 1000) / difference); // Minimum 100ms
-      startDoorAnimation(period);
-    } else {
-      // Stop animation and reset to closed state
-      stopDoorAnimation();
-      doorImg.src = "images/close.png";
-    }
-  }
-  
+
+  // Initialize source2 visited count from localStorage
+  source2VisitedCount = parseInt(localStorage.getItem('jigsaw_source2_visited')) || 0;
+
   if (floatingDoorBtn && doorImg) {
-    floatingDoorBtn.addEventListener("mouseenter", function() {
+    floatingDoorBtn.addEventListener("mouseenter", function () {
       stopDoorAnimation();
       doorImg.src = "images/open.png";
     });
-    floatingDoorBtn.addEventListener("mouseleave", function() {
-      updateDoorButtonState();
+    floatingDoorBtn.addEventListener("mouseleave", function () {
+      updateDoorButtonState('empty');
     });
-    floatingDoorBtn.addEventListener("click", function() {
-      // Update visited count and check state
-      source2VisitedCount++;
-      localStorage.setItem('jigsaw_source2_visited', source2VisitedCount.toString());
-      
+    floatingDoorBtn.addEventListener("click", function () {
+
       // Update door button state after click
-      updateDoorButtonState();
-      
+      updateDoorButtonState('click');
+
       // Open collection portal page
       window.open("collection.html", "_blank");
     });
-    
+
     // Initialize door button state
-    updateDoorButtonState();
+    updateDoorButtonState('empty');
   }
 
   // Difficulty buttons event listeners
@@ -1262,7 +1256,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // If forceNew is true, select only unsolved paintings
   function selectRandomPaintings(forceNew = true) {
     let sourceArray = paintingImages;
-    
+
     if (forceNew) {
       const solved = getSolvedPaintings();
       // Filter out solved paintings
@@ -1273,7 +1267,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // If all paintings are solved, use all of them
       sourceArray = available.length > 0 ? available : paintingImages;
     }
-    
+
     const shuffled = [...sourceArray].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 3);
   }
@@ -1307,13 +1301,12 @@ document.addEventListener("DOMContentLoaded", function () {
       return false;
     }
   }
+  // Add scroll blocking event listener initially
   pagesContainer.addEventListener("wheel", handleScroll, { passive: false });
 
-  // 加载完成后移除滚动阻止
   function removeScrollBlock() {
     pagesContainer.removeEventListener("wheel", handleScroll);
   }
-
   // 首次按键：显示导航并跳到第二页
   function onFirstKey(e) {
     if (!loadingComplete) return; // until loading complete
@@ -1483,9 +1476,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!start) start = ts;
       const progress = ts - start;
       const percent = Math.min(progress / duration, 1);
-      floating.style.top = `${
-        bunRect.top + topOffset - percent * riseDistance
-      }px`;
+      floating.style.top = `${bunRect.top + topOffset - percent * riseDistance
+        }px`;
       floating.style.opacity = `${1 - percent}`;
       if (percent < 1) {
         requestAnimationFrame(animate);
@@ -1579,10 +1571,10 @@ document.addEventListener("DOMContentLoaded", function () {
     nickname = nicknameInput.value.trim();
     localStorage.setItem("jigsaw_nickname", nickname);
     updatePersonalList();
-    
+
     if (!difficultySelected) return alert("请选择难度!");
     if (!sourceSelected) return alert("请选择图包!");
-    
+
     // For source2: check if all current paintings are solved
     // If yes, select new unsolved paintings
     if (currentSource === 2) {
@@ -1602,7 +1594,7 @@ document.addEventListener("DOMContentLoaded", function () {
         await Promise.all(setupPromises);
       }
     }
-    
+
     startBtn.disabled = true;
     stopBtn.disabled = false;
     // Disable nickname input after start button is clicked
@@ -2354,22 +2346,22 @@ class FlipFluid {
           var offset = component == 0 ? n : 1;
           var valid0 =
             this.cellType[nr0] != AIR_CELL ||
-            this.cellType[nr0 - offset] != AIR_CELL
+              this.cellType[nr0 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid1 =
             this.cellType[nr1] != AIR_CELL ||
-            this.cellType[nr1 - offset] != AIR_CELL
+              this.cellType[nr1 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid2 =
             this.cellType[nr2] != AIR_CELL ||
-            this.cellType[nr2 - offset] != AIR_CELL
+              this.cellType[nr2 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid3 =
             this.cellType[nr3] != AIR_CELL ||
-            this.cellType[nr3 - offset] != AIR_CELL
+              this.cellType[nr3 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
 
@@ -2626,13 +2618,13 @@ class FlipFluid {
       );
       this.particleColor[3 * i + 1] = clamp(
         this.particleColor[3 * i + 1] +
-          (TARGET_G - this.particleColor[3 * i + 1]) * s,
+        (TARGET_G - this.particleColor[3 * i + 1]) * s,
         0.0,
         1.0,
       );
       this.particleColor[3 * i + 2] = clamp(
         this.particleColor[3 * i + 2] +
-          (TARGET_B - this.particleColor[3 * i + 2]) * s,
+        (TARGET_B - this.particleColor[3 * i + 2]) * s,
         0.0,
         1.0,
       );
@@ -3342,67 +3334,11 @@ function drag(x, y) {
     scene.obstacleVx = (newX - scene.obstacleX) / scene.dt;
     scene.obstacleVy = (newY - scene.obstacleY) / scene.dt;
 
-    // Calculate speed in pixels per second
-    let currentTime = Date.now();
-    let timeDiff = currentTime - lastDragTime;
-    if (timeDiff > 0) {
-      let distance = Math.sqrt(
-        Math.pow(mx - lastDragX, 2) + Math.pow(my - lastDragY, 2),
-      );
-      let speed = (distance / timeDiff) * 1000; // pixels per second
 
-      // Determine sound level based on speed
-      if (!soundPlaying) {
-        playDragSound(speed);
-      }
-    }
-
-    lastDragTime = currentTime;
-    lastDragX = mx;
-    lastDragY = my;
 
     scene.obstacleX = newX;
     scene.obstacleY = newY;
   }
-}
-
-function playDragSound(speed) {
-  // Define speed thresholds (adjust as needed)
-  const slowThreshold = 100;
-  const mediumThreshold = 300;
-  const fastThreshold = 600;
-
-  let soundLevel;
-  if (speed < slowThreshold) {
-    soundLevel = "slow";
-  } else if (speed < mediumThreshold) {
-    soundLevel = "medium";
-  } else if (speed < fastThreshold) {
-    soundLevel = "fast";
-  } else {
-    soundLevel = "superfast";
-  }
-
-  // Choose random file (1 or 2)
-  const fileNumber = Math.floor(Math.random() * 3) + 1;
-  const soundPath = `audio/dragging/${soundLevel}${fileNumber}.mp3`;
-
-  // Stop any currently playing sound
-  if (currentSound) {
-    currentSound.pause();
-    currentSound.currentTime = 0;
-  }
-
-  // Create and play new sound
-  currentSound = new Audio(soundPath);
-  currentSound.volume = 0.5;
-  soundPlaying = true;
-
-  currentSound.onended = function () {
-    soundPlaying = false;
-  };
-
-  currentSound.play().catch((e) => console.log("Audio play failed:", e));
 }
 
 function endDrag() {
@@ -3604,8 +3540,8 @@ canvas1.addEventListener(
 function togglePause() {
   var button = document.getElementById("pauseButton");
   scene.paused = !scene.paused;
-  button.innerHTML = scene.paused ? 
-    (window.getTranslatedText ? window.getTranslatedText("继续") : "继续") : 
+  button.innerHTML = scene.paused ?
+    (window.getTranslatedText ? window.getTranslatedText("继续") : "继续") :
     (window.getTranslatedText ? window.getTranslatedText("暂停") : "暂停");
 }
 
@@ -3780,7 +3716,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Page 1 - Home
     { selector: '#startText', zh: '按任意键开始', en: 'press any key to start' },
     { selector: '#loadingBar div:first-child', zh: '音频加载中', en: 'loading audio...' },
-    
+
     // Page 2 - Registration
     { selector: '#page2 .text-row p:first-child', zh: '拼 图 侠 注 册 页', en: 'Puzzle Hero Registration' },
     { selector: '#page2 .text-row p:last-child', zh: '榜上有名，只是时间问题', en: 'fame is just a matter of time' },
@@ -3792,21 +3728,21 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: '#difficulty4', zh: '炼狱', en: 'HELL' },
     { selector: '#startBtn', zh: '点我开始！', en: 'start!' },
     { selector: '#source1', zh: '经典三连', en: 'classic triple' },
-    { selector: '#source2', zh: '世界名画', en: 'world paintings'},
-    { selector: '#source3', zh: '敬请期待', en: 'coming soon'},
-    
+    { selector: '#source2', zh: '世界名画', en: 'world paintings' },
+    { selector: '#source3', zh: '敬请期待', en: 'coming soon' },
+
     // Page 3 - Puzzle 1
     { selector: '#page3Title', zh: '会动的拼图怎么不算 动 作 游 戏 呢', en: 'a moving puzzle is totally an action game' },
-    
+
     // Page 4 - Puzzle 2
     { selector: '#page4Title', zh: '防止你胜利的秘诀在于 隐身', en: 'the secret to prevent your victory is invisibility' },
-    
+
     // Page 5 - Puzzle 3
     { selector: '#page5Title', zh: '你只能在最近最近的位置找到我！', en: 'you can only find me at the closest position!' },
-    
+
     // Page 6 - Results & Ranking
     { selector: '#page6 h2:first-child', zh: '结果与排名', en: 'Results & Ranking' },
-    { selector: '#confirmBtn', zh: '确认', en: 'confirm' }, 
+    { selector: '#confirmBtn', zh: '确认', en: 'confirm' },
     { selector: '#restartBtn', zh: '重新开始', en: 'restart' },
     { selector: '#topBtn', zh: '回到首页', en: 'back to home' },
     { selector: '.personal-ranking h3', zh: '个人历史成绩', en: 'personal history' },
@@ -3822,30 +3758,30 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: '[onclick="toggleSound()"]', zh: '来点动静', en: 'toggle sound' },
     { selector: '[onclick="toggleBilliards()"]', zh: '试下壁纸', en: 'try wallpaper' },
     { selector: '#dragHint2', zh: '试着鼠标拽一下我', en: 'try dragging me' },
-    
+
     // Floating controls (拼图页)
     { selector: '#stopBtn', zh: '停止', en: 'stop' },
     { selector: '#restartBtnFloat', zh: '重新开始', en: 'restart' }
   ];
 
-    // Dynamic text translations (used in functions)
+  // Dynamic text translations (used in functions)
   const dynamicTexts = {
     // Page 5 hint
     "鼠标挪出来，啥都能看见~！": "Move mouse out to see everything!",
-    
+
     // Time unit
     "秒": "sec",
-    
+
     // Difficulty levels
     "休闲": "easy",
     "普通": "medium",
     "困难": "hard",
     "炼狱": "HELL",
-    
+
     // Dynamic start text
     "按任意键开始": "press any key to start",
     "本页有惊喜": "this page has surprises",
-    
+
     // Tank scene
     "继续": "resume",
     "暂停": "pause",
@@ -3854,7 +3790,7 @@ document.addEventListener("DOMContentLoaded", function () {
     "游泳池": "Swimming Pool",
     "原力同在": "may the FORCE be with you",
     "原力散去": "FORCE dissipates",
-    
+
     // Gravity scene
     "开启重力": "enable gravity",
     "取消重力": "disable gravity",
@@ -3877,7 +3813,7 @@ document.addEventListener("DOMContentLoaded", function () {
       langBtn.textContent = "EN";
       translatePage(currentLang);
     }
-    
+
     // Re-render records with new language
     if (typeof updatePersonalList === "function") {
       updatePersonalList();
@@ -3885,10 +3821,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (typeof updateGlobalList === "function") {
       updateGlobalList();
     }
-    
+
     // Update navigation button images using dynamic CSS injection
     updateNavImages(currentLang);
-    
+
     // Note: Language preference is not saved to localStorage
   }
 
@@ -3899,11 +3835,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (existingStyle) {
       existingStyle.remove();
     }
-    
+
     // Create new style element
     const style = document.createElement('style');
     style.id = 'nav-lang-style';
-    
+
     if (lang === 'en') {
       style.textContent = `
         .page-nav .page-btn:nth-child(2).active,
@@ -3931,7 +3867,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       `;
     }
-    
+
     document.head.appendChild(style);
   }
 
@@ -3948,7 +3884,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
     });
-    
+
     // Update document language attribute
     document.documentElement.lang = targetLang;
   }
@@ -3971,7 +3907,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Make functions available globally
   window.toggleLanguage = toggleLanguage;
-  window.getCurrentLang = function() { return currentLang; };
+  window.getCurrentLang = function () { return currentLang; };
   window.getTranslatedText = getText;
 });
 
@@ -4625,7 +4561,6 @@ const sprayAudioPool = {
     if (this.audioObjects.length < this.maxPoolSize) {
       const newAudio = new Audio(soundFile);
       this.audioObjects.push(newAudio);
-      console.log("Created new audio object for " + soundFile);
       return newAudio;
     }
 
@@ -4636,7 +4571,6 @@ const sprayAudioPool = {
     if (this.audioObjects.length > this.maxPoolSize) {
       this.audioObjects.shift();
     }
-    console.log("Created new audio object for " + soundFile);
     return newAudio;
   },
 };
@@ -4646,8 +4580,8 @@ function toggleSound() {
   soundEnabled = !soundEnabled;
   const button = document.querySelector('button[onclick="toggleSound()"]');
   if (button) {
-    button.textContent = soundEnabled ? 
-      (window.getTranslatedText ? window.getTranslatedText("安静一下") : "安静一下") : 
+    button.textContent = soundEnabled ?
+      (window.getTranslatedText ? window.getTranslatedText("安静一下") : "安静一下") :
       (window.getTranslatedText ? window.getTranslatedText("来点动静") : "来点动静");
   }
 }
@@ -4660,7 +4594,6 @@ function playBallWallSound(normalMomentum) {
     // Calculate volume proportional to square of normal velocity
     const volume = Math.min(Math.pow(Math.abs(normalMomentum), 2), 1);
     ballwallAudio.volume = finalAdjustment * volume;
-    ballwallAudio.play().catch((e) => console.log("Audio play failed:", e));
   }
 }
 
@@ -4677,7 +4610,6 @@ function playBallBallSound(normalMomentum) {
     const ballballAudio = ballBallAudioPool.getAudio();
     ballballAudio.currentTime = 0;
     ballballAudio.volume = volume;
-    ballballAudio.play().catch((e) => console.log("Audio play failed:", e));
   }
 }
 
@@ -5010,8 +4942,8 @@ function toggleForce() {
   scene.forceMode = !scene.forceMode;
   var button = document.querySelector('button[onclick="toggleForce()"]');
   if (button) {
-    button.textContent = scene.forceMode ? 
-      (window.getTranslatedText ? window.getTranslatedText("原力散去") : "原力散去") : 
+    button.textContent = scene.forceMode ?
+      (window.getTranslatedText ? window.getTranslatedText("原力散去") : "原力散去") :
       (window.getTranslatedText ? window.getTranslatedText("原力同在") : "原力同在");
   }
 }
@@ -5019,7 +4951,7 @@ function toggleForce() {
 function toggleColor() {
   // Cycle through color modes: 0 → 1 → 2 → 0
   scene.colorMode = (scene.colorMode + 1) % scene.targetColors.length;
-  
+
   // Update button text to show current color mode
   var button = document.querySelector('button[onclick="toggleColor()"]');
   if (button) {
@@ -5028,7 +4960,7 @@ function toggleColor() {
       window.getTranslatedText ? window.getTranslatedText("青花瓷") : "青花瓷",
       window.getTranslatedText ? window.getTranslatedText("水墨画") : "水墨画"
     ];
-    button.textContent = colorNames[scene.colorMode] || 
+    button.textContent = colorNames[scene.colorMode] ||
       (window.getTranslatedText ? window.getTranslatedText("换个颜色") : "换个颜色");
   }
 }

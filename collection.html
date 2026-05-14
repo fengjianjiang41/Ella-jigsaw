@@ -106,10 +106,98 @@
         .back-link:hover {
             color: #ff8fab;
         }
+
+        /* Refresh Button Styles */
+        .refresh-btn {
+            display: block;
+            margin: 0 auto 30px;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+            cursor: pointer;
+            font-family: 'CustomFont', Arial, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+        }
+
+        /* Lightbox Styles */
+        .lightbox-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .lightbox-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .lightbox-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: zoomIn 0.3s ease;
+        }
+
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .lightbox-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'CustomFont', Arial, sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .lightbox-close-btn:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+        }
     </style>
 </head>
 <body>
     <h1 id="pageTitle">收集户</h1>
+
+    <button id="refreshBtn" class="refresh-btn">刷新收藏</button>
 
     <div class="collection-grid" id="collectionGrid"></div>
 
@@ -118,6 +206,12 @@
     <!-- Floating Language Switch Button -->
     <div class="floating-lang-container">
         <button id="floatingLangBtn" class="floating-lang-btn">EN</button>
+    </div>
+
+    <!-- Lightbox for viewing full-size images -->
+    <div class="lightbox-overlay" id="lightboxOverlay">
+        <button class="lightbox-close-btn" id="lightboxCloseBtn">×</button>
+        <img class="lightbox-content" id="lightboxImage" src="" alt="Full Size Painting">
     </div>
 
     <script>
@@ -129,13 +223,17 @@
                 pageTitle: "收集户",
                 emptyState: "还没有收集到任何名画~",
                 backLink: "返回首页",
-                langBtn: "EN"
+                langBtn: "EN",
+                refreshBtn: "刷新收藏",
+                closeBtn: "关闭"
             },
             en: {
                 pageTitle: "Collection Portal",
                 emptyState: "No paintings collected yet~",
                 backLink: "Back to Home",
-                langBtn: "中文"
+                langBtn: "中文",
+                refreshBtn: "Refresh Collection",
+                closeBtn: "Close"
             }
         };
 
@@ -143,6 +241,8 @@
             document.getElementById('pageTitle').textContent = translations[currentLang].pageTitle;
             document.getElementById('backLink').textContent = translations[currentLang].backLink;
             document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
+            document.getElementById('refreshBtn').textContent = translations[currentLang].refreshBtn;
+            document.getElementById('lightboxCloseBtn').title = translations[currentLang].closeBtn;
             updateCollectionGrid();
         }
 
@@ -164,7 +264,7 @@
             solved.sort((a, b) => parseInt(a) - parseInt(b));
 
             grid.innerHTML = solved.map(num => `
-                <div class="painting-item">
+                <div class="painting-item" onclick="openLightbox('images/paintings/${num}.png')">
                     <img src="images/paintings/${num}.png" alt="Painting ${num}">
                 </div>
             `).join('');
@@ -174,6 +274,43 @@
         document.getElementById('floatingLangBtn').addEventListener('click', function() {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
             updateLanguage();
+        });
+
+        // Refresh button event
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            location.reload();
+        });
+
+        // Lightbox functions
+        function openLightbox(imageSrc) {
+            const overlay = document.getElementById('lightboxOverlay');
+            const img = document.getElementById('lightboxImage');
+            img.src = imageSrc;
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const overlay = document.getElementById('lightboxOverlay');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Lightbox close button event
+        document.getElementById('lightboxCloseBtn').addEventListener('click', closeLightbox);
+
+        // Close lightbox when clicking on overlay
+        document.getElementById('lightboxOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLightbox();
+            }
+        });
+
+        // Close lightbox with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
         });
 
         // Initialize
