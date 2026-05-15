@@ -229,7 +229,7 @@ function stopDoorAnimation() {
 function startDoorAnimation(period) {
   stopDoorAnimation();
   let isOpen = false;
-  let volume = Math.pow(0.95, 10* 1000 / period);
+  let volume = Math.pow(0.95, 10 * 1000 / period);
   doorAnimationInterval = setInterval(() => {
     isOpen = !isOpen;
     const doorImg = document.getElementById("doorImg");
@@ -274,6 +274,73 @@ let currentDifficulty = 1; // 1: 休闲, 2: 普通, 3: 困难, 4: 炼狱
 let difficultySelected = false; // 标记是否已选择难度
 let difficulty4Unlocked = false; // 标记难度4是否已解锁
 let difficulty3SolvedOnce = false; // 标记难度3是否已解决一次
+
+// Piano note bouncing sound variables
+let noteIndex = 0;
+let currentSong = [];
+let currentSongKey = null; // Track the current song key
+
+// Available songs
+const songs = {
+  twinkle: [
+    "C4", "C4", "G4", "G4", "A4", "A4", "G4",
+    "F4", "F4", "E4", "E4", "D4", "D4", "C4",
+    "G4", "G4", "F4", "F4", "E4", "E4", "D4",
+    "G4", "G4", "F4", "F4", "E4", "E4", "D4",
+    "C4", "C4", "G4", "G4", "A4", "A4", "G4",
+    "F4", "F4", "E4", "E4", "D4", "D4", "C4"
+  ], // Twinkle Twinkle Little Star
+  minuet: [
+    "D5", "G4", "A4", "B4", "C5",
+    "D5", "G4", "G4",
+    "E5", "C5", "D5", "E5", "sF5",
+    "G5", "G4", "G4",
+    "C5", "D5", "C4", "B4", "A4",
+    "B4", "C4", "B4", "A4", "G4",
+    "F4", "G4", "A4", "B4", "G4",
+    "B4", "A4"
+  ], // Minuets in G major and G minor
+  furElise: [
+    "E5", "sD5", "E5", "sD5", "E5", "B4", "D5", "C5",
+    "A4", "C4", "E4", "A4", "B4", "E4", "sG4", "B4", "C5",
+    "E4", "E5", "sD5", "E5", "sD5", "E5", "B4", "D5", "C5",
+    "A4", "C4", "E4", "A4", "B4", "E4", "C5", "B4", "A4"
+  ], // Fur Elise
+  entertainer: [
+    "D4", "sD4", "E4", "C5", "E4", "C5", "E4", "C5", "C5",
+    "D5", "sD5", "E5", "C5", "D5", "E5", "B4", "D5", "C5",
+    "D5", "sD5", "E4", "C5", "E4", "C5", "E4", "C5", "A4",
+    "G4", "sF4", "A4", "C5", "E5", "D5", "C5", "A4", "D5",
+    "D4", "sD4", "E4", "C5", "E4", "C5", "E4", "C5", "C5",
+    "D5", "sD5", "E5", "C5", "D5", "E5", "B4", "D5", "C5",
+    "C5", "D5", "E5", "C5", "D5", "E5", "C5", "D5", "C5",
+    "E5", "C5", "D5", "E5", "C5", "D5", "C5", "E5", "C5",
+    "D5", "E5", "B4", "D5", "C5"
+  ], // The Entertainer
+  rondoAllaTurca: [
+    "B4", "A4", "sG4", "A4", "C5", "D5", "C5", "B4", "C5", "E5", "F5", "E5", "sD5", "E5", "B5", "A5", "sG5", "A5", "B5", "A5", "sG5", "A5", "C6", "A5", "C6", "B5", "A5", "G5", "A5", "B5", "A5", "G5", "A5", "B5", "A5", "G5", "sF5", "E5",
+    "B4", "A4", "sG4", "A4", "C5", "D5", "C5", "B4", "C5", "E5", "F5", "E5", "sD5", "E5", "B5", "A5", "sG5", "A5", "B5", "A5", "sG5", "A5", "C6", "A5", "C6", "B5", "A5", "G5", "A5", "B5", "A5", "G5", "A5", "B5", "A5", "G5", "sF5", "E5",
+    "B4", "A4", "sG4", "A4", "E5", "F5", "G5", "G5", "A4", "G4", "F4", "E4", "D4", "E4", "F4", "G4", "G4", "A4", "G4", "F4", "E4", "D4", "C4", "D4", "E4", "E4", "F4", "E4", "D4", "C4", "C4", "D4", "E4", "E4", "F4", "E4", "D4", "C4",
+    "B4", "A4", "sG4", "A4", "C5", "D5", "C5", "B4", "C5", "E5", "F5", "E5", "sD5", "E5", "B5", "A5", "sG5", "A5", "B5", "A5", "sG5", "A5", "C6", "A5", "B5", "C5", "B5", "A5", "sG5", "A5", "E5", "F5", "D5", "C5", "B4", "A4"
+  ] // Movement 3 (Rondo Alla Turca)
+};
+
+// Function to select a random song (never the same as previous)
+function selectRandomSong() {
+  const songKeys = Object.keys(songs);
+  
+  // Filter out the current song key if it exists
+  const availableKeys = songKeys.filter(key => key !== currentSongKey);
+  
+  // If only one song is available (first time or all others excluded), pick any
+  const keysToChooseFrom = availableKeys.length > 0 ? availableKeys : songKeys;
+  
+  const randomKey = keysToChooseFrom[Math.floor(Math.random() * keysToChooseFrom.length)];
+  currentSongKey = randomKey;
+  currentSong = songs[randomKey];
+  noteIndex = 0;
+}
+
 
 // Image source settings
 let currentSource = 1; // 1: 经典三连, 2: 世界名画, 3: 敬请期待
@@ -640,10 +707,21 @@ function animatePuzzle(idx) {
     const expectedPageId = "page" + (3 + idx);
     if (currentActivePage === expectedPageId) {
       // Play bouncing sound
-      const bouncingAudio = new Audio("audio/bouncing.m4a");
-      bouncingAudio.currentTime = 0;
-      bouncingAudio.volume = 1;
-      bouncingAudio.play();
+      if (currentDifficulty > 1 && currentSong.length > 0) {
+        // Play piano note for higher difficulties
+        const noteName = currentSong[noteIndex % currentSong.length];
+        const noteAudio = new Audio(`audio/music/${noteName}.mp3`);
+        noteAudio.currentTime = 0;
+        noteAudio.volume = 0.5;
+        noteAudio.play();
+        noteIndex++;
+      } else {
+        // Original bouncing sound for difficulty 1
+        const bouncingAudio = new Audio("audio/bouncing.m4a");
+        bouncingAudio.currentTime = 0;
+        bouncingAudio.volume = 1;
+        bouncingAudio.play();
+      }
     }
 
     puzzles[idx].boundaryHighlight = true;
@@ -1018,6 +1096,11 @@ function checkSolved(idx) {
     puzzles[idx].solved = true;
     allSolved[idx] = true;
 
+    // Change song when any puzzle is solved (difficulty > 2)
+    if (currentDifficulty > 2 && !allSolved.every(Boolean)) {
+      selectRandomSong();
+    }
+
     // Record solved painting if using source2 (world paintings)
     if (currentSource === 2 && imagePaths[idx]) {
       addSolvedPainting(imagePaths[idx]);
@@ -1132,7 +1215,7 @@ function updateGlobalList() {
 document.addEventListener("DOMContentLoaded", function () {
   // Clear nickname and paintings data when page is opened/refreshed
   localStorage.removeItem('jigsaw_nickname');
-  // localStorage.removeItem('jigsaw_solved_paintings');
+  localStorage.removeItem('jigsaw_solved_paintings');
   localStorage.removeItem('jigsaw_records');
   localStorage.removeItem('jigsaw_source2_visited');
 
@@ -1592,6 +1675,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!difficultySelected) return alert("请选择难度!");
     if (!sourceSelected) return alert("请选择图包!");
+    selectRandomSong();
+
+    if (currentDifficulty > 1) noteIndex = 0;
 
     // For source2: check if all current paintings are solved
     // If yes, select new unsolved paintings
