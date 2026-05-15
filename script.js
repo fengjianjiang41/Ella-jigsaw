@@ -20,6 +20,10 @@ const audioFilesPreload = [
   "audio/ua.m4a",
   "audio/ui.m4a",
   "audio/KevinVillecco-Yoshigemia.mp3",
+  "audio/open.mp3",
+  "audio/close.mp3",
+  "audio/autoopen.mp3",
+  "audio/autoclose.mp3",
 
   // water 文件夹
   "audio/water/into1.mp3",
@@ -225,11 +229,17 @@ function stopDoorAnimation() {
 function startDoorAnimation(period) {
   stopDoorAnimation();
   let isOpen = false;
+  let volume = Math.pow(0.95, 10* 1000 / period);
   doorAnimationInterval = setInterval(() => {
     isOpen = !isOpen;
     const doorImg = document.getElementById("doorImg");
     if (doorImg) {
       doorImg.src = isOpen ? "images/open.png" : "images/close.png";
+      // Play auto open/close audio
+      const audio = new Audio(isOpen ? "audio/autoopen.mp3" : "audio/autoclose.mp3");
+      audio.currentTime = 0;
+      audio.volume = volume;
+      audio.play().catch((e) => console.log("Door animation audio play failed:", e));
     }
   }, period);
 }
@@ -1122,7 +1132,7 @@ function updateGlobalList() {
 document.addEventListener("DOMContentLoaded", function () {
   // Clear nickname and paintings data when page is opened/refreshed
   localStorage.removeItem('jigsaw_nickname');
-  localStorage.removeItem('jigsaw_solved_paintings');
+  // localStorage.removeItem('jigsaw_solved_paintings');
   localStorage.removeItem('jigsaw_records');
   localStorage.removeItem('jigsaw_source2_visited');
 
@@ -1160,9 +1170,17 @@ document.addEventListener("DOMContentLoaded", function () {
     floatingDoorBtn.addEventListener("mouseenter", function () {
       stopDoorAnimation();
       doorImg.src = "images/open.png";
+      // Play open.mp3 on mouseenter
+      const openAudio = new Audio("audio/open.mp3");
+      openAudio.currentTime = 0;
+      openAudio.play().catch((e) => console.log("Open audio play failed:", e));
     });
     floatingDoorBtn.addEventListener("mouseleave", function () {
       updateDoorButtonState('empty');
+      // Play close.mp3 on mouseleave
+      const closeAudio = new Audio("audio/close.mp3");
+      closeAudio.currentTime = 0;
+      closeAudio.play().catch((e) => console.log("Close audio play failed:", e));
     });
     floatingDoorBtn.addEventListener("click", function () {
 
