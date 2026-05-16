@@ -596,8 +596,11 @@ function drawPuzzle(idx) {
   const lensDiameter = difficultySettings[currentDifficulty].lensSize;
   const lensRadius = lensDiameter / 2;
 
-  // If it's the hongbao puzzle, puzzle is started, mouse is over, and no animation in progress, draw with lens effect
-  if (isHongbao && puzzles[idx].started && mouseOver && !puzzles[idx].animationInProgress) {
+  // Check if in kid mode (disable covering layer for hongbao puzzle)
+  const isKidMode = window.isKidMode && window.isKidMode();
+  
+  // If it's the hongbao puzzle, puzzle is started, mouse is over, no animation in progress, and not in kid mode, draw with lens effect
+  if (isHongbao && puzzles[idx].started && mouseOver && !puzzles[idx].animationInProgress && !isKidMode) {
     // Draw white blanket first
     ctxs[idx].fillStyle = "white";
     ctxs[idx].fillRect(0, 0, canvasXSize * 2, canvasYSize * 2);
@@ -631,7 +634,7 @@ function drawPuzzle(idx) {
     ctxs[idx].arc(mouseX, mouseY, lensRadius, 0, Math.PI * 2);
     ctxs[idx].stroke();
   } else {
-    // Not hongbao, mouse not over, or animation in progress - draw all pieces normally
+    // Not hongbao, mouse not over, animation in progress, or kid mode - draw all pieces normally
     for (const piece of pieces) {
       piece.draw(ctxs[idx]);
     }
@@ -716,19 +719,24 @@ function animatePuzzle(idx) {
       });
       boundaryHit = true;
     }
-    // Breathing effect for apple and hongbao puzzles
-    if (piece.puzzleIdx === 1 || piece.puzzleIdx === 2) {
-      if (piece.group.length === 1) {
-        // Only breathe if piece is not connected
-        piece.time = currentTime;
-        piece.alpha =
-          0.5 +
-          0.5 *
-          Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
-      } else {
-        // Stop breathing once connected
-        piece.alpha = 1;
+    // Breathing effect for apple and hongbao puzzles (disabled in kid mode)
+    if (!window.isKidMode || !window.isKidMode()) {
+      if (piece.puzzleIdx === 1 || piece.puzzleIdx === 2) {
+        if (piece.group.length === 1) {
+          // Only breathe if piece is not connected
+          piece.time = currentTime;
+          piece.alpha =
+            0.5 +
+            0.5 *
+            Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
+        } else {
+          // Stop breathing once connected
+          piece.alpha = 1;
+        }
       }
+    } else {
+      // In kid mode, ensure alpha is always 1
+      piece.alpha = 1;
     }
   }
 
@@ -1530,7 +1538,7 @@ document.addEventListener("DOMContentLoaded", function () {
       currentActivePage = currentPageId; // Update current active page
 
       // Show or hide floating controls based on the current page
-      if (["page3", "page4", "page5"].includes(currentPageId)) {
+      if (["page2", "page3", "page4", "page5", "page6"].includes(currentPageId)) {
         floatingControls.style.display = "flex";
       } else {
         floatingControls.style.display = "none";
@@ -3896,7 +3904,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Floating controls (拼图页)
     { selector: '#stopBtn', zh: '停止', en: 'stop' },
-    { selector: '#restartBtnFloat', zh: '重新开始', en: 'restart' }
+    { selector: '#restartBtnFloat', zh: '重新开始', en: 'restart' },
+    
+    // Floating kid mode button
+    { selector: '#floatingKidBtn', zh: '童', en: 'KID' }
   ];
 
   // Dynamic text translations (used in functions)
@@ -3947,6 +3958,13 @@ document.addEventListener("DOMContentLoaded", function () {
       currentLang = "zh";
       langBtn.textContent = "EN";
       translatePage(currentLang);
+    }
+
+    // Update kid mode button text based on current language
+    const kidBtn = document.getElementById("floatingKidBtn");
+    if (kidBtn && typeof window.isKidMode === "function") {
+      const isKid = window.isKidMode();
+      kidBtn.textContent = isKid ? (currentLang === "zh" ? "不童" : "NO KID") : (currentLang === "zh" ? "童" : "KID");
     }
 
     // Re-render records with new language
@@ -4044,6 +4062,34 @@ document.addEventListener("DOMContentLoaded", function () {
   window.toggleLanguage = toggleLanguage;
   window.getCurrentLang = function () { return currentLang; };
   window.getTranslatedText = getText;
+});
+
+// Floating Kid Mode Button Functionality
+document.addEventListener("DOMContentLoaded", function () {
+  const kidBtn = document.getElementById("floatingKidBtn");
+  let isKidMode = false;
+
+  // Function to toggle kid mode
+  function toggleKidMode() {
+    isKidMode = !isKidMode;
+    
+    if (isKidMode) {
+      // Switch to kid mode
+      kidBtn.textContent = currentLang === "zh" ? "不童" : "NO KID";
+    } else {
+      // Switch back to normal mode
+      kidBtn.textContent = currentLang === "zh" ? "童" : "KID";
+    }
+  }
+
+  // Add click event listener
+  if (kidBtn) {
+    kidBtn.addEventListener("click", toggleKidMode);
+  }
+
+  // Make functions and variables available globally
+  window.isKidMode = function() { return isKidMode; };
+  window.toggleKidMode = toggleKidMode;
 });
 
 // Note: Translation is now handled directly in the language switch functionality above
