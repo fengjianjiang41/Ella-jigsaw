@@ -74,32 +74,63 @@ const paintingImages = [];
 // Track if current source2 paintings are all solved
 let currentSource2AllSolved = false;
 
-// Solved paintings storage
+// Solved paintings storage with difficulty tracking
 function getSolvedPaintings() {
   const stored = localStorage.getItem('jigsaw_solved_paintings');
-  return stored ? JSON.parse(stored) : [];
+  return stored ? JSON.parse(stored) : {};
 }
 
-function addSolvedPainting(imagePath) {
+function addSolvedPainting(imagePath, difficulty) {
   const solved = getSolvedPaintings();
   // Extract the number from the path (e.g., "images/paintings/1.png" -> "1")
   const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
-  if (match && !solved.includes(match[1])) {
-    solved.push(match[1]);
-    localStorage.setItem('jigsaw_solved_paintings', JSON.stringify(solved));
+  if (match) {
+    const num = match[1];
+    // Only update if this is a higher difficulty than previously recorded
+    if (!solved[num] || difficulty > solved[num].difficulty) {
+      solved[num] = {
+        difficulty: difficulty,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('jigsaw_solved_paintings', JSON.stringify(solved));
+    }
   }
 }
 
 function isPaintingSolved(imagePath) {
   const solved = getSolvedPaintings();
   const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
-  return match && solved.includes(match[1]);
+  return match && solved.hasOwnProperty(match[1]);
+}
+
+function getPaintingHighestDifficulty(imagePath) {
+  const solved = getSolvedPaintings();
+  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  if (match && solved.hasOwnProperty(match[1])) {
+    return solved[match[1]].difficulty;
+  }
+  return 0;
+}
+
+function getPaintingSolveTime(imagePath) {
+  const solved = getSolvedPaintings();
+  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  if (match && solved.hasOwnProperty(match[1])) {
+    return solved[match[1]].timestamp;
+  }
+  return 0;
 }
 
 // Check if all current source2 paintings are solved
 function checkSource2AllSolved() {
   if (currentSource !== 2) return false;
   return imagePaths.every(img => isPaintingSolved(img));
+}
+
+// Get solved count for source2
+function getSource2SolvedCount() {
+  const solved = getSolvedPaintings();
+  return Object.keys(solved).length;
 }
 
 function initPaintingImages() {
@@ -216,7 +247,7 @@ let doorAnimationInterval = null;
 
 function getSource2SolvedCount() {
   const solved = getSolvedPaintings();
-  return solved.length;
+  return Object.keys(solved).length;
 }
 
 function stopDoorAnimation() {
@@ -1103,7 +1134,7 @@ function checkSolved(idx) {
 
     // Record solved painting if using source2 (world paintings)
     if (currentSource === 2 && imagePaths[idx]) {
-      addSolvedPainting(imagePaths[idx]);
+      addSolvedPainting(imagePaths[idx], currentDifficulty);
     }
 
     // Play bell sound for the solved puzzle
@@ -1354,18 +1385,18 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // 随机选择3张绘画图片
-  // If forceNew is true, select only unsolved paintings
+  // If forceNew is true, select only paintings that can be challenged at current difficulty
   function selectRandomPaintings(forceNew = true) {
     let sourceArray = paintingImages;
 
     if (forceNew) {
-      const solved = getSolvedPaintings();
-      // Filter out solved paintings
+      // Filter paintings that can be selected at current difficulty
+      // Can select if: not solved yet, or current difficulty > highest recorded difficulty
       const available = paintingImages.filter(img => {
-        const match = img.match(/images\/paintings\/(\d+)\.png/);
-        return match && !solved.includes(match[1]);
+        const highestDifficulty = getPaintingHighestDifficulty(img);
+        return highestDifficulty === 0 || currentDifficulty > highestDifficulty;
       });
-      // If all paintings are solved, use all of them
+      // If no available paintings (all already solved at this difficulty or higher), use all paintings
       sourceArray = available.length > 0 ? available : paintingImages;
     }
 

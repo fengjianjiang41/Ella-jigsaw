@@ -43,6 +43,55 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
+            position: relative;
+        }
+
+        .painting-item::before {
+            content: '';
+            position: absolute;
+            inset: 0px;
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .painting-item.difficulty-1::before {
+            border: 4px solid #cd7f32; /* Bronze */
+        }
+
+        .painting-item.difficulty-2::before {
+            border: 4px solid #c0c0c0; /* Silver */
+        }
+
+        .painting-item.difficulty-3::before {
+            border: 4px solid #ffd700; /* Gold */
+        }
+
+        .painting-item.difficulty-4 {
+            animation: breathing 3s ease-in-out infinite;
+        }
+
+        .painting-item.difficulty-4::before {
+            border: 4px solid #5bcffa;
+            animation: breathingBorder 3s ease-in-out infinite;
+        }
+
+        @keyframes breathing {
+            0%, 100% {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 20px rgba(255, 255, 255, 0.5);
+            }
+            50% {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 30px #5bcffa;
+            }
+        }
+
+        @keyframes breathingBorder {
+            0%, 100% {
+                border-color: rgba(255, 255, 255, 0.8);
+            }
+            50% {
+                border-color: #5bcffa;
+            }
         }
 
         .painting-item:hover {
@@ -248,24 +297,35 @@
 
         function getSolvedPaintings() {
             const stored = localStorage.getItem('jigsaw_solved_paintings');
-            return stored ? JSON.parse(stored) : [];
+            return stored ? JSON.parse(stored) : {};
         }
 
         function updateCollectionGrid() {
             const grid = document.getElementById('collectionGrid');
             const solved = getSolvedPaintings();
 
-            if (solved.length === 0) {
+            const solvedArray = Object.keys(solved).map(num => ({
+                num: num,
+                difficulty: solved[num].difficulty,
+                timestamp: solved[num].timestamp
+            }));
+
+            if (solvedArray.length === 0) {
                 grid.innerHTML = `<div class="empty-state">${translations[currentLang].emptyState}</div>`;
                 return;
             }
 
-            // Sort by painting number
-            solved.sort((a, b) => parseInt(a) - parseInt(b));
+            // Sort by difficulty (higher first), then by timestamp (earlier first)
+            solvedArray.sort((a, b) => {
+                if (b.difficulty !== a.difficulty) {
+                    return b.difficulty - a.difficulty;
+                }
+                return a.timestamp - b.timestamp;
+            });
 
-            grid.innerHTML = solved.map(num => `
-                <div class="painting-item" onclick="openLightbox('images/paintings/${num}.png')">
-                    <img src="images/paintings/${num}.png" alt="Painting ${num}">
+            grid.innerHTML = solvedArray.map(item => `
+                <div class="painting-item difficulty-${item.difficulty}" onclick="openLightbox('images/paintings/${item.num}.png')">
+                    <img src="images/paintings/${item.num}.png" alt="Painting ${item.num}">
                 </div>
             `).join('');
         }
