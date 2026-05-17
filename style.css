@@ -11,12 +11,65 @@ body {
     background: #ffffff;
 }
 
-header,
-footer {
+header {
     background: #333;
     color: #fff;
     padding: 1em;
     text-align: center;
+}
+
+/* Footer Styles - Appears at bottom of content */
+.site-footer {
+    background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+    color: #fff;
+    padding: 1.5em 1em;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: auto;
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-logo img {
+    height: 40px;
+    width: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.footer-info p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 14px;
+}
+
+.footer-link {
+    color: #fff;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.footer-link:hover {
+    opacity: 0.8;
+    border-bottom-color: #fff;
+}
+
+.footer-divider {
+    opacity: 0.5;
 }
 
 main {
@@ -342,7 +395,7 @@ html {
 body {
     overflow-y: hidden;
     /* 隐藏滚动条，但保留滚动功能 */
-    height: 100vh;
+    min-height: 100vh;
     position: relative;
 }
 
