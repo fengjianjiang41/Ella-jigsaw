@@ -3865,6 +3865,7 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: '#page2 .text-row p:last-child', zh: '榜上有名，只是时间问题', en: 'fame is just a matter of time' },
     { selector: '#nicknameInput', zh: '输入昵称', en: 'enter nickname', attr: 'placeholder' },
     { selector: '.difficulty-settings p', zh: '选择难度：', en: 'select difficulty:' },
+    { selector: '.source-settings p', zh: '选择图包：', en: 'select source:' },
     { selector: '#difficulty1', zh: '休闲', en: 'easy' },
     { selector: '#difficulty2', zh: '普通', en: 'medium' },
     { selector: '#difficulty3', zh: '困难', en: 'hard' },
@@ -3907,7 +3908,7 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: '#restartBtnFloat', zh: '重新开始', en: 'restart' },
     
     // Floating kid mode button
-    { selector: '#floatingKidBtn', zh: '童', en: 'KID' }
+    { selector: '#floatingKidBtn', zh: '小孩内桌', en: 'Kid Mode' }
   ];
 
   // Dynamic text translations (used in functions)
@@ -3964,7 +3965,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const kidBtn = document.getElementById("floatingKidBtn");
     if (kidBtn && typeof window.isKidMode === "function") {
       const isKid = window.isKidMode();
-      kidBtn.textContent = isKid ? (currentLang === "zh" ? "不童" : "NO KID") : (currentLang === "zh" ? "童" : "KID");
+      kidBtn.textContent = isKid ? (currentLang === "zh" ? "大人内桌" : "Adult Mode") : (currentLang === "zh" ? "小孩内桌" : "Kid Mode");
     }
 
     // Re-render records with new language
@@ -4075,10 +4076,10 @@ document.addEventListener("DOMContentLoaded", function () {
     
     if (isKidMode) {
       // Switch to kid mode
-      kidBtn.textContent = currentLang === "zh" ? "不童" : "NO KID";
+      kidBtn.textContent = currentLang === "zh" ? "大人内桌" : "Adult Mode";
     } else {
       // Switch back to normal mode
-      kidBtn.textContent = currentLang === "zh" ? "童" : "KID";
+      kidBtn.textContent = currentLang === "zh" ? "小孩内桌" : "Kid Mode";
     }
   }
 

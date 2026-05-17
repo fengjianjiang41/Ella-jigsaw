@@ -151,6 +151,14 @@ button:hover:not(:disabled) {
     -webkit-animation: buttonBounce 1s infinite alternate;
 }
 
+#startBtn {
+    border-radius: 50px;
+    -webkit-border-radius: 50px;
+    -moz-border-radius: 50px;
+    -ms-border-radius: 50px;
+    -o-border-radius: 50px;
+}
+
 
 
 @keyframes buttonBounce {
@@ -606,7 +614,7 @@ body {
     overflow: hidden;
     transition: transform 0.3s ease, background 0.3s ease;
     font-family: 'CustomFont', Arial, sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: bold;
     color: #ffffff;
     -webkit-border-radius: 50%;
