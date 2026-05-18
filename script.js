@@ -164,6 +164,7 @@ function updateLoadingProgress() {
   const progress = Math.round(
     (audioLoadedCount + imageLoadedCount) / (audioTotalCount + imageTotalCount),
   );
+  console.log("", progress);
   const progressBar = document.getElementById("loadingProgress");
   const percentageText = document.getElementById("loadingPercentage");
   const startText = document.getElementById("startText");
