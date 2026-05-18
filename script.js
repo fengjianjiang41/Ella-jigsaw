@@ -1166,14 +1166,14 @@ function animatePuzzle(idx) {
         const noteName = currentSong[noteIndex % currentSong.length];
         const noteAudio = new Audio(`audio/music/${noteName}.mp3`);
         noteAudio.currentTime = 0;
-        noteAudio.volume = 0.5;
+        noteAudio.volume = 0.5 * (window.sfxVolume || 0.5);
         noteAudio.play();
         noteIndex++;
       } else {
         // Original bouncing sound for difficulty 1
         const bouncingAudio = new Audio("audio/bouncing.m4a");
         bouncingAudio.currentTime = 0;
-        bouncingAudio.volume = 1;
+        bouncingAudio.volume = 1 * (window.sfxVolume || 0.5);
         bouncingAudio.play();
       }
     }
@@ -1207,7 +1207,7 @@ function onMouseDown(idx, e) {
       // Play dragging sound
       const draggingAudio = new Audio("audio/dragging.m4a");
       draggingAudio.currentTime = 0;
-      draggingAudio.volume = 0.2;
+      draggingAudio.volume = 0.2 * (window.sfxVolume || 0.5);
       draggingAudio.play();
       piece.dragging = true;
       puzzles[idx].draggingPiece = piece;
@@ -1316,7 +1316,7 @@ function tryMerge(idx, piece) {
     // Play success sound
     const successAudio = new Audio("audio/success.m4a");
     successAudio.currentTime = 0;
-    successAudio.volume = 0.2;
+    successAudio.volume = 0.2 * (window.sfxVolume || 0.5);
     successAudio.play();
 
     // Trigger merge highlight
@@ -1920,7 +1920,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!confirmBtnClicked) return;
       const pageBtnAudio = new Audio("audio/pagebtn.mp3");
       pageBtnAudio.currentTime = 0;
-      pageBtnAudio.volume = 0.3; // 调整音量，范围0-1
+      pageBtnAudio.volume = 0.3 * (window.sfxVolume || 0.5); // 调整音量，范围0-1
       pageBtnAudio.play();
     });
 
@@ -2315,7 +2315,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Play confirmation sound
     const confirmAudio = new Audio("audio/confirm.mp3");
     confirmAudio.currentTime = 0;
-    confirmAudio.volume = 0.2;
+    confirmAudio.volume = 0.2 * (window.sfxVolume || 0.5);
     confirmAudio.play().catch((e) => console.log("Audio play failed:", e));
 
     // 标记confirmBtn首次点击
@@ -4317,6 +4317,100 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make toggleMusic available globally
   toggleMusicFunction = toggleMusic;
 });
+
+// Floating Options Button Functionality
+document.addEventListener("DOMContentLoaded", function () {
+  const optionsBtn = document.getElementById("floatingOptionsBtn");
+  const optionsWindow = document.getElementById("optionsWindow");
+  const optionsOverlay = document.getElementById("optionsOverlay");
+  const closeOptionsBtn = document.getElementById("closeOptionsBtn");
+  const bgmVolumeSlider = document.getElementById("bgmVolumeSlider");
+  const sfxVolumeSlider = document.getElementById("sfxVolumeSlider");
+  const bgmVolumeValue = bgmVolumeSlider?.nextElementSibling;
+  const sfxVolumeValue = sfxVolumeSlider?.nextElementSibling;
+
+  // Global volume variables
+  window.bgmVolume = 0.5;
+  window.sfxVolume = 0.5;
+
+  // Was timer running before options window opened
+  let wasTimerRunning = false;
+
+  // Update volume display
+  function updateVolumeDisplay(slider, valueElement) {
+    const volume = parseFloat(slider.value);
+    valueElement.textContent = Math.round(volume * 100) + "%";
+  }
+
+  // Open options window
+  function openOptionsWindow() {
+    optionsWindow.style.display = "block";
+    optionsOverlay.style.display = "block";
+
+    // Pause timer if it's running
+    wasTimerRunning = timerInterval !== null;
+    if (wasTimerRunning) {
+      pauseTimer();
+    }
+
+    // Disable mouse interactions outside the window
+    document.body.style.pointerEvents = "none";
+    optionsWindow.style.pointerEvents = "auto";
+    optionsOverlay.style.pointerEvents = "auto";
+    optionsBtn.style.pointerEvents = "none";
+  }
+
+  // Close options window
+  function closeOptionsWindow() {
+    optionsWindow.style.display = "none";
+    optionsOverlay.style.display = "none";
+
+    // Resume timer if it was running
+    if (wasTimerRunning) {
+      resumeTimer();
+    }
+
+    // Restore mouse interactions
+    document.body.style.pointerEvents = "auto";
+    optionsBtn.style.pointerEvents = "auto";
+  }
+
+  // BGM volume change handler
+  bgmVolumeSlider?.addEventListener("input", function () {
+    window.bgmVolume = parseFloat(this.value);
+    updateVolumeDisplay(this, bgmVolumeValue);
+    // Update BGM audio volume if playing
+    const audio = document.querySelector("audio[src='audio/KevinVillecco-Yoshigemia.mp3']");
+    if (audio) {
+      audio.volume = window.bgmVolume;
+    }
+  });
+
+  // SFX volume change handler
+  sfxVolumeSlider?.addEventListener("input", function () {
+    window.sfxVolume = parseFloat(this.value);
+    updateVolumeDisplay(this, sfxVolumeValue);
+  });
+
+  // Event listeners
+  optionsBtn?.addEventListener("click", openOptionsWindow);
+  closeOptionsBtn?.addEventListener("click", closeOptionsWindow);
+  optionsOverlay?.addEventListener("click", closeOptionsWindow);
+
+  // Initialize volume displays
+  if (bgmVolumeSlider && bgmVolumeValue) {
+    updateVolumeDisplay(bgmVolumeSlider, bgmVolumeValue);
+  }
+  if (sfxVolumeSlider && sfxVolumeValue) {
+    updateVolumeDisplay(sfxVolumeSlider, sfxVolumeValue);
+  }
+});
+
+// Helper function to play audio with SFX volume
+function playAudioWithVolume(audio, volume = 1) {
+  audio.volume = volume * (window.sfxVolume || 0.5);
+  audio.play().catch((e) => console.log("Audio play failed:", e));
+}
 
 // Floating Language Switch Button Functionality
 document.addEventListener("DOMContentLoaded", function () {

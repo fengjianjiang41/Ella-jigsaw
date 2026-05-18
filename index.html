@@ -238,6 +238,36 @@
         <button id="floatingKidBtn" class="floating-kid-btn">小孩内桌</button>
     </div>
 
+    <!-- Floating Options Button -->
+    <div class="floating-options-container">
+        <button id="floatingOptionsBtn" class="floating-options-btn" title="Options">
+            <img src="images/option.png" alt="Options">
+        </button>
+    </div>
+
+    <!-- Options Window -->
+    <div id="optionsWindow" class="options-window">
+        <div class="options-header">
+            <span class="options-title">设置</span>
+            <button id="closeOptionsBtn" class="close-options-btn">×</button>
+        </div>
+        <div class="options-content">
+            <div class="volume-control">
+                <label for="bgmVolumeSlider">BGM 音量</label>
+                <input type="range" id="bgmVolumeSlider" min="0" max="1" step="0.05" value="0.5">
+                <span class="volume-value">50%</span>
+            </div>
+            <div class="volume-control">
+                <label for="sfxVolumeSlider">音效音量</label>
+                <input type="range" id="sfxVolumeSlider" min="0" max="1" step="0.05" value="0.5">
+                <span class="volume-value">50%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Options Window Overlay -->
+    <div id="optionsOverlay" class="options-overlay"></div>
+
     <script src="script.js"></script>
 </body>
 </html>
