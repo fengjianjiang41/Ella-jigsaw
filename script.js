@@ -186,6 +186,7 @@ function updateLoadingProgress() {
 }
 
 function completeLoading() {
+  console.log("Reached");
   const loadingBar = document.getElementById("loadingBar");
   const startText = document.getElementById("startText");
 
