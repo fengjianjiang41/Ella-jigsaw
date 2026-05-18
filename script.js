@@ -161,19 +161,18 @@ function initPaintingImages() {
 }
 
 function updateLoadingProgress() {
-  const progress = Math.round(
-    (audioLoadedCount + imageLoadedCount) / (audioTotalCount + imageTotalCount),
-  );
-  console.log("", progress);
+  const progress = (audioLoadedCount + imageLoadedCount) / (audioTotalCount + imageTotalCount);
+  const percentage = Math.round(progress * 100);
+  console.log("", percentage);
   const progressBar = document.getElementById("loadingProgress");
   const percentageText = document.getElementById("loadingPercentage");
   const startText = document.getElementById("startText");
 
   if (progressBar) {
-    progressBar.style.width = progress + "%";
+    progressBar.style.width = percentage + "%";
   }
   if (percentageText) {
-    percentageText.textContent = progress + "%";
+    percentageText.textContent = percentage + "%";
   }
 
   if (
