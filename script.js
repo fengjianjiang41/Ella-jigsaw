@@ -81,8 +81,8 @@ function getSolvedPaintings() {
 
 function addSolvedPainting(imagePath, difficulty) {
   const solved = getSolvedPaintings();
-  // Extract the number from the path (e.g., "images/paintings/1.png" -> "1")
-  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  // Extract the number from the path (e.g., "images/paintings/1.jpg" -> "1")
+  const match = imagePath.match(/images\/paintings\/(\d+)\.jpg/);
   if (match) {
     const num = match[1];
     // Only update if this is a higher difficulty than previously recorded
@@ -98,13 +98,13 @@ function addSolvedPainting(imagePath, difficulty) {
 
 function isPaintingSolved(imagePath) {
   const solved = getSolvedPaintings();
-  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  const match = imagePath.match(/images\/paintings\/(\d+)\.jpg/);
   return match && solved.hasOwnProperty(match[1]);
 }
 
 function getPaintingHighestDifficulty(imagePath) {
   const solved = getSolvedPaintings();
-  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  const match = imagePath.match(/images\/paintings\/(\d+)\.jpg/);
   if (match && solved.hasOwnProperty(match[1])) {
     return solved[match[1]].difficulty;
   }
@@ -113,7 +113,7 @@ function getPaintingHighestDifficulty(imagePath) {
 
 function getPaintingSolveTime(imagePath) {
   const solved = getSolvedPaintings();
-  const match = imagePath.match(/images\/paintings\/(\d+)\.png/);
+  const match = imagePath.match(/images\/paintings\/(\d+)\.jpg/);
   if (match && solved.hasOwnProperty(match[1])) {
     return solved[match[1]].timestamp;
   }
@@ -135,7 +135,7 @@ function getSource2SolvedCount() {
 function initPaintingImages() {
   for (let i = 1; i <= imageTotalCount; i++) {
     const img = new Image();
-    const src = `images/paintings/${i}.png`;
+    const src = `images/paintings/${i}.jpg`;
     img.src = src;
 
     img.addEventListener("load", () => {
