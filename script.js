@@ -4489,7 +4489,7 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: "#difficulty4", zh: "炼狱", en: "HELL" },
     { selector: "#startBtn", zh: "点我开始！", en: "start!" },
     { selector: "#source1", zh: "经典三连", en: "classic triple" },
-    { selector: "#source2", zh: "世界名画", en: "world paintings" },
+    { selector: "#source2", zh: "世界名画", en: "masterpieces" },
     { selector: "#source3", zh: "敬请期待", en: "coming soon" },
 
     // Page 3 - Puzzle 1
@@ -5489,7 +5489,6 @@ function playBallBallSound(normalMomentum) {
 }
 
 function playBallGlassSound(normalVel) {
-  if (soundEnabled) {
     // Set velocity threshold for long sound
     const velocityThreshold = 5.0;
     const absNormalVel = Math.abs(normalVel);
@@ -5511,7 +5510,6 @@ function playBallGlassSound(normalVel) {
     ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
     ballglassAudio.play().catch((e) => console.log("Audio play failed:", e));
   }
-}
 
 // collision handling -------------------------------------------------------
 

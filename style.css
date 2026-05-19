@@ -827,7 +827,7 @@ body {
     background: #ffb3c2;
     cursor: pointer;
     border: 2px solid #ff8fab;
-    margin-top: -5px;
+    margin-top: 0px;
 }
 
 .volume-control input[type="range"]::-moz-range-thumb {
