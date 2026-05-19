@@ -182,20 +182,6 @@ function initPaintingImages() {
       imageLoadedCount++;
       updateLoadingProgress();
     });
-
-    // img.addEventListener("error", () => {
-    //   // 如果第一张就加载失败，说明文件夹可能不存在，跳过后续尝试
-    //   if (i === 1) {
-    //     // 设置最小进度计数，避免卡住
-    //     for (let j = i; j <= totalCount; j++) {
-    //       imageLoadedCount++;
-    //     }
-    //     updateLoadingProgress();
-    //   } else {
-    //     imageLoadedCount++;
-    //     updateLoadingProgress();
-    //   }
-    // });
   }
 }
 
@@ -403,14 +389,7 @@ function startDoorAnimation(period) {
     if (doorImg) {
       doorImg.src = isOpen ? "images/open.png" : "images/close.png";
       // Play auto open/close audio
-      const audio = new Audio(
-        isOpen ? "audio/autoopen.mp3" : "audio/autoclose.mp3",
-      );
-      audio.currentTime = 0;
-      audio.volume = volume;
-      audio
-        .play()
-        .catch((e) => console.log("Door animation audio play failed:", e));
+      playSFX(isOpen ? "audio/autoopen.mp3" : "audio/autoclose.mp3", volume);
     }
   }, period);
 }
@@ -1204,17 +1183,11 @@ function animatePuzzle(idx) {
       if (currentDifficulty > 1 && currentSong.length > 0) {
         // Play piano note for higher difficulties
         const noteName = currentSong[noteIndex % currentSong.length];
-        const noteAudio = new Audio(`audio/music/${noteName}.mp3`);
-        noteAudio.currentTime = 0;
-        noteAudio.volume = 0.5 * (window.sfxVolume || 0.5);
-        noteAudio.play();
+        playSFX(`audio/music/${noteName}.mp3`, 0.5);
         noteIndex++;
       } else {
         // Original bouncing sound for difficulty 1
-        const bouncingAudio = new Audio("audio/bouncing.m4a");
-        bouncingAudio.currentTime = 0;
-        bouncingAudio.volume = 1 * (window.sfxVolume || 0.5);
-        bouncingAudio.play();
+        playSFX("audio/bouncing.m4a", 1);
       }
     }
 
@@ -1245,10 +1218,7 @@ function onMouseDown(idx, e) {
     const piece = pieces[i];
     if (piece.contains(mx, my)) {
       // Play dragging sound
-      const draggingAudio = new Audio("audio/dragging.m4a");
-      draggingAudio.currentTime = 0;
-      draggingAudio.volume = 0.2 * (window.sfxVolume || 0.5);
-      draggingAudio.play();
+      playSFX("audio/dragging.m4a", 0.2);
       piece.dragging = true;
       puzzles[idx].draggingPiece = piece;
       piece.group.forEach((groupPiece) => {
@@ -1354,10 +1324,7 @@ function tryMerge(idx, piece) {
   }
   if (merged) {
     // Play success sound
-    const successAudio = new Audio("audio/success.m4a");
-    successAudio.currentTime = 0;
-    successAudio.volume = 0.2 * (window.sfxVolume || 0.5);
-    successAudio.play();
+    playSFX("audio/success.m4a", 0.2);
 
     // Trigger merge highlight
     puzzles[idx].mergeHighlight = true;
@@ -1435,9 +1402,7 @@ function showPage5Hint() {
 function solvedScroll() {
   if (allSolved.every(Boolean)) {
     // 播放group.mp3
-    const groupAudio = new Audio("audio/group.mp3");
-    groupAudio.currentTime = 0;
-    groupAudio.play();
+    playSFX("audio/group.mp3");
     const confirmBtn = document.getElementById("confirmBtn");
     confirmBtn.disabled = false;
     const topBtn = document.getElementById("topBtn");
@@ -1476,9 +1441,7 @@ function solvedScroll() {
     }
   } else {
     // 播放fast.mp3
-    const fastAudio = new Audio("audio/fast.mp3");
-    fastAudio.currentTime = 0;
-    fastAudio.play();
+    playSFX("audio/fast.mp3");
     // If not all solved, scroll to the first unsolved puzzle (frontest unsolved)
     scrollToFirstUnsolved();
   }
@@ -1535,9 +1498,7 @@ function handleSolvedEffects(idx) {
   showImg.style.opacity = "0";
   document.body.appendChild(showImg);
 
-  const solvedAudio = new Audio(`audio/solved${idx + 1}.mp3`);
-  solvedAudio.currentTime = 0;
-  solvedAudio.play().catch((e) => console.log("Solved audio play failed:", e));
+  playSFX(`audio/solved${idx + 1}.mp3`);
 
   pauseTimer();
 
@@ -1579,9 +1540,7 @@ function handleSolvedEffects(idx) {
       solvedScroll();
 
       // Play turn.mp3
-      const turnAudio = new Audio("audio/turn.mp3");
-      turnAudio.currentTime = 0;
-      turnAudio.play().catch((e) => console.log("Turn audio play failed:", e));
+      playSFX("audio/turn.mp3");
     }, 500);
   }, 3800);
 }
@@ -1604,9 +1563,7 @@ function checkSolved(idx) {
 
     // Play bell sound for the solved puzzle
     if (confirmBtnClicked) {
-      const bellAudio = new Audio(`audio/bell${idx + 1}.mp3`);
-      bellAudio.currentTime = 0;
-      bellAudio.play();
+      playSFX(`audio/bell${idx + 1}.mp3`);
     }
 
     if (!confirmBtnClicked) handleSolvedEffects(idx);
@@ -1759,18 +1716,12 @@ document.addEventListener("DOMContentLoaded", function () {
       stopDoorAnimation();
       doorImg.src = "images/open.png";
       // Play open.mp3 on mouseenter
-      const openAudio = new Audio("audio/open.mp3");
-      openAudio.currentTime = 0;
-      openAudio.play().catch((e) => console.log("Open audio play failed:", e));
+      playSFX("audio/open.mp3");
     });
     floatingDoorBtn.addEventListener("mouseleave", function () {
       updateDoorButtonState("empty");
       // Play close.mp3 on mouseleave
-      const closeAudio = new Audio("audio/close.mp3");
-      closeAudio.currentTime = 0;
-      closeAudio
-        .play()
-        .catch((e) => console.log("Close audio play failed:", e));
+      playSFX("audio/close.mp3");
     });
     floatingDoorBtn.addEventListener("click", function () {
       // Update door button state after click
@@ -1944,9 +1895,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // }
 
       // Play turn.mp3 audio when first key is pressed
-      const turnAudio = new Audio("audio/turn.mp3");
-      turnAudio.currentTime = 0;
-      turnAudio.play().catch((e) => console.log("Audio play failed:", e));
+      playSFX("audio/turn.mp3");
 
       document.removeEventListener("keydown", onFirstKey);
     }
@@ -1960,8 +1909,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!confirmBtnClicked) return;
       const pageBtnAudio = new Audio("audio/pagebtn.mp3");
       pageBtnAudio.currentTime = 0;
-      pageBtnAudio.volume = 0.3 * (window.sfxVolume || 0.5); // 调整音量，范围0-1
-      pageBtnAudio.play();
+      playSFX("audio/pagebtn.mp3", 0.3);
     });
 
     btn.addEventListener("click", function () {
@@ -2106,21 +2054,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Get the left-bottom image element
     const leftBottomImg = document.querySelector(".left-bottom-img");
-
-    // Check if click count is a multiple of 7
-    // if (bunClickCount % 7 === 0) {
-    //   // Play the new audio file
-    //   const audio = new Audio("audio/jcxbroken.m4a");
-    //   audio.play();
-    //   // Substitute pink.png with smile.png
-    //   if (leftBottomImg) {
-    //     leftBottomImg.src = "images/smile.png";
-    //   }
-    // } else {
+    
     // Play random audio from existing files
     const randomIndex = Math.floor(Math.random() * audioFiles.length);
-    const audio = new Audio(audioFiles[randomIndex]);
-    audio.play();
+    playSFX(audioFiles[randomIndex]);
     // Return to pink.png
     if (leftBottomImg) {
       leftBottomImg.src = "images/pink.png";
@@ -2355,8 +2292,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Play confirmation sound
     const confirmAudio = new Audio("audio/confirm.mp3");
     confirmAudio.currentTime = 0;
-    confirmAudio.volume = 0.2 * (window.sfxVolume || 0.5);
-    confirmAudio.play().catch((e) => console.log("Audio play failed:", e));
+    playSFX("audio/confirm.mp3", 0.2);
 
     // 标记confirmBtn首次点击
     if (!confirmBtnClicked) {
@@ -3981,6 +3917,9 @@ var waterCollisionCount = 0;
 var lastWaterCollisionCount = 0;
 var waterCollisionIncrement = 0;
 var lastWaterCollisionTime = 0;
+// Tank volume control
+let tankVolume = 0.5;
+
 const waterCollisionThreshold = 5; // Minimum collisions to trigger sound
 const waterCollisionCooldown = 0; // ms between sounds
 
@@ -3995,7 +3934,7 @@ function playWaterObstacleSound(collisionIntensity) {
 
   const waterAudio = waterObstacleAudioPool.getAudio(soundFile);
   waterAudio.currentTime = 0;
-  waterAudio.volume = volume;
+  waterAudio.volume = volume * tankVolume;
   waterAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
   waterAudio.play().catch((e) => console.log("Audio play failed:", e));
 }
@@ -4030,7 +3969,7 @@ function playSplashSound(velocitySum) {
   splashAudio.currentTime = 0;
   // Calculate volume based on velocity sum
   const volume = Math.min(Math.pow(velocitySum * 0.005, 0.7), 1.0);
-  splashAudio.volume = volume;
+  splashAudio.volume = volume * tankVolume;
   splashAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
   splashAudio.play().catch((e) => console.log("Audio play failed:", e));
 
@@ -4072,7 +4011,7 @@ function playWaveSound(velocityChange) {
       velocityChange > 0 ? velocityChange * 10 : -velocityChange * 25,
       1.0,
     );
-    waveAudio.volume = volume;
+    waveAudio.volume = volume * tankVolume;
     waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
     waveAudio.play().catch((e) => console.log("Audio play failed:", e));
     lastWaveTime = currentTime;
@@ -4097,7 +4036,7 @@ function playConstantSound(velocity) {
     waveAudio.currentTime = 0;
     // Calculate volume based on velocity change magnitude
     const volume = Math.min(Math.pow(velocity * 0.5, 1.5), 1.0);
-    waveAudio.volume = volume;
+    waveAudio.volume = volume * tankVolume;
     waveAudio.playbackRate = 0.9 + Math.random() * 0.2; // Slight pitch variation
     waveAudio.play().catch((e) => console.log("Audio play failed:", e));
     lastConstantTime = currentTime;
@@ -4145,7 +4084,7 @@ function playSpraySound(sprayIntensity) {
 
     const sprayAudio = sprayAudioPool.getAudio(soundFile);
     sprayAudio.currentTime = 0;
-    sprayAudio.volume = volume;
+    sprayAudio.volume = volume * tankVolume;
     sprayAudio.playbackRate = 0.5 + Math.random() * 1; // Slight pitch variation
     sprayAudio.play().catch((e) => console.log("Audio play failed:", e));
   }
@@ -4244,6 +4183,34 @@ document.addEventListener("DOMContentLoaded", function () {
 // Global variable to hold the toggleMusic function
 let toggleMusicFunction = null;
 
+// Global audio references
+let bgmAudio = null;
+
+// Global volume settings
+let globalBgmVolume = 0.5;
+let globalSfxVolume = 0.5;
+
+// Centralized function to play SFX with global volume
+function playSFX(src, baseVolume = 1) {
+  const audio = new Audio(src);
+  audio.currentTime = 0;
+  audio.volume = baseVolume * globalSfxVolume;
+  audio.play().catch((e) => console.log("SFX play failed:", e));
+}
+
+// Function to set SFX volume globally
+function setSfxVolume(volume) {
+  globalSfxVolume = Math.max(0, Math.min(1, volume));
+}
+
+// Function to set BGM volume globally
+function setBgmVolume(volume) {
+  globalBgmVolume = Math.max(0, Math.min(1, volume));
+  if (bgmAudio) {
+    bgmAudio.volume = globalBgmVolume;
+  }
+}
+
 // Floating Music Button Functionality
 document.addEventListener("DOMContentLoaded", function () {
   const musicBtn = document.getElementById("floatingMusicBtn");
@@ -4262,8 +4229,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize audio element
   function initAudio() {
     audio = new Audio("audio/KevinVillecco-Yoshigemia.mp3");
-    audio.volume = 0.2;
+    audio.volume = globalBgmVolume;
     audio.loop = true;
+    // Store reference globally
+    bgmAudio = audio;
   }
 
   // Attract attention animation for music button
@@ -4341,14 +4310,19 @@ document.addEventListener("DOMContentLoaded", function () {
   // Add click event listeners to all other buttons (except page buttons)
   const buttons = document.querySelectorAll("button");
   buttons.forEach((button) => {
-    // Skip music button and page buttons
+    // Skip music button, page buttons, and buttons inside volume controls
+    const isVolumeControl = button.closest(".volume-control") !== null;
+    const isOptionsWindow = button.closest(".options-window") !== null;
     if (
       button.id !== "floatingMusicBtn" &&
-      !button.classList.contains("page-btn")
+      !button.classList.contains("page-btn") &&
+      !isVolumeControl &&
+      !isOptionsWindow
     ) {
       button.addEventListener("click", function () {
         // Play button sound
         buttonSound.currentTime = 0; // Reset sound to start
+        buttonSound.volume = globalSfxVolume;
         buttonSound.play();
       });
     }
@@ -4369,10 +4343,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const bgmVolumeValue = bgmVolumeSlider?.nextElementSibling;
   const sfxVolumeValue = sfxVolumeSlider?.nextElementSibling;
 
-  // Global volume variables
-  window.bgmVolume = 0.5;
-  window.sfxVolume = 0.5;
-
   // Was timer running before options window opened
   let wasTimerRunning = false;
 
@@ -4387,7 +4357,7 @@ document.addEventListener("DOMContentLoaded", function () {
     optionsWindow.style.display = "block";
     optionsOverlay.style.display = "block";
 
-    // Pause timer if it's running
+    // Pause timer only if it's running (timerInterval is not null)
     wasTimerRunning = timerInterval !== null;
     if (wasTimerRunning) {
       pauseTimer();
@@ -4405,8 +4375,11 @@ document.addEventListener("DOMContentLoaded", function () {
     optionsWindow.style.display = "none";
     optionsOverlay.style.display = "none";
 
-    // Resume timer if it was running
-    if (wasTimerRunning) {
+    // Resume timer only if:
+    // 1. It was running before opening the window
+    // 2. Not all puzzles are solved
+    // 3. Timer is not 0
+    if (wasTimerRunning && !allSolved.every(Boolean) && timer !== 0) {
       resumeTimer();
     }
 
@@ -4415,21 +4388,38 @@ document.addEventListener("DOMContentLoaded", function () {
     optionsBtn.style.pointerEvents = "auto";
   }
 
+  // Function to update options button image
+  function updateOptionsButtonImage(isPausedState) {
+    const btnImg = optionsBtn.querySelector("img");
+    if (btnImg) {
+      btnImg.src = isPausedState ? "images/pause.png" : "images/option.png";
+    }
+  }
+
+  // Listen for start button click to change to pause icon
+  const startBtn = document.getElementById("startBtn");
+  startBtn?.addEventListener("click", function () {
+    updateOptionsButtonImage(true);
+  });
+
+  // Listen for confirm button click to change back to option icon
+  const confirmBtn = document.getElementById("confirmBtn");
+  confirmBtn?.addEventListener("click", function () {
+    updateOptionsButtonImage(false);
+  })
+
   // BGM volume change handler
   bgmVolumeSlider?.addEventListener("input", function () {
-    window.bgmVolume = parseFloat(this.value);
+    const volume = parseFloat(this.value);
     updateVolumeDisplay(this, bgmVolumeValue);
-    // Update BGM audio volume if playing
-    const audio = document.querySelector("audio[src='audio/KevinVillecco-Yoshigemia.mp3']");
-    if (audio) {
-      audio.volume = window.bgmVolume;
-    }
+    setBgmVolume(volume);
   });
 
   // SFX volume change handler
   sfxVolumeSlider?.addEventListener("input", function () {
-    window.sfxVolume = parseFloat(this.value);
+    const volume = parseFloat(this.value);
     updateVolumeDisplay(this, sfxVolumeValue);
+    setSfxVolume(volume);
   });
 
   // Event listeners
@@ -5477,6 +5467,7 @@ function playBallWallSound(normalMomentum) {
     // Calculate volume proportional to square of normal velocity
     const volume = Math.min(Math.pow(Math.abs(normalMomentum), 2), 1);
     ballwallAudio.volume = finalAdjustment * volume;
+    ballwallAudio.play().catch((e) => console.log("Audio play failed:", e));
   }
 }
 
@@ -5493,32 +5484,33 @@ function playBallBallSound(normalMomentum) {
     const ballballAudio = ballBallAudioPool.getAudio();
     ballballAudio.currentTime = 0;
     ballballAudio.volume = volume;
+    ballballAudio.play().catch((e) => console.log("Audio play failed:", e));
   }
 }
 
 function playBallGlassSound(normalVel) {
-  // if (soundEnabled) {
-  // Set velocity threshold for long sound
-  const velocityThreshold = 5.0;
-  const absNormalVel = Math.abs(normalVel);
+  if (soundEnabled) {
+    // Set velocity threshold for long sound
+    const velocityThreshold = 5.0;
+    const absNormalVel = Math.abs(normalVel);
 
-  // Select sound file based on velocity
-  const soundFile =
-    absNormalVel > velocityThreshold
-      ? "audio/ballglasslong.mp3"
-      : "audio/ballglassshort.mp3";
+    // Select sound file based on velocity
+    const soundFile =
+      absNormalVel > velocityThreshold
+        ? "audio/ballglasslong.mp3"
+        : "audio/ballglassshort.mp3";
 
-  // Calculate volume based on velocity (louder for faster impacts)
-  const volume = Math.min(absNormalVel * 0.2, 1.0);
+    // Calculate volume based on velocity (louder for faster impacts)
+    const volume = Math.min(absNormalVel * 0.2, 1.0);
 
-  const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
-  ballglassAudio.currentTime = 0;
-  ballglassAudio.volume = volume;
-  // Add pitch randomization (0.8 to 1.2 times original pitch)
-  ballglassAudio.pitch = (0.8 + Math.random() * 0.4) * ballglassAudio.pitch;
-  ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
-  ballglassAudio.play().catch((e) => console.log("Audio play failed:", e));
-  // }
+    const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
+    ballglassAudio.currentTime = 0;
+    ballglassAudio.volume = volume;
+    // Add pitch randomization (0.8 to 1.2 times original pitch)
+    ballglassAudio.pitch = (0.8 + Math.random() * 0.4) * ballglassAudio.pitch;
+    ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
+    ballglassAudio.play().catch((e) => console.log("Audio play failed:", e));
+  }
 }
 
 // collision handling -------------------------------------------------------
@@ -5959,6 +5951,14 @@ canvas1.addEventListener("mouseleave", handleTankMouseUp);
 
 setupSceneTank();
 updateTank();
+
+// Tank volume slider event listener
+const tankVolumeSlider = document.getElementById("tankVolumeSlider");
+if (tankVolumeSlider) {
+  tankVolumeSlider.addEventListener("input", function () {
+    tankVolume = parseFloat(this.value);
+  });
+}
 
 function updateGravity() {
   simulateGravity();
