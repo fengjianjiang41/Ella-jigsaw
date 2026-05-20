@@ -211,6 +211,8 @@ function updateLoadingProgress() {
 
 function completeLoading() {
   console.log("Reached");
+  // Stop loading text toggle
+  stopLoadingTextToggle();
   const loadingBar = document.getElementById("loadingBar");
   const startText = document.getElementById("startText");
 
@@ -251,6 +253,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (startText) {
     startText.style.display = "none";
   }
+  // Start loading text toggle
+  startLoadingTextToggle();
   initPaintingImages();
   loadAudioFiles();
 });
@@ -270,6 +274,37 @@ let bunClickCount = 0;
 let confirmBtnClicked = false;
 
 let currentLang = "zh"; // Default language: Chinese
+
+// Loading text toggle variables
+let loadingTextIndex = 0;
+let loadingTextInterval = null;
+const loadingTexts = {
+  zh: ["加载中……", "初次加载请耐心等候"],
+  en: ["loading...", "patience for first loading"]
+};
+
+// Function to start loading text toggle
+function startLoadingTextToggle() {
+  if (loadingTextInterval) return;
+  const loadingElement = document.querySelector("#loadingBar div:first-child");
+  console.log(loadingElement);
+  if (!loadingElement) return;
+  console.log(loadingTexts[currentLang]);
+
+  loadingTextInterval = setInterval(() => {
+    loadingTextIndex = (loadingTextIndex + 1) % 2;
+    loadingElement.textContent = loadingTexts[currentLang][loadingTextIndex];
+  }, 5000);
+}
+
+// Function to stop loading text toggle
+function stopLoadingTextToggle() {
+  if (loadingTextInterval) {
+    clearInterval(loadingTextInterval);
+    loadingTextInterval = null;
+    console.log("Loading text toggle stopped");
+  }
+}
 
 // Sliding text animation variables
 let slidingTrack = null;
@@ -4456,8 +4491,8 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       selector: "#loadingBar div:first-child",
-      zh: "音频加载中",
-      en: "loading audio...",
+      zh: "加载中……",
+      en: "loading...",
     },
 
     // Page 2 - Registration
@@ -4620,6 +4655,11 @@ document.addEventListener("DOMContentLoaded", function () {
       currentLang = "zh";
       langBtn.textContent = "EN";
       translatePage(currentLang);
+    }
+    // Update loading text when language changes
+    const loadingElement = document.querySelector("#loadingBar div:first-child");
+    if (loadingElement && loadingElement.style.display !== "none") {
+      loadingElement.textContent = loadingTexts[currentLang][loadingTextIndex];
     }
 
     // Update sliding text with new language
