@@ -1989,9 +1989,15 @@ document.addEventListener("DOMContentLoaded", function () {
       currentPageId = activeBtn ? activeBtn.dataset.page : "page1";
       currentActivePage = currentPageId; // Update current active page
 
-      // Show or hide floating controls based on the current page
+      // Check scroll position - hide when near top or bottom
+      const isNearTop = pagesContainer.scrollTop < 100;
+      const isNearBottom = pagesContainer.scrollTop > pagesContainer.scrollHeight - pagesContainer.clientHeight - 100;
+
+      // Show or hide floating controls based on the current page and scroll position
       if (
-        ["page2", "page3", "page4", "page5", "page6"].includes(currentPageId)
+        ["page2", "page3", "page4", "page5", "page6"].includes(currentPageId) &&
+        !isNearTop &&
+        !isNearBottom
       ) {
         floatingControls.style.display = "flex";
       } else {
@@ -4414,7 +4420,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // 1. It was running before opening the window
     // 2. Not all puzzles are solved
     // 3. Timer is not 0
-    if (wasTimerRunning && !allSolved.every(Boolean) && timer !== 0) {
+    // 4. Stop button has not been clicked (still enabled)
+    if (wasTimerRunning && !allSolved.every(Boolean) && timer !== 0 && !stopBtn.disabled) {
       resumeTimer();
     }
 
@@ -4608,6 +4615,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Footer
     { selector: ".footer-link", zh: "隐私政策", en: "Privacy Policy" },
+    { selector: ".wechat-text", zh: "微信公众号", en: "Wechat Official Account"}
   ];
 
   // Dynamic text translations (used in functions)
