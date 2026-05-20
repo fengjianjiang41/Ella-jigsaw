@@ -320,6 +320,7 @@ canvas {
     cursor: pointer;
     transition: all 0.3s ease;
     overflow: hidden;
+    background-color: #ffffff;
     background-size: cover;
     background-position: center;
     position: relative;
@@ -446,7 +447,7 @@ body {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: transparent;
+    background: #ffffff;
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -574,7 +575,7 @@ body {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: transparent;
+    background: #ffffff;
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

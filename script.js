@@ -4605,6 +4605,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Floating kid mode button
     { selector: "#floatingKidBtn", zh: "小孩内桌", en: "Kid Mode" },
+
+    // Footer
+    { selector: ".footer-link", zh: "隐私政策", en: "Privacy Policy" },
   ];
 
   // Dynamic text translations (used in functions)
