@@ -41,18 +41,19 @@
     transition: color 0.1s ease;
 }
 
-/* Combo flashing animation */
-.page-btn.combo-flashing {
-    color: #000000 !important;
+/* Combo flashing animation - only affects the text */
+.page-btn.combo-flashing .combo-text-inner {
     animation: comboFlash 1s infinite;
 }
 
 @keyframes comboFlash {
     0%, 100% {
         opacity: 1;
+        color: #000000;
     }
     50% {
         opacity: 0;
+        color: #000000;
     }
 }
 
