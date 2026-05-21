@@ -576,16 +576,13 @@ function updateComboDisplay() {
   const activeBtn = document.querySelector('.page-btn.active');
   const allPageBtns = document.querySelectorAll('.page-btn');
 
-  // // Restore images for all buttons (including active one if combo is 0)
-  // allPageBtns.forEach(btn => {
-  //   // Stop flashing for non-active buttons
-  //   if (!btn.classList.contains('active')) {
-  //     stopFlashingForButton(btn);
-  //     restoreButtonImage(btn);
-  //   }
-  // });
-
   if (!confirmBtn || !activeBtn) return;
+
+  // Check if active button is for page 1 or page 6 when confirmBtn is not disabled
+  const activeBtnIndex = activeBtn.dataset.page;
+  if (!confirmBtn.disabled && (activeBtnIndex === 'page1' || activeBtnIndex === 'page6')) {
+    return;
+  }
 
   if (confirmBtn.disabled && currentCombo > 0) {
     // Show combo count on active page button
@@ -647,13 +644,13 @@ function clearCombo() {
   lastMergeTime = 0;
 
   // Stop all flashing buttons
-  // const allPageBtns = document.querySelectorAll('.page-btn');
-  // allPageBtns.forEach(btn => {
-  //   stopFlashingForButton(btn);
-  //   restoreButtonImage(btn);
-  // });
+  const allPageBtns = document.querySelectorAll('.page-btn');
+  allPageBtns.forEach(btn => {
+    stopFlashingForButton(btn);
+    restoreButtonImage(btn);
+  });
 
-  updateComboDisplay();
+  // updateComboDisplay();
 
   // Remove all active combo animations
   comboAnimations.forEach(anim => {
@@ -666,88 +663,89 @@ function clearCombo() {
 
 // Start combo animation
 function startComboAnimation() {
-    if (comboAnimationFrame) return;
-    
-    const activeBtn = document.querySelector('.page-btn.active');
-    if (!activeBtn) return;
-    
-    const animateCombo = () => {
-        // Check if still on active button
-        const currentActiveBtn = document.querySelector('.page-btn.active');
-        if (currentActiveBtn !== activeBtn) {
-            // Button is no longer active, stop animating it
-            stopFlashingForButton(activeBtn);
-            restoreButtonImage(activeBtn);
-            // Start animation on new active button if combo still active
-            if (currentActiveBtn && currentCombo > 0) {
-                showComboOnButton(currentActiveBtn);
-                startComboAnimation();
-            }
-            return;
-        }
-        
-        const elapsed = Date.now() - lastMergeTime;
-        const halfLimit = comboLimit / 2; // 5000ms
-        
-        if (elapsed >= comboLimit) {
-            stopComboAnimation();
-            // Restore button image after combo ends
-            restoreButtonImage(activeBtn);
-            return;
-        }
-        
-        if (elapsed < halfLimit) {
-            // First half: Gradually change color from #ff8fab to #ffb3c2
-            const progress = elapsed / halfLimit;
-            // #ff8fab -> #ffb3c2
-            const r = 255;
-            const g = Math.round(137 + progress * (179 - 137)); // 137 -> 179
-            const b = Math.round(171 + progress * (194 - 171)); // 171 -> 194
-            const innerText = activeBtn.querySelector('.combo-text-inner');
-            if (innerText) {
-                innerText.style.color = `rgb(${r}, ${g}, ${b})`;
-            }
-            activeBtn.classList.remove('combo-flashing');
-        } else {
-            // Second half: Black color with flashing
-            const innerText = activeBtn.querySelector('.combo-text-inner');
-            if (innerText) {
-                innerText.style.color = '#000000';
-            }
-            activeBtn.classList.add('combo-flashing');
-            
-            // Calculate flash frequency (1Hz to 5Hz)
-            const flashProgress = (elapsed - halfLimit) / halfLimit;
-            const frequency = 1 + flashProgress * 4; // 1Hz -> 5Hz
-            const period = 1000 / frequency;
-            
-            // Update animation duration dynamically on inner text
-            const comboTextInner = activeBtn.querySelector('.combo-text-inner');
-            if (comboTextInner) {
-                comboTextInner.style.animationDuration = `${period / 2}ms`;
-            }
-        }
-        
-        comboAnimationFrame = requestAnimationFrame(animateCombo);
-    };
-    
-    animateCombo();
+  console.log(comboAnimationFrame);
+  if (comboAnimationFrame) return;
+
+  let activeBtn = document.querySelector('.page-btn.active');
+  if (!activeBtn) return;
+
+  const animateCombo = () => {
+    // Check if still on active button
+    let currentActiveBtn = document.querySelector('.page-btn.active');
+    if (currentActiveBtn !== activeBtn) {
+      // Button is no longer active, stop animating it
+      stopFlashingForButton(activeBtn);
+      restoreButtonImage(activeBtn);
+      // Start animation on new active button if combo still active
+      if (currentActiveBtn && currentCombo > 0) {
+        showComboOnButton(currentActiveBtn);
+        startComboAnimation();
+      }
+      activeBtn = currentActiveBtn;
+    }
+
+    const elapsed = Date.now() - lastMergeTime;
+    const halfLimit = comboLimit / 2; // 5000ms
+
+    if (elapsed >= comboLimit) {
+      stopComboAnimation();
+      // Restore button image after combo ends
+      restoreButtonImage(activeBtn);
+      return;
+    }
+
+    if (elapsed < halfLimit) {
+      // First half: Gradually change color from #ff8fab to #ffb3c2
+      const progress = elapsed / halfLimit;
+      // #ff8fab -> #ffb3c2
+      const r = 255;
+      const g = Math.round(137 + progress * (179 - 137)); // 137 -> 179
+      const b = Math.round(171 + progress * (194 - 171)); // 171 -> 194
+      const innerText = activeBtn.querySelector('.combo-text-inner');
+      if (innerText) {
+        innerText.style.color = `rgb(${r}, ${g}, ${b})`;
+      }
+      activeBtn.classList.remove('combo-flashing');
+    } else {
+      // Second half: Black color with flashing
+      const innerText = activeBtn.querySelector('.combo-text-inner');
+      if (innerText) {
+        innerText.style.color = '#000000';
+      }
+      activeBtn.classList.add('combo-flashing');
+
+      // Calculate flash frequency (1Hz to 5Hz)
+      const flashProgress = (elapsed - halfLimit) / halfLimit;
+      const frequency = 1 + flashProgress * 4; // 1Hz -> 5Hz
+      const period = 1000 / frequency;
+
+      // Update animation duration dynamically on inner text
+      const comboTextInner = activeBtn.querySelector('.combo-text-inner');
+      if (comboTextInner) {
+        comboTextInner.style.animationDuration = `${period / 2}ms`;
+      }
+    }
+
+    comboAnimationFrame = requestAnimationFrame(animateCombo);
+  };
+
+  animateCombo();
 }
 
 // Stop combo animation
 function stopComboAnimation() {
-    if (comboAnimationFrame) {
-        cancelAnimationFrame(comboAnimationFrame);
-        comboAnimationFrame = null;
-    }
-    
-    const activeBtn = document.querySelector('.page-btn.active');
-    const innerText = activeBtn.querySelector('.combo-text-inner');
-    if (activeBtn) {
-        activeBtn.classList.remove('combo-flashing');
-        activeBtn.style.animationDuration = '';
-    }
-    activeBtn.removeChild(innerText);
+  if (comboAnimationFrame) {
+    cancelAnimationFrame(comboAnimationFrame);
+    comboAnimationFrame = null;
+  }
+
+  const activeBtn = document.querySelector('.page-btn.active');
+  const innerText = activeBtn.querySelector('.combo-text-inner');
+  if (activeBtn) {
+    activeBtn.classList.remove('combo-flashing');
+    activeBtn.style.animationDuration = '';
+  }
+  activeBtn.removeChild(innerText);
 }
 
 // Available songs
