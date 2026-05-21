@@ -314,88 +314,88 @@ let slidingTextWidth = 0; // Store calculated text width
 
 // Function to get current sliding text content
 function getSlidingTextContent() {
-    return currentLang === "zh" ? "移山工作室出品" : "Made by Moventertain Studio";
+  return currentLang === "zh" ? "移山工作室出品" : "Made by Moventertain Studio";
 }
 
 // Function to initialize sliding text
 function initSlidingText() {
-    const container = document.getElementById('slidingTextContainer');
-    slidingTrack = document.getElementById('slidingTrack');
-    if (!container || !slidingTrack) return;
+  const container = document.getElementById('slidingTextContainer');
+  slidingTrack = document.getElementById('slidingTrack');
+  if (!container || !slidingTrack) return;
 
-    // Clear existing content
-    slidingTrack.innerHTML = '';
-    slidingOffset = 0;
+  // Clear existing content
+  slidingTrack.innerHTML = '';
+  slidingOffset = 0;
 
-    // Calculate text width and fill the track
-    const tempSpan = document.createElement('span');
-    tempSpan.className = 'sliding-text';
-    tempSpan.textContent = getSlidingTextContent();
-    document.body.appendChild(tempSpan);
-    slidingTextWidth = tempSpan.offsetWidth + 20; // Include margin
-    document.body.removeChild(tempSpan);
+  // Calculate text width and fill the track
+  const tempSpan = document.createElement('span');
+  tempSpan.className = 'sliding-text';
+  tempSpan.textContent = getSlidingTextContent();
+  document.body.appendChild(tempSpan);
+  slidingTextWidth = tempSpan.offsetWidth + 20; // Include margin
+  document.body.removeChild(tempSpan);
 
-    // Fill the track with enough text instances
-    const containerWidth = container.offsetWidth;
-    const instancesNeeded = Math.ceil(containerWidth / slidingTextWidth) + 2;
+  // Fill the track with enough text instances
+  const containerWidth = container.offsetWidth;
+  const instancesNeeded = Math.ceil(containerWidth / slidingTextWidth) + 2;
 
-    for (let i = 0; i < instancesNeeded; i++) {
-        const span = document.createElement('span');
-        span.className = 'sliding-text';
-        span.textContent = getSlidingTextContent();
-        slidingTrack.appendChild(span);
-    }
+  for (let i = 0; i < instancesNeeded; i++) {
+    const span = document.createElement('span');
+    span.className = 'sliding-text';
+    span.textContent = getSlidingTextContent();
+    slidingTrack.appendChild(span);
+  }
 
-    // Start animation
-    startSlidingAnimation();
+  // Start animation
+  startSlidingAnimation();
 }
 
 // Function to start sliding animation
 function startSlidingAnimation() {
-    if (!slidingTrack) return;
+  if (!slidingTrack) return;
 
-    const animate = () => {
-        slidingOffset -= 0.5; // Slow speed
-        slidingTrack.style.transform = `translateX(${slidingOffset}px)`;
+  const animate = () => {
+    slidingOffset -= 0.5; // Slow speed
+    slidingTrack.style.transform = `translateX(${slidingOffset}px)`;
 
-        // Check if we need to add/remove elements
-        if (slidingOffset <= -slidingTextWidth) {
-            // Remove leftmost element
-            if (slidingTrack.firstChild) {
-                slidingTrack.removeChild(slidingTrack.firstChild);
-            }
-            // Add new rightmost element
-            const span = document.createElement('span');
-            span.className = 'sliding-text';
-            span.textContent = getSlidingTextContent();
-            slidingTrack.appendChild(span);
-            slidingOffset += slidingTextWidth;
-        }
+    // Check if we need to add/remove elements
+    if (slidingOffset <= -slidingTextWidth) {
+      // Remove leftmost element
+      if (slidingTrack.firstChild) {
+        slidingTrack.removeChild(slidingTrack.firstChild);
+      }
+      // Add new rightmost element
+      const span = document.createElement('span');
+      span.className = 'sliding-text';
+      span.textContent = getSlidingTextContent();
+      slidingTrack.appendChild(span);
+      slidingOffset += slidingTextWidth;
+    }
 
-        slidingAnimationId = requestAnimationFrame(animate);
-    };
+    slidingAnimationId = requestAnimationFrame(animate);
+  };
 
-    animate();
+  animate();
 }
 
 // Function to stop sliding animation
 function stopSlidingAnimation() {
-    if (slidingAnimationId) {
-        cancelAnimationFrame(slidingAnimationId);
-        slidingAnimationId = null;
-    }
+  if (slidingAnimationId) {
+    cancelAnimationFrame(slidingAnimationId);
+    slidingAnimationId = null;
+  }
 }
 
 // Function to update sliding text based on language
 function updateSlidingText() {
-    const container = document.getElementById('slidingTextContainer');
-    if (!container || !container.classList.contains('visible')) return;
+  const container = document.getElementById('slidingTextContainer');
+  if (!container || !container.classList.contains('visible')) return;
 
-    // Stop current animation
-    stopSlidingAnimation();
+  // Stop current animation
+  stopSlidingAnimation();
 
-    // Reinitialize with new language
-    initSlidingText();
+  // Reinitialize with new language
+  initSlidingText();
 }
 
 // Door button state management
@@ -467,6 +467,221 @@ let difficulty3SolvedOnce = false; // 标记难度3是否已解决一次
 let noteIndex = 0;
 let currentSong = [];
 let currentSongKey = null; // Track the current song key
+
+// Combo mechanism variables
+let maxCombo = 0;
+let currentCombo = 0;
+let comboLimit = 10000; // 2 seconds combo limit
+let lastMergeTime = 0;
+let comboAnimations = []; // Track active combo animations
+
+// Initialize combo at the start of a new round
+function initCombo() {
+  maxCombo = 0;
+  currentCombo = 0;
+  lastMergeTime = 0;
+}
+
+// Handle combo when a piece is merged
+function handleCombo(puzzleIdx, piece) {
+  // Check if the dragged piece has ever been merged before
+  // If so, don't increase combo
+  if (piece.hasMerged) return;
+
+  const now = Date.now();
+
+  // Mark this piece as having been merged
+  piece.hasMerged = true;
+
+  // Check if within combo time limit
+  if (now - lastMergeTime <= comboLimit && lastMergeTime > 0) {
+    currentCombo++;
+    // Update max combo if exceeded
+    if (currentCombo > maxCombo) {
+      maxCombo = currentCombo;
+    }
+  } else {
+    // Reset combo if time limit exceeded
+    currentCombo = 1;
+  }
+
+  // Update last merge time
+  lastMergeTime = now;
+
+  // Show combo text above the merged piece
+  showComboText(currentCombo, puzzleIdx, piece);
+
+  // Update combo display on page buttons
+  updateComboDisplay();
+}
+
+// Show combo text animation above the merged piece
+function showComboText(currentCombo, puzzleIdx, piece) {
+  if (currentCombo === 1) return;
+  const canvas = canvases[puzzleIdx];
+  const rect = canvas.getBoundingClientRect();
+
+  // Calculate position - center of the merged piece on screen
+  // const screenX = piece.x;
+  // const screenY = piece.y;
+  const screenX = rect.left + (piece.x / canvas.width) * rect.width + pieceXSize / 4;
+  const screenY = rect.top + (piece.y / canvas.height) * rect.height;
+
+  // Create combo text element
+  const comboElement = document.createElement('div');
+  comboElement.className = 'combo-text';
+  comboElement.textContent = 'ComBo!';
+  comboElement.style.left = screenX + 'px';
+  comboElement.style.top = screenY + 'px';
+  comboElement.style.transform = 'translate(-50%, -100%)';
+  comboElement.style.opacity = '1';
+
+  document.body.appendChild(comboElement);
+
+  // Add to active animations
+  const animationId = Date.now();
+  comboAnimations.push({ id: animationId, element: comboElement });
+
+  // Animate opacity from 1 to 0 over comboLimit duration
+  const startTime = Date.now();
+  const animate = () => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / comboLimit, 1);
+    comboElement.style.opacity = (1 - progress).toString();
+
+    // Move text upward
+    const riseDistance = 50;
+    comboElement.style.top = (screenY - progress * riseDistance) + 'px';
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // Remove element and clean up
+      document.body.removeChild(comboElement);
+      comboAnimations = comboAnimations.filter(a => a.id !== animationId);
+    }
+  };
+
+  requestAnimationFrame(animate);
+}
+
+// Add new variables for combo animation
+let comboAnimationFrame = null;
+let lastComboUpdateTime = 0;
+
+// Update combo display on the currently active page button
+function updateComboDisplay() {
+  const confirmBtn = document.getElementById('confirmBtn');
+  const activeBtn = document.querySelector('.page-btn.active');
+  const allPageBtns = document.querySelectorAll('.page-btn');
+
+  // Restore images for all non-active buttons
+  allPageBtns.forEach(btn => {
+    if (!btn.classList.contains('active')) {
+      btn.classList.remove('combo-display');
+      btn.classList.remove('combo-flashing');
+      btn.textContent = '';
+      btn.style.backgroundImage = '';
+    }
+  });
+
+  if (!confirmBtn || !activeBtn) return;
+
+  if (confirmBtn.disabled && currentCombo > 0) {
+    // Show combo count on active page button
+    activeBtn.classList.add('combo-display');
+    activeBtn.textContent = currentCombo.toString();
+    // Remove background image when showing combo
+    activeBtn.style.backgroundImage = 'none';
+
+    // Start combo animation loop
+    startComboAnimation();
+  } else {
+    // Restore page button image
+    activeBtn.classList.remove('combo-display');
+    activeBtn.classList.remove('combo-flashing');
+    activeBtn.textContent = '';
+    // Remove inline backgroundImage style to restore CSS background
+    activeBtn.style.backgroundImage = '';
+
+    // Stop combo animation
+    stopComboAnimation();
+  }
+}
+
+// Clear combo and reset display
+function clearCombo() {
+  currentCombo = 0;
+  lastMergeTime = 0;
+  updateComboDisplay();
+
+  // Remove all active combo animations
+  comboAnimations.forEach(anim => {
+    if (anim.element.parentNode) {
+      document.body.removeChild(anim.element);
+    }
+  });
+  comboAnimations = [];
+}
+
+// Start combo animation
+function startComboAnimation() {
+    if (comboAnimationFrame) return;
+    
+    const activeBtn = document.querySelector('.page-btn.active');
+    if (!activeBtn) return;
+    
+    const animateCombo = () => {
+        const elapsed = Date.now() - lastMergeTime;
+        const halfLimit = comboLimit / 2; // 5000ms
+        
+        if (elapsed >= comboLimit) {
+            stopComboAnimation();
+            return;
+        }
+        
+        if (elapsed < halfLimit) {
+            // First half: Gradually change color from #ff8fab to #ffb3c2
+            const progress = elapsed / halfLimit;
+            // #ff8fab -> #ffb3c2
+            const r = 255;
+            const g = Math.round(137 + progress * (179 - 137)); // 137 -> 179
+            const b = Math.round(171 + progress * (194 - 171)); // 171 -> 194
+            activeBtn.style.color = `rgb(${r}, ${g}, ${b})`;
+            activeBtn.classList.remove('combo-flashing');
+        } else {
+            // Second half: Black color with flashing
+            activeBtn.style.color = '#000000';
+            activeBtn.classList.add('combo-flashing');
+            
+            // Calculate flash frequency (1Hz to 5Hz)
+            const flashProgress = (elapsed - halfLimit) / halfLimit;
+            const frequency = 1 + flashProgress * 4; // 1Hz -> 5Hz
+            const period = 1000 / frequency;
+            
+            // Update animation duration dynamically
+            activeBtn.style.animationDuration = `${period / 2}ms`;
+        }
+        
+        comboAnimationFrame = requestAnimationFrame(animateCombo);
+    };
+    
+    animateCombo();
+}
+
+// Stop combo animation
+function stopComboAnimation() {
+    if (comboAnimationFrame) {
+        cancelAnimationFrame(comboAnimationFrame);
+        comboAnimationFrame = null;
+    }
+    
+    const activeBtn = document.querySelector('.page-btn.active');
+    if (activeBtn) {
+        activeBtn.classList.remove('combo-flashing');
+        activeBtn.style.animationDuration = '';
+    }
+}
 
 // Available songs
 const songs = {
@@ -950,6 +1165,7 @@ class Piece {
     this.offsetX = 0;
     this.offsetY = 0;
     this.puzzleIdx = puzzleIdx;
+    this.hasMerged = false; // Track if this piece has ever been merged
     // Size animation properties
     this.size = 1.0;
     this.targetSize = 1.0;
@@ -1197,7 +1413,7 @@ function animatePuzzle(idx) {
           piece.alpha =
             0.5 +
             0.5 *
-              Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
+            Math.sin((piece.time / piece.period) * Math.PI * 2 + piece.phase);
         } else {
           // Stop breathing once connected
           piece.alpha = 1;
@@ -1361,6 +1577,9 @@ function tryMerge(idx, piece) {
     // Play success sound
     playSFX("audio/success.m4a", 0.2);
 
+    // Handle combo
+    handleCombo(idx, piece);
+
     // Trigger merge highlight
     puzzles[idx].mergeHighlight = true;
     // Reset highlight after 500ms
@@ -1440,6 +1659,8 @@ function solvedScroll() {
     playSFX("audio/group.mp3");
     const confirmBtn = document.getElementById("confirmBtn");
     confirmBtn.disabled = false;
+    // Update combo display when confirmBtn is enabled
+    updateComboDisplay();
     const topBtn = document.getElementById("topBtn");
     topBtn.disabled = true;
     confirmBtn.classList.add("active");
@@ -2076,9 +2297,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!start) start = ts;
       const progress = ts - start;
       const percent = Math.min(progress / duration, 1);
-      floating.style.top = `${
-        bunRect.top + topOffset - percent * riseDistance
-      }px`;
+      floating.style.top = `${bunRect.top + topOffset - percent * riseDistance
+        }px`;
       floating.style.opacity = `${1 - percent}`;
       if (percent < 1) {
         requestAnimationFrame(animate);
@@ -2095,7 +2315,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Get the left-bottom image element
     const leftBottomImg = document.querySelector(".left-bottom-img");
-    
+
     // Play random audio from existing files
     const randomIndex = Math.floor(Math.random() * audioFiles.length);
     playSFX(audioFiles[randomIndex]);
@@ -2165,6 +2385,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!difficultySelected) return alert("请选择难度!");
     if (!sourceSelected) return alert("请选择图包!");
     selectRandomSong();
+
+    // Initialize combo for new round
+    initCombo();
 
     if (currentDifficulty > 1) noteIndex = 0;
 
@@ -2236,6 +2459,9 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+
+    // Clear combo when game stops
+    clearCombo();
     // Enable difficulty buttons when game stops
     [difficulty1Btn, difficulty2Btn, difficulty3Btn, difficulty4Btn].forEach(
       (btn) => {
@@ -2271,6 +2497,9 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtnFloat.disabled = true;
     startBtn.disabled = false;
     checkStartButtonEnabled();
+
+    // Clear combo when game restarts
+    clearCombo();
     // Enable difficulty buttons when game restarts
     [difficulty1Btn, difficulty2Btn, difficulty3Btn].forEach((btn) => {
       btn.disabled = false;
@@ -2371,6 +2600,8 @@ document.addEventListener("DOMContentLoaded", function () {
     updatePersonalList();
     updateGlobalList();
     confirmBtn.disabled = true;
+    // Update combo display when confirmBtn is disabled
+    clearCombo();
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
@@ -2956,22 +3187,22 @@ class FlipFluid {
           var offset = component == 0 ? n : 1;
           var valid0 =
             this.cellType[nr0] != AIR_CELL ||
-            this.cellType[nr0 - offset] != AIR_CELL
+              this.cellType[nr0 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid1 =
             this.cellType[nr1] != AIR_CELL ||
-            this.cellType[nr1 - offset] != AIR_CELL
+              this.cellType[nr1 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid2 =
             this.cellType[nr2] != AIR_CELL ||
-            this.cellType[nr2 - offset] != AIR_CELL
+              this.cellType[nr2 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
           var valid3 =
             this.cellType[nr3] != AIR_CELL ||
-            this.cellType[nr3 - offset] != AIR_CELL
+              this.cellType[nr3 - offset] != AIR_CELL
               ? 1.0
               : 0.0;
 
@@ -3228,13 +3459,13 @@ class FlipFluid {
       );
       this.particleColor[3 * i + 1] = clamp(
         this.particleColor[3 * i + 1] +
-          (TARGET_G - this.particleColor[3 * i + 1]) * s,
+        (TARGET_G - this.particleColor[3 * i + 1]) * s,
         0.0,
         1.0,
       );
       this.particleColor[3 * i + 2] = clamp(
         this.particleColor[3 * i + 2] +
-          (TARGET_B - this.particleColor[3 * i + 2]) * s,
+        (TARGET_B - this.particleColor[3 * i + 2]) * s,
         0.0,
         1.0,
       );
@@ -4173,7 +4404,7 @@ document.addEventListener("DOMContentLoaded", function () {
       : "暂停";
     dragHint.style.visibility =
       pauseBtn.textContent.trim() === pauseTextZh ||
-      pauseBtn.textContent.trim() === pauseTextEn
+        pauseBtn.textContent.trim() === pauseTextEn
         ? "visible"
         : "hidden";
 
@@ -4181,7 +4412,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const observer = new MutationObserver(() => {
       dragHint.style.visibility =
         pauseBtn.textContent.trim() === pauseTextZh ||
-        pauseBtn.textContent.trim() === pauseTextEn
+          pauseBtn.textContent.trim() === pauseTextEn
           ? "visible"
           : "hidden";
     });
@@ -4200,7 +4431,7 @@ document.addEventListener("DOMContentLoaded", function () {
       : "暂停";
     dragHint2.style.visibility =
       pauseBtn.textContent.trim() === pauseTextZh2 ||
-      pauseBtn.textContent.trim() === pauseTextEn2
+        pauseBtn.textContent.trim() === pauseTextEn2
         ? "visible"
         : "hidden";
 
@@ -4208,7 +4439,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const observer = new MutationObserver(() => {
       dragHint2.style.visibility =
         pauseBtn.textContent.trim() === pauseTextZh2 ||
-        pauseBtn.textContent.trim() === pauseTextEn2
+          pauseBtn.textContent.trim() === pauseTextEn2
           ? "visible"
           : "hidden";
     });
@@ -4615,7 +4846,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Footer
     { selector: ".footer-link", zh: "隐私政策", en: "Privacy Policy" },
-    { selector: ".wechat-text", zh: "微信公众号", en: "Wechat Official Account"}
+    { selector: ".wechat-text", zh: "微信公众号", en: "Wechat Official Account" }
   ];
 
   // Dynamic text translations (used in functions)
@@ -5540,27 +5771,27 @@ function playBallBallSound(normalMomentum) {
 }
 
 function playBallGlassSound(normalVel) {
-    // Set velocity threshold for long sound
-    const velocityThreshold = 5.0;
-    const absNormalVel = Math.abs(normalVel);
+  // Set velocity threshold for long sound
+  const velocityThreshold = 5.0;
+  const absNormalVel = Math.abs(normalVel);
 
-    // Select sound file based on velocity
-    const soundFile =
-      absNormalVel > velocityThreshold
-        ? "audio/ballglasslong.mp3"
-        : "audio/ballglassshort.mp3";
+  // Select sound file based on velocity
+  const soundFile =
+    absNormalVel > velocityThreshold
+      ? "audio/ballglasslong.mp3"
+      : "audio/ballglassshort.mp3";
 
-    // Calculate volume based on velocity (louder for faster impacts)
-    const volume = Math.min(absNormalVel * 0.2, 1.0);
+  // Calculate volume based on velocity (louder for faster impacts)
+  const volume = Math.min(absNormalVel * 0.2, 1.0);
 
-    const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
-    ballglassAudio.currentTime = 0;
-    ballglassAudio.volume = volume;
-    // Add pitch randomization (0.8 to 1.2 times original pitch)
-    ballglassAudio.pitch = (0.8 + Math.random() * 0.4) * ballglassAudio.pitch;
-    ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
-    ballglassAudio.play().catch((e) => console.log("Audio play failed:", e));
-  }
+  const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
+  ballglassAudio.currentTime = 0;
+  ballglassAudio.volume = volume;
+  // Add pitch randomization (0.8 to 1.2 times original pitch)
+  ballglassAudio.pitch = (0.8 + Math.random() * 0.4) * ballglassAudio.pitch;
+  ballglassAudio.playbackRate = 0.8 + Math.random() * 0.4;
+  ballglassAudio.play().catch((e) => console.log("Audio play failed:", e));
+}
 
 // collision handling -------------------------------------------------------
 

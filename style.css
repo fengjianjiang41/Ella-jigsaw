@@ -4,6 +4,58 @@
     font-weight: normal;
     font-style: normal;
 }
+
+@font-face {
+    font-family: 'slkscrb';
+    src: url('font/slkscrb.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Combo text styles */
+.combo-text {
+    font-family: 'slkscrb', Arial, sans-serif;
+    position: absolute;
+    font-size: 48px;
+    font-weight: bold;
+    color: #ff69b4;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    z-index: 10000;
+    text-align: center;
+}
+
+/* Combo count on page buttons */
+.page-btn.combo-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff8fab !important;
+    font-family: 'slkscrb', Arial, sans-serif;
+    font-size: 32px;
+    font-weight: bold;
+    text-shadow: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    image-rendering: crisp-edges;
+    transition: color 0.1s ease;
+}
+
+/* Combo flashing animation */
+.page-btn.combo-flashing {
+    color: #000000 !important;
+    animation: comboFlash 1s infinite;
+}
+
+@keyframes comboFlash {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
 body {
     font-family: 'CustomFont', Arial, sans-serif;
     margin: 0;
@@ -68,7 +120,6 @@ header {
 
 .wechat-text {
     font-size: 12px;
-    opacity: 0.9;
 }
 
 .wechat-text.en {
@@ -85,7 +136,6 @@ header {
 .footer-info p {
     margin: 0;
     font-size: 14px;
-    opacity: 0.9;
 }
 
 .footer-links {
@@ -105,10 +155,6 @@ header {
 .footer-link:hover {
     opacity: 0.8;
     border-bottom-color: #fff;
-}
-
-.footer-divider {
-    opacity: 0.5;
 }
 
 main {
