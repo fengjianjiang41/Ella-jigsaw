@@ -474,6 +474,24 @@ let currentCombo = 0;
 let comboLimit = 10000; // 2 seconds combo limit
 let lastMergeTime = 0;
 let comboAnimations = []; // Track active combo animations
+let allTimeMaxCombo = 0; // Track all-time maximum combo
+let completedDifficulty = 1; // Track the difficulty of the last completed round
+
+// Get combo text color style based on difficulty
+function getComboColorStyle(difficulty) {
+  switch(difficulty) {
+    case 1:
+      return { color: '#cd7f32', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(205, 127, 50, 0.5)', animation: '' };
+    case 2:
+      return { color: '#c0c0c0', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(192, 192, 192, 0.5)', animation: '' };
+    case 3:
+      return { color: '#ffd700', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.5)', animation: '' };
+    case 4:
+      return { color: '#5bcffa', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 15px rgba(91, 207, 250, 0.8)', animation: 'animation: comboFlicker 3s ease-in-out infinite' };
+    default:
+      return { color: '#ff69b4', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)', animation: '' };
+  }
+}
 
 // Initialize combo at the start of a new round
 function initCombo() {
@@ -640,6 +658,10 @@ function restoreButtonImage(btn) {
 
 // Clear combo and reset display
 function clearCombo() {
+  // Update all-time max combo before resetting
+  if (maxCombo > allTimeMaxCombo) {
+    allTimeMaxCombo = maxCombo;
+  }
   currentCombo = 0;
   lastMergeTime = 0;
 
@@ -2265,7 +2287,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 监听滚动更新当前页面并控制浮动控件显隐（只在 page3-5 显示）
   let scrollTimeout;
+  let lastScrollTop = 0;
+  let isScrollingDown = false;
+  let scrollDirectionTimeout;
+  
   pagesContainer.addEventListener("scroll", function () {
+    // Detect scroll direction
+    const currentScrollTop = pagesContainer.scrollTop;
+    isScrollingDown = currentScrollTop > lastScrollTop;
+    lastScrollTop = currentScrollTop;
+    
+    // Update congratulations text based on scroll direction
+    updateCongratulationsTextOnScroll(isScrollingDown);
+    
+    // Clear previous direction timeout and set new one
+    clearTimeout(scrollDirectionTimeout);
+    scrollDirectionTimeout = setTimeout(() => {
+      // When scrolling stops, show combo text again
+      updateCongratulationsTextOnScroll(false);
+    }, 200);
+    
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       let currentPageId = "page1";
@@ -2306,6 +2347,30 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }, 100);
   });
+
+  // Update congratulations text based on scroll direction
+  function updateCongratulationsTextOnScroll(scrollingDown) {
+    const congratulationsText = document.getElementById("congratulationsText");
+    if (!congratulationsText || !confirmBtnClicked) return;
+    
+    const h2 = congratulationsText.querySelector("h2");
+    if (!h2) return;
+    
+    // Check if current text is combo text (contains "Combo!")
+    const isComboText = h2.textContent.includes("ComBo!");
+    
+    if (scrollingDown && isComboText) {
+      // Show "往下有惊喜" when scrolling down
+      congratulationsText.innerHTML =
+        currentLang === "zh"
+          ? "<h2 style='color: #000000; text-shadow: none;'>往下有惊喜</h2>"
+          : "<h2 style='color: #000000; text-shadow: none;'>surprise below</h2>";
+    } else if (!scrollingDown && !isComboText) {
+      // Show combo text when scrolling stops or scrolling up
+      const comboColorStyle = getComboColorStyle(completedDifficulty);
+      congratulationsText.innerHTML = `<h2 style="color: ${comboColorStyle.color}; text-shadow: ${comboColorStyle.textShadow}; ${comboColorStyle.animation};">${allTimeMaxCombo} ComBo!</h2>`;
+    }
+  }
 
   // 显示音效与浮动文字（保留）
 
@@ -2723,23 +2788,27 @@ document.addEventListener("DOMContentLoaded", function () {
           gifElement.parentNode.removeChild(gifElement);
         }
 
-        // Restore original content but with "往下有惊喜"
-        congratulationsText.innerHTML =
-          currentLang === "zh"
-            ? "<h2>往下有惊喜</h2>"
-            : "<h2>surprise below</h2>";
+        // Update all-time max combo
+      if (maxCombo > allTimeMaxCombo) {
+        allTimeMaxCombo = maxCombo;
+      }
 
-        // Reset positioning
-        congratulationsText.style.position = "";
+      // Record the completed difficulty for the combo text color
+      completedDifficulty = currentDifficulty;
 
-        // Ensure no animations are applied
-        const h2 = congratulationsText.querySelector("h2");
-        if (h2) {
-          h2.classList.remove("congrats-animate", "color-dancing");
-          h2.style.animation = "none";
-          h2.style.color = "#000000"; // Reset to original color
-        }
-      }, 1400); // Adjust timing based on actual gif duration
+      // Display "xx Combo!" with difficulty-based color
+      const comboColorStyle = getComboColorStyle(completedDifficulty);
+      congratulationsText.innerHTML = `<h2 style="color: ${comboColorStyle.color}; text-shadow: ${comboColorStyle.textShadow}; ${comboColorStyle.animation};">${allTimeMaxCombo} ComBo!</h2>`;
+
+      // Reset positioning
+      congratulationsText.style.position = "";
+
+      // Ensure no unwanted animations are applied
+      const h2 = congratulationsText.querySelector("h2");
+      if (h2) {
+        h2.classList.remove("congrats-animate", "color-dancing");
+      }
+    }, 1400); // Adjust timing based on actual gif duration
     }
   };
 
