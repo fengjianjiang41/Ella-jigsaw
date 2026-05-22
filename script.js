@@ -529,7 +529,7 @@ function showComboText(currentCombo, puzzleIdx, piece) {
 
   // Create combo text element
   const comboElement = document.createElement('div');
-  comboElement.className = 'combo-text';
+  comboElement.className = `combo-text difficulty-${currentDifficulty}`;
   comboElement.textContent = 'ComBo!';
   comboElement.style.left = screenX + 'px';
   comboElement.style.top = screenY + 'px';

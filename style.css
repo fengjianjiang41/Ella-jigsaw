@@ -25,6 +25,39 @@
     text-align: center;
 }
 
+/* Combo text colors by difficulty */
+.combo-text.difficulty-1 {
+    color: #cd7f32; /* Bronze */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(205, 127, 50, 0.5);
+}
+
+.combo-text.difficulty-2 {
+    color: #c0c0c0; /* Silver */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(192, 192, 192, 0.5);
+}
+
+.combo-text.difficulty-3 {
+    color: #ffd700; /* Gold */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.combo-text.difficulty-4 {
+    color: #5bcffa; /* White-blue */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 15px rgba(91, 207, 250, 0.8);
+    animation: comboFlicker 3s ease-in-out infinite;
+}
+
+@keyframes comboFlicker {
+    0%, 100% {
+        color: #5bcffa;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 15px rgba(91, 207, 250, 0.8);
+    }
+    50% {
+        color: #ffffff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 1);
+    }
+}
+
 /* Combo count on page buttons */
 .page-btn.combo-display {
     display: flex;
