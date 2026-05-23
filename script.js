@@ -471,7 +471,7 @@ let currentSongKey = null; // Track the current song key
 // Combo mechanism variables
 let maxCombo = 0;
 let currentCombo = 0;
-let comboLimit = 10000; // 2 seconds combo limit
+let comboLimit = 5000; // 2 seconds combo limit
 let lastMergeTime = 0;
 let comboAnimations = []; // Track active combo animations
 let allTimeMaxCombo = 0; // Track all-time maximum combo
@@ -562,6 +562,11 @@ function showComboText(currentCombo, puzzleIdx, piece) {
 
   // Animate opacity from 1 to 0 over comboLimit duration
   const startTime = Date.now();
+  
+  // Easing functions for smooth transitions
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  
   const animate = () => {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / comboLimit, 1);
@@ -570,6 +575,26 @@ function showComboText(currentCombo, puzzleIdx, piece) {
     // Move text upward
     const riseDistance = 50;
     comboElement.style.top = (screenY - progress * riseDistance) + 'px';
+
+    // Size animation: 
+    // First 1/5 of comboLimit: expand from 0.1 to 1 (10% to 100%)
+    // Remaining 4/5 of comboLimit: shrink from 1 to 0.5 (100% to 50%)
+    let scale;
+    const expandPhase = 0.1; // 1/5 of combo limit
+    
+    if (progress < expandPhase) {
+      // Expansion phase: easeOut for smooth start
+      const expandProgress = progress / expandPhase;
+      const easedProgress = easeOutCubic(expandProgress);
+      scale = 0.1 + easedProgress * 0.9; // from 0.1 to 1
+    } else {
+      // Shrink phase: easeInOut for smooth start and end
+      const shrinkProgress = (progress - expandPhase) / (1 - expandPhase);
+      const easedProgress = easeInOutCubic(shrinkProgress);
+      scale = 1 - easedProgress * 0.5; // from 1 to 0.5
+    }
+    
+    comboElement.style.transform = `translate(-50%, -100%) scale(${scale})`;
 
     if (progress < 1) {
       requestAnimationFrame(animate);
