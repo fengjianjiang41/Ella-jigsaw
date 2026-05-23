@@ -5042,6 +5042,20 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     { selector: "#dragHint2", zh: "试着鼠标拽一下我", en: "try dragging me" },
 
+    // Add these entries in the translationElements array
+    {
+      selector: "#tankTitle",
+      attr: "src",
+      zh: "images/tubzh.png",
+      en: "images/tuben.png"
+    },
+    {
+      selector: "#gravityTitle",
+      attr: "src",
+      zh: "images/billiardzh.png",
+      en: "images/billiarden.png"
+    },
+
     // Floating controls (拼图页)
     { selector: "#stopBtn", zh: "停止", en: "stop" },
     { selector: "#restartBtnFloat", zh: "重新开始", en: "restart" },
