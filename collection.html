@@ -105,6 +105,39 @@
             object-fit: cover;
         }
 
+        /* Overlay text for speed/combo mode */
+        .painting-item .overlay-text {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 2;
+        }
+
+        .painting-item.difficulty-1 .overlay-text {
+            border-left: 3px solid #cd7f32;
+        }
+
+        .painting-item.difficulty-2 .overlay-text {
+            border-left: 3px solid #c0c0c0;
+        }
+
+        .painting-item.difficulty-3 .overlay-text {
+            border-left: 3px solid #ffd700;
+        }
+
+        .painting-item.difficulty-4 .overlay-text {
+            border-left: 3px solid #5bcffa;
+        }
+
         .empty-state {
             text-align: center;
             font-size: 24px;
@@ -404,11 +437,27 @@
                 }
             });
 
-            grid.innerHTML = solvedArray.map(item => `
-                <div class="painting-item difficulty-${item.difficulty}" onclick="openLightbox('images/paintings/${item.num}.jpg')">
-                    <img src="images/paintings/${item.num}.jpg" alt="Painting ${item.num}">
-                </div>
-            `).join('');
+            // Generate overlay text based on sort mode
+            const getOverlayText = (item) => {
+                if (currentSortMode === 'speed') {
+                    // Format solve time (convert ms to readable format)
+                    const seconds = (item.solveTime / 1000).toFixed(1);
+                    return `${seconds}s`;
+                } else if (currentSortMode === 'combo') {
+                    return `Combo: ${item.combo}`;
+                }
+                return '';
+            };
+
+            grid.innerHTML = solvedArray.map(item => {
+                const overlayText = getOverlayText(item);
+                return `
+                    <div class="painting-item difficulty-${item.difficulty}" onclick="openLightbox('images/paintings/${item.num}.jpg')">
+                        <img src="images/paintings/${item.num}.jpg" alt="Painting ${item.num}">
+                        ${overlayText ? `<div class="overlay-text">${overlayText}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
         }
 
         function cycleSortMode() {
