@@ -112,6 +112,10 @@ const paintingImages = [];
 // Track if current source2 paintings are all solved
 let currentSource2AllSolved = false;
 
+// Track solve time for each puzzle
+let puzzleSolveTimes = {}; // puzzle index -> start time
+let puzzleFirstDragDone = {}; // puzzle index -> boolean
+
 // Solved paintings storage with difficulty tracking
 function getSolvedPaintings() {
   const stored = localStorage.getItem("jigsaw_solved_paintings");
@@ -124,15 +128,39 @@ function addSolvedPainting(imagePath, difficulty) {
   const match = imagePath.match(/images\/paintings\/(\d+)\.jpg/);
   if (match) {
     const num = match[1];
+    // Get the puzzle index from imagePaths
+    const puzzleIdx = imagePaths.indexOf(imagePath);
+    // Calculate solve time if available
+    const solveTime = puzzleIdx >= 0 && puzzleSolveTimes[puzzleIdx] ? 
+      Date.now() - puzzleSolveTimes[puzzleIdx] : 0;
+    // Get max combo (0 if round not confirmed yet)
+    const combo = confirmBtnClicked ? maxCombo : 0;
+    
     // Only update if this is a higher difficulty than previously recorded
     if (!solved[num] || difficulty > solved[num].difficulty) {
       solved[num] = {
         difficulty: difficulty,
         timestamp: Date.now(),
+        solveTime: solveTime,
+        combo: combo
       };
       localStorage.setItem("jigsaw_solved_paintings", JSON.stringify(solved));
     }
   }
+}
+
+// Record first drag time for a puzzle
+function recordFirstDrag(puzzleIdx) {
+  if (!puzzleFirstDragDone[puzzleIdx]) {
+    puzzleSolveTimes[puzzleIdx] = Date.now();
+    puzzleFirstDragDone[puzzleIdx] = true;
+  }
+}
+
+// Reset puzzle tracking when starting a new round
+function resetPuzzleTracking() {
+  puzzleSolveTimes = {};
+  puzzleFirstDragDone = {};
 }
 
 function isPaintingSolved(imagePath) {
@@ -1580,6 +1608,8 @@ function onMouseDown(idx, e) {
   for (let i = pieces.length - 1; i >= 0; i--) {
     const piece = pieces[i];
     if (piece.contains(mx, my)) {
+      // Record first drag time for solve time tracking
+      recordFirstDrag(idx);
       // Play dragging sound
       playSFX("audio/dragging.m4a", 0.2);
       piece.dragging = true;
@@ -2543,6 +2573,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Initialize combo for new round
     initCombo();
+    // Reset puzzle tracking for solve time
+    resetPuzzleTracking();
 
     if (currentDifficulty > 1) noteIndex = 0;
 

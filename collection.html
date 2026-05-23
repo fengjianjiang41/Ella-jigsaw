@@ -156,10 +156,16 @@
             color: #ff8fab;
         }
 
+        /* Button Container Styles */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
         /* Refresh Button Styles */
         .refresh-btn {
-            display: block;
-            margin: 0 auto 30px;
             padding: 12px 30px;
             border: none;
             border-radius: 25px;
@@ -176,6 +182,42 @@
         .refresh-btn:hover {
             transform: scale(1.05);
             background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+        }
+
+        /* Sort Button Styles */
+        .sort-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #98fb98 0%, #32cd32 100%);
+            cursor: pointer;
+            font-family: 'CustomFont', Arial, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .sort-btn:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #32cd32 0%, #228b22 100%);
+        }
+
+        .sort-btn.speed-mode {
+            background: linear-gradient(135deg, #87ceeb 0%, #4169e1 100%);
+        }
+
+        .sort-btn.speed-mode:hover {
+            background: linear-gradient(135deg, #4169e1 0%, #1e90ff 100%);
+        }
+
+        .sort-btn.combo-mode {
+            background: linear-gradient(135deg, #dda0dd 0%, #9932cc 100%);
+        }
+
+        .sort-btn.combo-mode:hover {
+            background: linear-gradient(135deg, #9932cc 0%, #8a2be2 100%);
         }
 
         /* Lightbox Styles */
@@ -246,7 +288,10 @@
 <body>
     <h1 id="pageTitle">收集户</h1>
 
-    <button id="refreshBtn" class="refresh-btn">刷新收藏</button>
+    <div class="button-container">
+        <button id="refreshBtn" class="refresh-btn">刷新收藏</button>
+        <button id="sortBtn" class="sort-btn">默认排序</button>
+    </div>
 
     <div class="collection-grid" id="collectionGrid"></div>
 
@@ -265,6 +310,7 @@
 
     <script>
         let currentLang = "zh";
+        let currentSortMode = "default"; // default, speed, combo
 
         // Translations
         const translations = {
@@ -274,7 +320,10 @@
                 backLink: "返回首页",
                 langBtn: "EN",
                 refreshBtn: "刷新收藏",
-                closeBtn: "关闭"
+                closeBtn: "关闭",
+                sortDefault: "默认排序",
+                sortSpeed: "速度排序",
+                sortCombo: "连击排序"
             },
             en: {
                 pageTitle: "Collection Portal",
@@ -282,7 +331,10 @@
                 backLink: "Back to Home",
                 langBtn: "中文",
                 refreshBtn: "Refresh Collection",
-                closeBtn: "Close"
+                closeBtn: "Close",
+                sortDefault: "Default",
+                sortSpeed: "Speed",
+                sortCombo: "Combo"
             }
         };
 
@@ -292,7 +344,23 @@
             document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
             document.getElementById('refreshBtn').textContent = translations[currentLang].refreshBtn;
             document.getElementById('lightboxCloseBtn').title = translations[currentLang].closeBtn;
+            updateSortButtonText();
             updateCollectionGrid();
+        }
+
+        function updateSortButtonText() {
+            const sortBtn = document.getElementById('sortBtn');
+            switch(currentSortMode) {
+                case 'default':
+                    sortBtn.textContent = translations[currentLang].sortDefault;
+                    break;
+                case 'speed':
+                    sortBtn.textContent = translations[currentLang].sortSpeed;
+                    break;
+                case 'combo':
+                    sortBtn.textContent = translations[currentLang].sortCombo;
+                    break;
+            }
         }
 
         function getSolvedPaintings() {
@@ -307,7 +375,9 @@
             const solvedArray = Object.keys(solved).map(num => ({
                 num: num,
                 difficulty: solved[num].difficulty,
-                timestamp: solved[num].timestamp
+                timestamp: solved[num].timestamp,
+                solveTime: solved[num].solveTime || 0,
+                combo: solved[num].combo || 0
             }));
 
             if (solvedArray.length === 0) {
@@ -315,19 +385,55 @@
                 return;
             }
 
-            // Sort by difficulty (higher first), then by timestamp (earlier first)
+            // Sort based on current mode
             solvedArray.sort((a, b) => {
-                if (b.difficulty !== a.difficulty) {
-                    return b.difficulty - a.difficulty;
+                switch(currentSortMode) {
+                    case 'speed':
+                        // Sort by solve time (less to more)
+                        return a.solveTime - b.solveTime;
+                    case 'combo':
+                        // Sort by combo (greater to less)
+                        return b.combo - a.combo;
+                    case 'default':
+                    default:
+                        // Sort by difficulty (higher first), then by timestamp (earlier first)
+                        if (b.difficulty !== a.difficulty) {
+                            return b.difficulty - a.difficulty;
+                        }
+                        return a.timestamp - b.timestamp;
                 }
-                return a.timestamp - b.timestamp;
             });
 
             grid.innerHTML = solvedArray.map(item => `
-                <div class="painting-item difficulty-${item.difficulty}" onclick="openLightbox('images/paintings/${item.num}.png')">
-                    <img src="images/paintings/${item.num}.png" alt="Painting ${item.num}">
+                <div class="painting-item difficulty-${item.difficulty}" onclick="openLightbox('images/paintings/${item.num}.jpg')">
+                    <img src="images/paintings/${item.num}.jpg" alt="Painting ${item.num}">
                 </div>
             `).join('');
+        }
+
+        function cycleSortMode() {
+            const sortBtn = document.getElementById('sortBtn');
+            // Remove all mode classes
+            sortBtn.classList.remove('speed-mode', 'combo-mode');
+            
+            // Cycle through modes
+            switch(currentSortMode) {
+                case 'default':
+                    currentSortMode = 'speed';
+                    sortBtn.classList.add('speed-mode');
+                    break;
+                case 'speed':
+                    currentSortMode = 'combo';
+                    sortBtn.classList.add('combo-mode');
+                    break;
+                case 'combo':
+                default:
+                    currentSortMode = 'default';
+                    break;
+            }
+            
+            updateSortButtonText();
+            updateCollectionGrid();
         }
 
         // Language button event
@@ -340,6 +446,9 @@
         document.getElementById('refreshBtn').addEventListener('click', function() {
             location.reload();
         });
+
+        // Sort button event
+        document.getElementById('sortBtn').addEventListener('click', cycleSortMode);
 
         // Lightbox functions
         function openLightbox(imageSrc) {
