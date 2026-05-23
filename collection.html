@@ -328,8 +328,6 @@
 
     <div class="collection-grid" id="collectionGrid"></div>
 
-    <a href="index.html" class="back-link" id="backLink">返回首页</a>
-
     <!-- Floating Language Switch Button -->
     <div class="floating-lang-container">
         <button id="floatingLangBtn" class="floating-lang-btn">EN</button>
@@ -350,7 +348,6 @@
             zh: {
                 pageTitle: "收集户",
                 emptyState: "还没有收集到任何名画~",
-                backLink: "返回首页",
                 langBtn: "EN",
                 refreshBtn: "刷新收藏",
                 closeBtn: "关闭",
@@ -361,7 +358,6 @@
             en: {
                 pageTitle: "Collection Portal",
                 emptyState: "No paintings collected yet~",
-                backLink: "Back to Home",
                 langBtn: "中文",
                 refreshBtn: "Refresh Collection",
                 closeBtn: "Close",
@@ -373,7 +369,6 @@
 
         function updateLanguage() {
             document.getElementById('pageTitle').textContent = translations[currentLang].pageTitle;
-            document.getElementById('backLink').textContent = translations[currentLang].backLink;
             document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
             document.getElementById('refreshBtn').textContent = translations[currentLang].refreshBtn;
             document.getElementById('lightboxCloseBtn').title = translations[currentLang].closeBtn;

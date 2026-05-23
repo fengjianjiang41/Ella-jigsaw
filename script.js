@@ -134,10 +134,17 @@ function addSolvedPainting(imagePath, difficulty) {
     const solveTime = puzzleIdx >= 0 && puzzleSolveTimes[puzzleIdx] ? 
       Date.now() - puzzleSolveTimes[puzzleIdx] : 0;
     // Get max combo (0 if round not confirmed yet)
-    const combo = confirmBtnClicked ? maxCombo : 0;
+    const combo = puzzleIdx >= 0 && maxComboPerPuzzle[puzzleIdx] ? maxComboPerPuzzle[puzzleIdx] : 0;
     
+    // Only update if this is a higher difficulty than previously recorded, or same difficulty but higher solve time
+    // OR same difficulty but higher combo
+    const shouldUpdate = !solved[num] || 
+                         difficulty > solved[num].difficulty || 
+                         (difficulty === solved[num].difficulty && combo > (solved[num].combo || 0)) || 
+                         (difficulty === solved[num].difficulty && solveTime < (solved[num].solveTime || 0));
+
     // Only update if this is a higher difficulty than previously recorded
-    if (!solved[num] || difficulty > solved[num].difficulty) {
+    if (shouldUpdate) {
       solved[num] = {
         difficulty: difficulty,
         timestamp: Date.now(),
@@ -504,6 +511,7 @@ let lastMergeTime = 0;
 let comboAnimations = []; // Track active combo animations
 let allTimeMaxCombo = 0; // Track all-time maximum combo
 let completedDifficulty = 1; // Track the difficulty of the last completed round
+let maxComboPerPuzzle = []; // Track max combo for each puzzle individually  // ADD THIS LINE
 
 // Get combo text color style based on difficulty
 function getComboColorStyle(difficulty) {
@@ -526,6 +534,7 @@ function initCombo() {
   maxCombo = 0;
   currentCombo = 0;
   lastMergeTime = 0;
+  maxComboPerPuzzle = [];
 }
 
 // Handle combo when a piece is merged
@@ -553,6 +562,11 @@ function handleCombo(puzzleIdx, piece) {
 
   // Update last merge time
   lastMergeTime = now;
+
+  // Update per-puzzle max combo
+  if (!maxComboPerPuzzle[puzzleIdx] || currentCombo > maxComboPerPuzzle[puzzleIdx]) {
+    maxComboPerPuzzle[puzzleIdx] = currentCombo;
+  }
 
   // Show combo text above the merged piece
   showComboText(currentCombo, puzzleIdx, piece);
