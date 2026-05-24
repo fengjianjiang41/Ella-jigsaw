@@ -2508,6 +2508,290 @@ document.addEventListener("DOMContentLoaded", function () {
     requestAnimationFrame(animate);
   }
 
+  // Array to track flying side instances
+  const flyingSides = [];
+
+  // Track canvas for kid mode
+  let trackCanvas = null;
+  let trackCtx = null;
+
+  // Initialize track canvas
+  function initTrackCanvas() {
+    if (trackCanvas) return;
+    
+    trackCanvas = document.createElement("canvas");
+    trackCanvas.id = "flyingSideTrackCanvas";
+    trackCanvas.width = window.innerWidth;
+    trackCanvas.height = window.innerHeight;
+    trackCanvas.style.position = "fixed";
+    trackCanvas.style.left = "0";
+    trackCanvas.style.top = "0";
+    trackCanvas.style.zIndex = "998"; // Below flying instances (z-index 999)
+    trackCanvas.style.pointerEvents = "none";
+    trackCanvas.style.border = "none"; // Remove canvas border
+    trackCanvas.style.outline = "none"; // Remove outline
+    document.body.appendChild(trackCanvas);
+    trackCtx = trackCanvas.getContext("2d");
+  }
+
+  // Function to create a flying side.png
+  function createFlyingSide() {
+    // Create the image element
+    const sideImg = document.createElement("img");
+    sideImg.src = "images/side.png";
+    sideImg.style.position = "fixed";
+    sideImg.style.left = "-50px";
+    sideImg.style.top = "50%";
+    sideImg.style.transform = "translateY(-50%)";
+    sideImg.style.zIndex = "999";
+    sideImg.style.cursor = "pointer";
+    sideImg.style.transition = "none";
+    document.body.appendChild(sideImg);
+
+    // Track path points for kid mode visualization
+    const trackPoints = [];
+
+    // Unified starting height (middle of screen)
+    const startY = window.innerHeight * 0.5;
+
+    // Random number of sin wave components (1-5)
+    const numWaves = Math.floor(Math.random() * 5) + 1;
+    
+    // Generate wave parameters with total amplitude constraint
+    const maxTotalAmplitude = window.innerHeight * 0.3; // 30% of screen height
+    const waves = [];
+    let totalAmplitude = 0;
+    
+    for (let i = 0; i < numWaves; i++) {
+      const remainingAmplitude = maxTotalAmplitude - totalAmplitude;
+      const amplitude = remainingAmplitude * Math.random();
+      const frequency = 0.5 + Math.random() * 2; // Random frequency 0.5-2.5
+      const phase = Math.random() * Math.PI * 2; // Random phase
+      
+      waves.push({ amplitude, frequency, phase });
+      totalAmplitude += amplitude;
+    }
+
+    // Size vibration parameters (independent from track)
+    const sizeWaves = [];
+    const numSizeWaves = Math.floor(Math.random() * 3) + 1;
+    for (let i = 0; i < numSizeWaves; i++) {
+      sizeWaves.push({
+        amplitude: 0.1 + Math.random() * 0.2, // 10-30% size variation
+        frequency: 1 + Math.random() * 3, // 1-4 Hz
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+
+    // Animation variables
+    let startTime = null;
+    const duration = 3000 + Math.random() * 2000; // 3-5 seconds to cross screen
+    const baseSize = 40 + Math.random() * 20; // 40-60px base size
+
+    // Store instance data
+    const instance = {
+      img: sideImg,
+      startTime,
+      duration,
+      startY,
+      waves,
+      sizeWaves,
+      baseSize,
+      animationId: null,
+      trackPoints: trackPoints, // Store track points for visualization
+    };
+
+    flyingSides.push(instance);
+
+    // Click handler to vanish
+    sideImg.addEventListener("click", function () {
+      vanishFlyingSide(instance);
+    });
+
+    // Animation function
+    function animate(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = elapsed / duration;
+
+      if (progress >= 1) {
+        // Remove when animation completes
+        removeFlyingSide(instance);
+        return;
+      }
+
+      // Calculate X position (left to right)
+      const x = progress * window.innerWidth - 50; // Start off-screen left
+
+      // Calculate Y position using combined sin waves
+      let yOffset = 0;
+      waves.forEach((wave) => {
+        yOffset += wave.amplitude * Math.sin(wave.frequency * progress * Math.PI * 2 + wave.phase);
+      });
+      const y = startY + yOffset;
+
+      // Only record track points when instance is on screen (x >= 0)
+      // This prevents short shooting tracks on the left
+      if (x >= 0) {
+        trackPoints.push({ x: x + sideImg.offsetWidth / 2, y: y });
+      }
+
+      // Calculate size using size waves
+      let sizeScale = 1;
+      sizeWaves.forEach((wave) => {
+        sizeScale += wave.amplitude * Math.sin(wave.frequency * elapsed / 1000 * Math.PI * 2 + wave.phase);
+      });
+      const size = baseSize * sizeScale;
+
+      // Update position and size
+      sideImg.style.left = `${x}px`;
+      sideImg.style.top = `${y}px`;
+      sideImg.style.width = `${size}px`;
+      sideImg.style.height = "auto";
+      sideImg.style.transform = "translateY(-50%)";
+
+      // Draw tracks if kid mode is enabled
+      if (window.isKidMode && window.isKidMode()) {
+        drawAllTracks();
+      }
+
+      instance.animationId = requestAnimationFrame(animate);
+    }
+
+    instance.animationId = requestAnimationFrame(animate);
+  }
+
+  // Draw all flying tracks using bezier curves
+  function drawAllTracks() {
+    if (!trackCanvas) initTrackCanvas();
+    
+    // Clear previous tracks
+    trackCtx.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
+
+    flyingSides.forEach((instance) => {
+      const points = instance.trackPoints;
+      if (points.length < 2) return;
+
+      // Draw track with bezier curve
+      trackCtx.beginPath();
+      trackCtx.strokeStyle = "rgba(255, 105, 180, 0.6)"; // Pink color
+      trackCtx.lineWidth = 3;
+      trackCtx.lineCap = "round";
+      trackCtx.lineJoin = "round";
+
+      // Draw smooth curve through points using bezier
+      trackCtx.moveTo(points[0].x, points[0].y);
+      
+      for (let i = 0; i < points.length - 1; i++) {
+        const xc = (points[i].x + points[i + 1].x) / 2;
+        const yc = (points[i].y + points[i + 1].y) / 2;
+        trackCtx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+      }
+      trackCtx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+
+      trackCtx.stroke();
+
+      // Draw small circles at each point
+      points.forEach((point) => {
+        trackCtx.beginPath();
+        trackCtx.fillStyle = "rgba(255, 182, 193, 0.8)";
+        trackCtx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+        trackCtx.fill();
+      });
+    });
+  }
+
+  // Remove flying side instance
+  function removeFlyingSide(instance) {
+    if (instance.animationId) {
+      cancelAnimationFrame(instance.animationId);
+    }
+    if (instance.img && instance.img.parentNode) {
+      instance.img.parentNode.removeChild(instance.img);
+    }
+    const index = flyingSides.indexOf(instance);
+    if (index > -1) {
+      flyingSides.splice(index, 1);
+    }
+    
+    // Redraw tracks if kid mode is enabled (track will disappear when instance is removed)
+    if (window.isKidMode && window.isKidMode()) {
+      drawAllTracks();
+    }
+  }
+
+  // Vanish with combo-like animation
+  function vanishFlyingSide(instance) {
+    // Stop the flying animation
+    if (instance.animationId) {
+      cancelAnimationFrame(instance.animationId);
+    }
+
+    // Randomly change to front.png or back.png
+    const newImage = Math.random() > 0.5 ? "images/front.png" : "images/back.png";
+    instance.img.src = newImage;
+
+    // Calculate the shortest period from track wave components
+    // Period = 1/frequency, so shortest period = 1/max_frequency
+    const maxFrequency = Math.max(...instance.waves.map(w => w.frequency));
+    const shortestPeriod = (1 / maxFrequency) * 1000; // Convert to milliseconds
+    const animationDuration = shortestPeriod; // Use shortest period as duration
+
+    // Get current position and size
+    const currentRect = instance.img.getBoundingClientRect();
+    const currentX = currentRect.left;
+    const currentY = currentRect.top;
+    const currentWidth = currentRect.width;
+
+    // Animation parameters (similar to combo text)
+    const expandScale = 1.8; // Expand to 180%
+    const floatUpDistance = 60; // Float upward by 60px
+
+    // Start animation
+    let startTime = null;
+    
+    function comboAnimate(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / animationDuration, 1);
+
+      // Easing function (ease out)
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+      // Calculate scale: expand then shrink
+      let scale;
+      if (progress < 0.3) {
+        // Expand phase (0-30%)
+        scale = 1 + (expandScale - 1) * (progress / 0.3);
+      } else {
+        // Shrink phase (30%-100%)
+        scale = expandScale - (expandScale - 0) * ((progress - 0.3) / 0.7);
+      }
+
+      // Calculate Y position: float upward
+      const y = currentY - easedProgress * floatUpDistance;
+
+      // Calculate opacity: fade out at the end
+      const opacity = progress < 0.7 ? 1 : 1 - ((progress - 0.7) / 0.3);
+
+      // Update the image
+      instance.img.style.left = `${currentX}px`;
+      instance.img.style.top = `${y}px`;
+      instance.img.style.width = `${currentWidth * scale}px`;
+      instance.img.style.height = "auto";
+      instance.img.style.opacity = `${opacity}`;
+      instance.img.style.transform = "translateY(-50%)";
+
+      if (progress < 1) {
+        requestAnimationFrame(comboAnimate);
+      } else {
+        removeFlyingSide(instance);
+      }
+    }
+
+    requestAnimationFrame(comboAnimate);
+  }
+
   // Replace the existing bunImg click event listener with this one
   bunImg.addEventListener("click", function () {
     bunClickCount++;
@@ -2535,6 +2819,9 @@ document.addEventListener("DOMContentLoaded", function () {
       fontFamily: "'CustomFont', Microsoft YaHei, sans-serif",
       // textShadow: "0 4px 12px rgba(0,0,0,0.3)",
     });
+
+    // Spawn flying side.png
+    createFlyingSide();
   });
 
   // 昵称处理
