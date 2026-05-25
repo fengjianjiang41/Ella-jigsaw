@@ -919,6 +919,28 @@ body {
     margin-bottom: 0;
 }
 
+.checkbox-control {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.checkbox-control input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    cursor: pointer;
+    accent-color: #ff8fab;
+}
+
+.checkbox-control label {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+    cursor: pointer;
+}
+
 .volume-control label {
     display: block;
     font-size: 16px;

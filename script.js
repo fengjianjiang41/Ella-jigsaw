@@ -1,6 +1,7 @@
 // 预加载所有音频文件
 const audioFilesPreload = [
   // 根音频文件夹
+  "audio/beep.mp3",
   "audio/button.m4a",
   "audio/bouncing.m4a",
   "audio/dragging.m4a",
@@ -22,8 +23,20 @@ const audioFilesPreload = [
   "audio/KevinVillecco-Yoshigemia.mp3",
   "audio/open.mp3",
   "audio/close.mp3",
+  "audio/relax.mp3",
   "audio/autoopen.mp3",
   "audio/autoclose.mp3",
+
+  // Combo audio files
+  "audio/5.mp3",
+  "audio/10.mp3",
+  "audio/15.mp3",
+  "audio/20.mp3",
+  "audio/25.mp3",
+  "audio/30.mp3",
+  "audio/35.mp3",
+  "audio/40.mp3",
+  "audio/45.mp3",
 
   // music 文件夹
   "audio/music/A3.mp3",
@@ -506,13 +519,14 @@ let currentSongKey = null; // Track the current song key
 // Combo mechanism variables
 let maxCombo = 0;
 let currentCombo = 0;
-let comboLimit = 5000; // 2 seconds combo limit
+let comboLimit = 10000; // 2 seconds combo limit
 let lastMergeTime = 0;
 let comboAnimations = []; // Track active combo animations
 let allTimeMaxCombo = 0; // Track all-time maximum combo
 let completedDifficulty = 1; // Track the difficulty of the last completed round
 let maxComboPerPuzzle = []; // Track max combo for each puzzle individually  // ADD THIS LINE
 let beepInterval = null; // Track beep sound interval
+let enableBeepSounds = true; // Toggle for beep sounds
 
 // Get combo text color style based on difficulty
 function getComboColorStyle(difficulty) {
@@ -567,6 +581,11 @@ function handleCombo(puzzleIdx, piece) {
   // Update per-puzzle max combo
   if (!maxComboPerPuzzle[puzzleIdx] || currentCombo > maxComboPerPuzzle[puzzleIdx]) {
     maxComboPerPuzzle[puzzleIdx] = currentCombo;
+  }
+
+  // Play combo audio when combo reaches multiples of 5
+  if (currentCombo % 5 === 0 && currentCombo <= 45) {
+    playSFX(`audio/${currentCombo}.mp3`, 0.5);
   }
 
   // Show combo text above the merged piece
@@ -751,13 +770,6 @@ function clearCombo() {
   comboAnimations = [];
 }
 
-// Play beep sound
-function playBeep() {
-  const audio = new Audio('audio/beep.mp3');
-  audio.volume = 0.3; // Adjust volume as needed
-  audio.play().catch(e => console.log('Audio play failed:', e));
-}
-
 // Start combo animation
 function startComboAnimation() {
   console.log(comboAnimationFrame);
@@ -765,6 +777,8 @@ function startComboAnimation() {
 
   let activeBtn = document.querySelector('.page-btn.active');
   if (!activeBtn) return;
+
+  let lastBeepTime = 0;
 
   const animateCombo = () => {
     // Check if still on active button
@@ -786,6 +800,8 @@ function startComboAnimation() {
 
     if (elapsed >= comboLimit) {
       stopComboAnimation();
+      // Play relax sound when combo ends
+      playSFX("audio/relax.mp3", 0.5);
       // Restore button image after combo ends
       restoreButtonImage(activeBtn);
       return;
@@ -827,15 +843,12 @@ function startComboAnimation() {
         comboTextInner.style.animationDuration = `${period / 2}ms`;
       }
 
-      // Update beep interval to match flash frequency
-      if (!beepInterval || Math.abs(beepInterval.period - period) > 50) {
-        if (beepInterval) {
-          clearInterval(beepInterval);
-        }
-        beepInterval = setInterval(playBeep, period);
-        beepInterval.period = period;
-        // Play beep immediately when starting
-        playBeep();
+      // Play beep sound in sync with each flash
+      const currentTime = Date.now();
+      if (currentTime - lastBeepTime >= period / 2 && enableBeepSounds) {
+        beepSoundVolume = 0.2;
+        playSFX("audio/beep.mp3", beepSoundVolume);
+        lastBeepTime = currentTime;
       }
     }
 
@@ -5136,6 +5149,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const sfxVolumeSlider = document.getElementById("sfxVolumeSlider");
   const bgmVolumeValue = bgmVolumeSlider?.nextElementSibling;
   const sfxVolumeValue = sfxVolumeSlider?.nextElementSibling;
+  const noBeepsCheckbox = document.getElementById("noBeepsCheckbox");
 
   // Was timer running before options window opened
   let wasTimerRunning = false;
@@ -5221,6 +5235,11 @@ document.addEventListener("DOMContentLoaded", function () {
   optionsBtn?.addEventListener("click", openOptionsWindow);
   closeOptionsBtn?.addEventListener("click", closeOptionsWindow);
   optionsOverlay?.addEventListener("click", closeOptionsWindow);
+
+  // Beep toggle checkbox
+  noBeepsCheckbox?.addEventListener("change", function() {
+    enableBeepSounds = !this.checked;
+  });
 
   // Initialize volume displays
   if (bgmVolumeSlider && bgmVolumeValue) {
