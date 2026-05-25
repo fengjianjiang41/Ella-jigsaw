@@ -1,6 +1,7 @@
 // 预加载所有音频文件
 const audioFilesPreload = [
   // 根音频文件夹
+  "audio/beep.mp3",
   "audio/button.m4a",
   "audio/bouncing.m4a",
   "audio/dragging.m4a",
@@ -758,6 +759,8 @@ function startComboAnimation() {
   let activeBtn = document.querySelector('.page-btn.active');
   if (!activeBtn) return;
 
+  let lastBeepTime = 0;
+
   const animateCombo = () => {
     // Check if still on active button
     let currentActiveBtn = document.querySelector('.page-btn.active');
@@ -812,6 +815,14 @@ function startComboAnimation() {
       const comboTextInner = activeBtn.querySelector('.combo-text-inner');
       if (comboTextInner) {
         comboTextInner.style.animationDuration = `${period / 2}ms`;
+      }
+
+      // Play beep sound in sync with each flash
+      const currentTime = Date.now();
+      if (currentTime - lastBeepTime >= period / 2) {
+        beepSoundVolume = 0.2;
+        playSFX("audio/beep.mp3", beepSoundVolume);
+        lastBeepTime = currentTime;
       }
     }
 
