@@ -2554,29 +2554,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // Array to track flying side instances
   const flyingSides = [];
 
-  // Track canvas for kid mode
-  let trackCanvas = null;
-  let trackCtx = null;
-
-  // Initialize track canvas
-  function initTrackCanvas() {
-    if (trackCanvas) return;
-    
-    trackCanvas = document.createElement("canvas");
-    trackCanvas.id = "flyingSideTrackCanvas";
-    trackCanvas.width = window.innerWidth;
-    trackCanvas.height = window.innerHeight;
-    trackCanvas.style.position = "fixed";
-    trackCanvas.style.left = "0";
-    trackCanvas.style.top = "0";
-    trackCanvas.style.zIndex = "998"; // Below flying instances (z-index 999)
-    trackCanvas.style.pointerEvents = "none";
-    trackCanvas.style.border = "none"; // Remove canvas border
-    trackCanvas.style.outline = "none"; // Remove outline
-    document.body.appendChild(trackCanvas);
-    trackCtx = trackCanvas.getContext("2d");
-  }
-
   // Function to create a flying side.png
   function createFlyingSide() {
     // Create the image element
@@ -2590,9 +2567,6 @@ document.addEventListener("DOMContentLoaded", function () {
     sideImg.style.cursor = "pointer";
     sideImg.style.transition = "none";
     document.body.appendChild(sideImg);
-
-    // Track path points for kid mode visualization
-    const trackPoints = [];
 
     // Unified starting height (middle of screen)
     const startY = window.innerHeight * 0.5;
@@ -2641,7 +2615,6 @@ document.addEventListener("DOMContentLoaded", function () {
       sizeWaves,
       baseSize,
       animationId: null,
-      trackPoints: trackPoints, // Store track points for visualization
     };
 
     flyingSides.push(instance);
@@ -2673,12 +2646,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       const y = startY + yOffset;
 
-      // Only record track points when instance is on screen (x >= 0)
-      // This prevents short shooting tracks on the left
-      if (x >= 0) {
-        trackPoints.push({ x: x + sideImg.offsetWidth / 2, y: y });
-      }
-
       // Calculate size using size waves
       let sizeScale = 1;
       sizeWaves.forEach((wave) => {
@@ -2693,55 +2660,10 @@ document.addEventListener("DOMContentLoaded", function () {
       sideImg.style.height = "auto";
       sideImg.style.transform = "translateY(-50%)";
 
-      // Draw tracks if kid mode is enabled
-      if (window.isKidMode && window.isKidMode()) {
-        drawAllTracks();
-      }
-
       instance.animationId = requestAnimationFrame(animate);
     }
 
     instance.animationId = requestAnimationFrame(animate);
-  }
-
-  // Draw all flying tracks using bezier curves
-  function drawAllTracks() {
-    if (!trackCanvas) initTrackCanvas();
-    
-    // Clear previous tracks
-    trackCtx.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
-
-    flyingSides.forEach((instance) => {
-      const points = instance.trackPoints;
-      if (points.length < 2) return;
-
-      // Draw track with bezier curve
-      trackCtx.beginPath();
-      trackCtx.strokeStyle = "rgba(255, 105, 180, 0.6)"; // Pink color
-      trackCtx.lineWidth = 3;
-      trackCtx.lineCap = "round";
-      trackCtx.lineJoin = "round";
-
-      // Draw smooth curve through points using bezier
-      trackCtx.moveTo(points[0].x, points[0].y);
-      
-      for (let i = 0; i < points.length - 1; i++) {
-        const xc = (points[i].x + points[i + 1].x) / 2;
-        const yc = (points[i].y + points[i + 1].y) / 2;
-        trackCtx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
-      }
-      trackCtx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
-
-      trackCtx.stroke();
-
-      // Draw small circles at each point
-      points.forEach((point) => {
-        trackCtx.beginPath();
-        trackCtx.fillStyle = "rgba(255, 182, 193, 0.8)";
-        trackCtx.arc(point.x, point.y, 3, 0, Math.PI * 2);
-        trackCtx.fill();
-      });
-    });
   }
 
   // Remove flying side instance
@@ -2756,15 +2678,13 @@ document.addEventListener("DOMContentLoaded", function () {
     if (index > -1) {
       flyingSides.splice(index, 1);
     }
-    
-    // Redraw tracks if kid mode is enabled (track will disappear when instance is removed)
-    if (window.isKidMode && window.isKidMode()) {
-      drawAllTracks();
-    }
   }
 
   // Vanish with combo-like animation
   function vanishFlyingSide(instance) {
+    // Play jcxbroken sound
+    playSFX("audio/jcxbroken.m4a");
+    
     // Stop the flying animation
     if (instance.animationId) {
       cancelAnimationFrame(instance.animationId);
@@ -2991,6 +2911,8 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
 
+    updateOptionsButtonImage(false);
+
     // Clear combo when game stops
     clearCombo();
     // Enable difficulty buttons when game stops
@@ -3028,6 +2950,9 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtnFloat.disabled = true;
     startBtn.disabled = false;
     checkStartButtonEnabled();
+    
+    // Switch options button image to option.png when game restarts
+    updateOptionsButtonImage(false);
 
     // Clear combo when game restarts
     clearCombo();
@@ -4914,17 +4839,20 @@ canvas1.addEventListener(
   { passive: false },
 );
 
-function togglePause() {
-  var button = document.getElementById("pauseButton");
-  scene.paused = !scene.paused;
-  button.innerHTML = scene.paused
-    ? window.getTranslatedText
-      ? window.getTranslatedText("继续")
-      : "继续"
-    : window.getTranslatedText
-      ? window.getTranslatedText("暂停")
-      : "暂停";
-}
+// function togglePause() {
+//   var button = document.getElementById("pauseButton");
+//   scene.paused = !scene.paused;
+//   button.innerHTML = scene.paused
+//     ? window.getTranslatedText
+//       ? window.getTranslatedText("继续")
+//       : "继续"
+//     : window.getTranslatedText
+//       ? window.getTranslatedText("暂停")
+//       : "暂停";
+  
+//   // Switch options button image based on pause state
+//   updateOptionsButtonImage(!scene.paused);
+// }
 
 document.addEventListener("DOMContentLoaded", function () {
   const pauseBtn = document.getElementById("pauseButton");
@@ -5198,7 +5126,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Function to update options button image
-  function updateOptionsButtonImage(isPausedState) {
+  window.updateOptionsButtonImage = function(isPausedState) {
     const btnImg = optionsBtn.querySelector("img");
     if (btnImg) {
       btnImg.src = isPausedState ? "images/pause.png" : "images/option.png";
