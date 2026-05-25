@@ -512,6 +512,7 @@ let comboAnimations = []; // Track active combo animations
 let allTimeMaxCombo = 0; // Track all-time maximum combo
 let completedDifficulty = 1; // Track the difficulty of the last completed round
 let maxComboPerPuzzle = []; // Track max combo for each puzzle individually  // ADD THIS LINE
+let beepInterval = null; // Track beep sound interval
 
 // Get combo text color style based on difficulty
 function getComboColorStyle(difficulty) {
@@ -750,6 +751,13 @@ function clearCombo() {
   comboAnimations = [];
 }
 
+// Play beep sound
+function playBeep() {
+  const audio = new Audio('audio/beep.mp3');
+  audio.volume = 0.3; // Adjust volume as needed
+  audio.play().catch(e => console.log('Audio play failed:', e));
+}
+
 // Start combo animation
 function startComboAnimation() {
   console.log(comboAnimationFrame);
@@ -795,6 +803,11 @@ function startComboAnimation() {
         innerText.style.color = `rgb(${r}, ${g}, ${b})`;
       }
       activeBtn.classList.remove('combo-flashing');
+      // Stop beep interval if running
+      if (beepInterval) {
+        clearInterval(beepInterval);
+        beepInterval = null;
+      }
     } else {
       // Second half: Black color with flashing
       const innerText = activeBtn.querySelector('.combo-text-inner');
@@ -813,6 +826,17 @@ function startComboAnimation() {
       if (comboTextInner) {
         comboTextInner.style.animationDuration = `${period / 2}ms`;
       }
+
+      // Update beep interval to match flash frequency
+      if (!beepInterval || Math.abs(beepInterval.period - period) > 50) {
+        if (beepInterval) {
+          clearInterval(beepInterval);
+        }
+        beepInterval = setInterval(playBeep, period);
+        beepInterval.period = period;
+        // Play beep immediately when starting
+        playBeep();
+      }
     }
 
     comboAnimationFrame = requestAnimationFrame(animateCombo);
@@ -826,6 +850,12 @@ function stopComboAnimation() {
   if (comboAnimationFrame) {
     cancelAnimationFrame(comboAnimationFrame);
     comboAnimationFrame = null;
+  }
+
+  // Stop beep interval
+  if (beepInterval) {
+    clearInterval(beepInterval);
+    beepInterval = null;
   }
 
   const activeBtn = document.querySelector('.page-btn.active');
