@@ -26,6 +26,17 @@ const audioFilesPreload = [
   "audio/autoopen.mp3",
   "audio/autoclose.mp3",
 
+  // Combo audio files
+  "audio/5.mp3",
+  "audio/10.mp3",
+  "audio/15.mp3",
+  "audio/20.mp3",
+  "audio/25.mp3",
+  "audio/30.mp3",
+  "audio/35.mp3",
+  "audio/40.mp3",
+  "audio/45.mp3",
+
   // music 文件夹
   "audio/music/A3.mp3",
   "audio/music/A4.mp3",
@@ -507,7 +518,7 @@ let currentSongKey = null; // Track the current song key
 // Combo mechanism variables
 let maxCombo = 0;
 let currentCombo = 0;
-let comboLimit = 5000; // 2 seconds combo limit
+let comboLimit = 10000; // 2 seconds combo limit
 let lastMergeTime = 0;
 let comboAnimations = []; // Track active combo animations
 let allTimeMaxCombo = 0; // Track all-time maximum combo
@@ -567,6 +578,11 @@ function handleCombo(puzzleIdx, piece) {
   // Update per-puzzle max combo
   if (!maxComboPerPuzzle[puzzleIdx] || currentCombo > maxComboPerPuzzle[puzzleIdx]) {
     maxComboPerPuzzle[puzzleIdx] = currentCombo;
+  }
+
+  // Play combo audio when combo reaches multiples of 5
+  if (currentCombo % 5 === 0 && currentCombo <= 45) {
+    playSFX(`audio/${currentCombo}.mp3`, 0.5);
   }
 
   // Show combo text above the merged piece
