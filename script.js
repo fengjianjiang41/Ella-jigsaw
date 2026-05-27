@@ -527,6 +527,7 @@ let completedDifficulty = 1; // Track the difficulty of the last completed round
 let maxComboPerPuzzle = []; // Track max combo for each puzzle individually  // ADD THIS LINE
 let beepInterval = null; // Track beep sound interval
 let enableBeepSounds = true; // Toggle for beep sounds
+let usedKidMode = false; // Track if kid mode was used during this round
 
 // Get combo text color style based on difficulty
 function getComboColorStyle(difficulty) {
@@ -1586,6 +1587,13 @@ function animatePuzzle(idx) {
             piece.x + ((groupPiece.idx - piece.idx) % gridSize) * pieceXSize;
         }
       });
+      // Shrink and expand on boundary hit
+      piece.group.forEach((groupPiece) => {
+        groupPiece.size = 0.95;
+        setTimeout(() => {
+          groupPiece.size = 1.0;
+        }, 50);
+      });
       boundaryHit = true;
     }
     if (piece.y < 0 || piece.y > 2 * canvasYSize - pieceYSize) {
@@ -1598,6 +1606,13 @@ function animatePuzzle(idx) {
             piece.y +
             Math.floor((groupPiece.idx - piece.idx) / gridSize) * pieceYSize;
         }
+      });
+      // Shrink and expand on boundary hit
+      piece.group.forEach((groupPiece) => {
+        groupPiece.size = 0.95;
+        setTimeout(() => {
+          groupPiece.size = 1.0;
+        }, 50);
       });
       boundaryHit = true;
     }
@@ -1766,10 +1781,13 @@ function tryMerge(idx, piece) {
     const dy =
       Math.floor(other.idx / gridSize) - Math.floor(piece.idx / gridSize);
     if (Math.abs(dx) + Math.abs(dy) === 1) {
-      // If close enough in current position
+      // If close enough in current position - distance depends on difficulty
+      const mergeDistance = currentDifficulty === 1 ? 60 : 
+                           currentDifficulty === 2 ? 50 : 
+                           currentDifficulty === 3 ? 40 : 30;
       if (
-        Math.abs(other.x - piece.x - dx * pieceXSize) < 30 &&
-        Math.abs(other.y - piece.y - dy * pieceYSize) < 30
+        Math.abs(other.x - piece.x - dx * pieceXSize) < mergeDistance &&
+        Math.abs(other.y - piece.y - dy * pieceYSize) < mergeDistance
       ) {
         // Merge: align positions
         piece.x = other.x - dx * pieceXSize;
@@ -1785,6 +1803,10 @@ function tryMerge(idx, piece) {
           groupPiece.group = piece.group;
         });
         merged = true;
+        // Check if kid mode is active during merge
+        if (window.isKidMode && window.isKidMode()) {
+          usedKidMode = true;
+        }
       }
     }
   }
@@ -2092,6 +2114,8 @@ function updatePersonalList() {
     function (k) {
       return k;
     };
+  const kidText = getText("小孩");
+  const adultText = getText("大人");
   const timeUnit = getText("秒");
   const easyText = getText("休闲");
   const mediumText = getText("普通");
@@ -2109,7 +2133,8 @@ function updatePersonalList() {
             ? hardText
             : hellText;
     const comboText = record.combo > 0 ? `, ${record.combo} ComBo` : '';
-    li.textContent = `${i + 1}: ${record.time.toFixed(2)} ${timeUnit} (${difficultyText}${comboText})`;
+    const kidModeText = record.kidMode ? kidText : adultText;
+    li.textContent = `${nickname}(${kidModeText}):${record.time.toFixed(2)} ${timeUnit} (${difficultyText}${comboText})`;
     ol.appendChild(li);
   });
 }
@@ -2124,6 +2149,8 @@ function updateGlobalList() {
     function (k) {
       return k;
     };
+  const kidText = getText("小孩");
+  const adultText = getText("大人");
   const timeUnit = getText("秒");
   const easyText = getText("休闲");
   const mediumText = getText("普通");
@@ -2141,7 +2168,8 @@ function updateGlobalList() {
             ? hardText
             : hellText;
     const comboText = item.combo > 0 ? `, ${item.combo} ComBo` : '';
-    li.textContent = `${i + 1}: ${item.nickname} ${item.time.toFixed(2)} ${timeUnit} (${difficultyText}${comboText})`;
+    const kidModeText = item.kidMode ? kidText : adultText;
+    li.textContent = `${item.nickname}(${kidModeText}):${item.time.toFixed(2)} ${timeUnit} (${difficultyText}${comboText})`;
     ol.appendChild(li);
   });
 }
@@ -2857,6 +2885,8 @@ document.addEventListener("DOMContentLoaded", function () {
     initCombo();
     // Reset puzzle tracking for solve time
     resetPuzzleTracking();
+    // Reset kid mode tracking
+    usedKidMode = false;
 
     if (currentDifficulty > 1) noteIndex = 0;
 
@@ -3068,6 +3098,7 @@ document.addEventListener("DOMContentLoaded", function () {
       time: timeSeconds,
       difficulty: currentDifficulty,
       combo: maxCombo,
+      kidMode: usedKidMode,
     });
     records[nickname].sort((a, b) => a.time - b.time);
     records[nickname] = records[nickname].slice(0, 5);
@@ -5358,6 +5389,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Time unit
     秒: "sec",
+
+    // Kid mode text
+    小孩: "Kid",
+    大人: "Adult",
 
     // Difficulty levels
     休闲: "easy",
