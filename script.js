@@ -327,8 +327,8 @@ let currentLang = "zh"; // Default language: Chinese
 let loadingTextIndex = 0;
 let loadingTextInterval = null;
 const loadingTexts = {
-  zh: ["加载中……", "初次加载请耐心等候"],
-  en: ["loading...", "patience for first loading"]
+  zh: ["加载中（卡住的话就刷新页面！）……", "初次加载请耐心等候"],
+  en: ["loading (if stuck, refresh the page) ...", "patience for first loading"]
 };
 
 // Function to start loading text toggle
@@ -801,7 +801,7 @@ function startComboAnimation() {
     if (elapsed >= comboLimit) {
       stopComboAnimation();
       // Play relax sound when combo ends
-      playSFX("audio/relax.mp3", 0.5);
+      playSFX("audio/relax.mp3", 0.3);
       // Restore button image after combo ends
       restoreButtonImage(activeBtn);
       return;
@@ -1752,8 +1752,8 @@ function tryMerge(idx, piece) {
     if (Math.abs(dx) + Math.abs(dy) === 1) {
       // If close enough in current position
       if (
-        Math.abs(other.x - piece.x - dx * pieceXSize) < 20 &&
-        Math.abs(other.y - piece.y - dy * pieceYSize) < 20
+        Math.abs(other.x - piece.x - dx * pieceXSize) < 30 &&
+        Math.abs(other.y - piece.y - dy * pieceYSize) < 30
       ) {
         // Merge: align positions
         piece.x = other.x - dx * pieceXSize;
@@ -5198,8 +5198,8 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       selector: "#loadingBar div:first-child",
-      zh: "加载中……",
-      en: "loading...",
+      zh: "加载中（卡住的话就刷新页面！）……",
+      en: "loading (if stuck, refresh the page) ...",
     },
 
     // Page 2 - Registration

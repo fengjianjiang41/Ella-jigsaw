@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>收集户 / Collection Portal</title>
+    <title>收集小窝 / Collection Portal</title>
     <style>
         @font-face {
             font-family: 'CustomFont';
@@ -145,6 +145,39 @@
             padding: 100px 20px;
         }
 
+        /* Floating Credits Button Styles */
+        .floating-credits-container {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            z-index: 999;
+        }
+
+        .floating-credits-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(90deg, #ff8fab 0%, #8fabff 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'CustomFont', Arial, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffffff;
+            transition: transform 0.3s ease, background 0.3s ease;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .floating-credits-btn:hover {
+            transform: scale(1.1);
+            background: linear-gradient(90deg, #8fabff 0%, #5bcffa 100%);
+        }
+
         /* Floating Language Button Styles */
         .floating-lang-container {
             position: fixed;
@@ -253,6 +286,104 @@
             background: linear-gradient(135deg, #9932cc 0%, #8a2be2 100%);
         }
 
+        /* Credits Window Styles */
+        .credits-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .credits-overlay.active {
+            display: flex;
+        }
+
+        .credits-window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            width: 90%;
+            max-width: 400px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .credits-window.active {
+            display: block;
+        }
+
+        .credits-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(90deg, #8fabff 0%, #5bcffa 100%);
+            color: white;
+        }
+
+        .credits-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .close-credits-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: transform 0.2s ease;
+        }
+
+        .close-credits-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .credits-content {
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .credits-content h2 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .credits-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .credits-list li {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .credits-list li:last-child {
+            margin-bottom: 0;
+        }
+
         /* Lightbox Styles */
         .lightbox-overlay {
             display: none;
@@ -319,7 +450,7 @@
     </style>
 </head>
 <body>
-    <h1 id="pageTitle">收集户</h1>
+    <h1 id="pageTitle">收集小窝</h1>
 
     <div class="button-container">
         <button id="refreshBtn" class="refresh-btn">刷新收藏</button>
@@ -327,6 +458,28 @@
     </div>
 
     <div class="collection-grid" id="collectionGrid"></div>
+
+    <!-- Floating Credits Button -->
+    <div class="floating-credits-container">
+        <button id="floatingCreditsBtn" class="floating-credits-btn">制作人员</button>
+    </div>
+
+    <!-- Credits Window -->
+    <div id="creditsOverlay" class="credits-overlay">
+        <div id="creditsWindow" class="credits-window">
+            <div class="credits-header">
+                <span class="credits-title" id="creditsTitle">制作人员</span>
+                <button id="closeCreditsBtn" class="close-credits-btn">×</button>
+            </div>
+            <div class="credits-content">
+                <h2 id="creditsHeading">制作人员</h2>
+                <ul class="credits-list" id="creditsList">
+                    <li id="credit1">阿见（策划、程序）</li>
+                    <li id="credit2">张（世界名画）</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <!-- Floating Language Switch Button -->
     <div class="floating-lang-container">
@@ -346,14 +499,19 @@
         // Translations
         const translations = {
             zh: {
-                pageTitle: "收集户",
+                pageTitle: "收集小窝",
                 emptyState: "还没有收集到任何名画~",
                 langBtn: "EN",
                 refreshBtn: "刷新收藏",
                 closeBtn: "关闭",
                 sortDefault: "默认排序",
                 sortSpeed: "速度排序",
-                sortCombo: "连击排序"
+                sortCombo: "连击排序",
+                creditsBtn: "制作人员",
+                creditsTitle: "制作人员",
+                creditsHeading: "制作人员",
+                credit1: "阿见（策划、程序）",
+                credit2: "张（世界名画）"
             },
             en: {
                 pageTitle: "Collection Portal",
@@ -363,15 +521,25 @@
                 closeBtn: "Close",
                 sortDefault: "Default",
                 sortSpeed: "Speed",
-                sortCombo: "Combo"
+                sortCombo: "Combo",
+                creditsBtn: "Credits",
+                creditsTitle: "Credits",
+                creditsHeading: "Credits",
+                credit1: "Marshall (Design, Program)",
+                credit2: "Zhang (Masterpieces)"
             }
         };
 
         function updateLanguage() {
             document.getElementById('pageTitle').textContent = translations[currentLang].pageTitle;
             document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
+            document.getElementById('floatingCreditsBtn').textContent = translations[currentLang].creditsBtn;
             document.getElementById('refreshBtn').textContent = translations[currentLang].refreshBtn;
             document.getElementById('lightboxCloseBtn').title = translations[currentLang].closeBtn;
+            document.getElementById('creditsTitle').textContent = translations[currentLang].creditsTitle;
+            document.getElementById('creditsHeading').textContent = translations[currentLang].creditsHeading;
+            document.getElementById('credit1').textContent = translations[currentLang].credit1;
+            document.getElementById('credit2').textContent = translations[currentLang].credit2;
             updateSortButtonText();
             updateCollectionGrid();
         }
@@ -485,6 +653,35 @@
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
             updateLanguage();
         });
+
+        // Credits button event
+        document.getElementById('floatingCreditsBtn').addEventListener('click', openCredits);
+
+        // Close credits button event
+        document.getElementById('closeCreditsBtn').addEventListener('click', closeCredits);
+
+        // Close credits when clicking overlay
+        document.getElementById('creditsOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCredits();
+            }
+        });
+
+        function openCredits() {
+            const overlay = document.getElementById('creditsOverlay');
+            const window = document.getElementById('creditsWindow');
+            overlay.classList.add('active');
+            window.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCredits() {
+            const overlay = document.getElementById('creditsOverlay');
+            const window = document.getElementById('creditsWindow');
+            overlay.classList.remove('active');
+            window.classList.remove('active');
+            document.body.style.overflow = '';
+        }
 
         // Refresh button event
         document.getElementById('refreshBtn').addEventListener('click', function() {
