@@ -1680,6 +1680,19 @@ function onMouseDown(idx, e) {
       });
       piece.offsetX = mx - piece.x;
       piece.offsetY = my - piece.y;
+      
+      // Shrink to 0.9 immediately when dragging starts
+      piece.size = 0.95;
+      // Automatically expand back to 1.0 after 0.3 seconds
+      setTimeout(() => {
+        if (piece.dragging) {
+          piece.size = 1.0;
+        }
+      }, 100); // 0.3 seconds
+      
+      // Change cursor to grabbing hand
+      canvases[idx].style.cursor = 'grabbing';
+      
       // Bring to front
       pieces.splice(i, 1);
       pieces.push(piece);
@@ -1711,6 +1724,9 @@ function onMouseUp(idx, e) {
   if (piece) {
     piece.dragging = false;
     puzzles[idx].draggingPiece = null;
+    
+    // Restore cursor to default
+    canvases[idx].style.cursor = 'default';
 
     // Store original velocity before trying to merge
     const originalVx = piece.vx;
@@ -2061,7 +2077,7 @@ function scrollToFirstUnsolved() {
 }
 
 // 排行相关
-const globalBests = [{ nickname: "阿见", time: 45.23, difficulty: 1 }];
+const globalBests = [{ nickname: "阿见", time: 25.23, difficulty: 1, combo: 7 }];
 
 function updatePersonalList() {
   let records = JSON.parse(localStorage.getItem("jigsaw_records") || "{}");
@@ -2092,7 +2108,8 @@ function updatePersonalList() {
           : record.difficulty === 3
             ? hardText
             : hellText;
-    li.textContent = `${nickname}: ${record.time.toFixed(2)} ${timeUnit} (${difficultyText})`;
+    const comboText = record.combo > 0 ? `, ${record.combo} ComBo` : '';
+    li.textContent = `${i + 1}: ${record.time.toFixed(2)} ${timeUnit} (${difficultyText}${comboText})`;
     ol.appendChild(li);
   });
 }
@@ -2123,7 +2140,8 @@ function updateGlobalList() {
           : item.difficulty === 3
             ? hardText
             : hellText;
-    li.textContent = `${item.nickname}: ${item.time.toFixed(2)} ${timeUnit} (${difficultyText})`;
+    const comboText = item.combo > 0 ? `, ${item.combo} ComBo` : '';
+    li.textContent = `${i + 1}: ${item.nickname} ${item.time.toFixed(2)} ${timeUnit} (${difficultyText}${comboText})`;
     ol.appendChild(li);
   });
 }
@@ -3018,7 +3036,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Play confirmation sound
     const confirmAudio = new Audio("audio/confirm.mp3");
     confirmAudio.currentTime = 0;
-    playSFX("audio/confirm.mp3", 0.2);
+    playSFX("audio/confirm.mp3", 0.5);
 
     // 标记confirmBtn首次点击
     if (!confirmBtnClicked) {
@@ -3049,6 +3067,7 @@ document.addEventListener("DOMContentLoaded", function () {
     records[nickname].push({
       time: timeSeconds,
       difficulty: currentDifficulty,
+      combo: maxCombo,
     });
     records[nickname].sort((a, b) => a.time - b.time);
     records[nickname] = records[nickname].slice(0, 5);
@@ -4839,20 +4858,20 @@ canvas1.addEventListener(
   { passive: false },
 );
 
-// function togglePause() {
-//   var button = document.getElementById("pauseButton");
-//   scene.paused = !scene.paused;
-//   button.innerHTML = scene.paused
-//     ? window.getTranslatedText
-//       ? window.getTranslatedText("继续")
-//       : "继续"
-//     : window.getTranslatedText
-//       ? window.getTranslatedText("暂停")
-//       : "暂停";
+function togglePause() {
+  var button = document.getElementById("pauseButton");
+  scene.paused = !scene.paused;
+  button.innerHTML = scene.paused
+    ? window.getTranslatedText
+      ? window.getTranslatedText("继续")
+      : "继续"
+    : window.getTranslatedText
+    ? window.getTranslatedText("暂停")
+    : "暂停";
   
-//   // Switch options button image based on pause state
-//   updateOptionsButtonImage(!scene.paused);
-// }
+  // Switch options button image based on pause state
+  updateOptionsButtonImage(!scene.paused);
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   const pauseBtn = document.getElementById("pauseButton");

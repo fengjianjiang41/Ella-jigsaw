@@ -403,12 +403,12 @@ canvas {
     background: #f8f8f8;
     border-radius: 8px;
     padding: 1em 2em;
-    max-width: 600px;
+    max-width: 800px;
     margin: 0 auto;
 }
 
 .ranking-block>div {
-    width: 220px;
+    width: 320px;
 }
 
 .ranking-block h3 {
