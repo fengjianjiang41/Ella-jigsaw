@@ -334,6 +334,7 @@ function updateTankAudioProgress() {
   const pauseButton = document.getElementById("pauseButton");
   const progressBar = document.getElementById("tankAudioProgressBar");
   const progressText = document.getElementById("tankAudioProgressText");
+  const progressContainer = document.getElementById("tankAudioProgressContainer");
 
   if (progressBar) {
     // 粉色进度条从左向右填充
@@ -349,10 +350,13 @@ function updateTankAudioProgress() {
     // 启用水箱开始按钮
     if (pauseButton) {
       pauseButton.disabled = false;
+      pauseButton.style.opacity = "1";
+      pauseButton.style.cursor = "pointer";
       pauseButton.textContent = currentLang === "zh" ? "开始" : "Start";
-      if (progressText) {
-        progressText.style.display = "none";
-      }
+    }
+    // 隐藏进度条容器
+    if (progressContainer) {
+      progressContainer.style.display = "none";
     }
   }
 }
@@ -385,6 +389,7 @@ function updatePianoAudioProgress() {
   const difficulty4Btn = document.getElementById("difficulty4");
   const progressBar = document.getElementById("pianoProgressBar");
   const progressText = document.getElementById("pianoProgressText");
+  const progressContainer = document.getElementById("pianoProgressContainer");
 
   if (progressBar) {
     // 粉色进度条从左向右填充
