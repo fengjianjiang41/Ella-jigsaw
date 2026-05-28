@@ -37,8 +37,45 @@ const coreAudioFiles = [
   "audio/35.mp3",
   "audio/40.mp3",
   "audio/45.mp3",
+];
 
-  // music 文件夹
+// 水箱场景音频文件（后台加载）
+const tankAudioFiles = [
+  "audio/water/into1.mp3",
+  "audio/water/into2.mp3",
+  "audio/water/into3.mp3",
+  "audio/water/into4.mp3",
+  "audio/water/into5.mp3",
+  "audio/water/high1.mp3",
+  "audio/water/high2.mp3",
+  "audio/water/high3.mp3",
+  "audio/water/low1.mp3",
+  "audio/water/low2.mp3",
+  "audio/water/low3.mp3",
+  "audio/water/up1.mp3",
+  "audio/water/up2.mp3",
+  "audio/water/up3.mp3",
+  "audio/water/down1.mp3",
+  "audio/water/down2.mp3",
+  "audio/water/down3.mp3",
+  "audio/water/constant1.mp3",
+  "audio/water/constant2.mp3",
+  "audio/water/maxuphigh1.mp3",
+  "audio/water/maxuphigh2.mp3",
+  "audio/water/maxuphigh3.mp3",
+  "audio/water/maxuplow1.mp3",
+  "audio/water/maxuplow2.mp3",
+  "audio/water/maxuplow3.mp3",
+  "audio/water/maxdownlow1.mp3",
+  "audio/water/maxdownlow2.mp3",
+  "audio/water/maxdownlow3.mp3",
+  "audio/water/maxdownhigh1.mp3",
+  "audio/water/maxdownhigh2.mp3",
+  "audio/water/maxdownhigh3.mp3",
+];
+
+// 钢琴音乐文件（后台加载，用于困难难度）
+const pianoAudioFiles = [
   "audio/music/A3.mp3",
   "audio/music/A4.mp3",
   "audio/music/A5.mp3",
@@ -78,41 +115,6 @@ const coreAudioFiles = [
   "audio/music/sG5.mp3",
 ];
 
-// 水箱场景音频文件（后台加载）
-const tankAudioFiles = [
-  "audio/water/into1.mp3",
-  "audio/water/into2.mp3",
-  "audio/water/into3.mp3",
-  "audio/water/into4.mp3",
-  "audio/water/into5.mp3",
-  "audio/water/high1.mp3",
-  "audio/water/high2.mp3",
-  "audio/water/high3.mp3",
-  "audio/water/low1.mp3",
-  "audio/water/low2.mp3",
-  "audio/water/low3.mp3",
-  "audio/water/up1.mp3",
-  "audio/water/up2.mp3",
-  "audio/water/up3.mp3",
-  "audio/water/down1.mp3",
-  "audio/water/down2.mp3",
-  "audio/water/down3.mp3",
-  "audio/water/constant1.mp3",
-  "audio/water/constant2.mp3",
-  "audio/water/maxuphigh1.mp3",
-  "audio/water/maxuphigh2.mp3",
-  "audio/water/maxuphigh3.mp3",
-  "audio/water/maxuplow1.mp3",
-  "audio/water/maxuplow2.mp3",
-  "audio/water/maxuplow3.mp3",
-  "audio/water/maxdownlow1.mp3",
-  "audio/water/maxdownlow2.mp3",
-  "audio/water/maxdownlow3.mp3",
-  "audio/water/maxdownhigh1.mp3",
-  "audio/water/maxdownhigh2.mp3",
-  "audio/water/maxdownhigh3.mp3",
-];
-
 // 核心音频加载计数
 let coreAudioLoadedCount = 0;
 let coreAudioTotalCount = coreAudioFiles.length;
@@ -126,6 +128,11 @@ let paintingImagesLoadingComplete = false;
 let tankAudioLoadedCount = 0;
 let tankAudioTotalCount = tankAudioFiles.length;
 let tankAudioLoadingComplete = false;
+
+// 钢琴音乐加载计数（后台加载，用于困难难度）
+let pianoAudioLoadedCount = 0;
+let pianoAudioTotalCount = pianoAudioFiles.length;
+let pianoAudioLoadingComplete = false;
 
 let loadingComplete = false;
 
@@ -350,6 +357,66 @@ function updateTankAudioProgress() {
   }
 }
 
+// 加载钢琴音乐（后台加载）
+function loadPianoAudioFiles() {
+  pianoAudioFiles.forEach((src) => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.src = src;
+
+    audio.addEventListener("loadeddata", () => {
+      pianoAudioLoadedCount++;
+      updatePianoAudioProgress();
+    });
+
+    audio.addEventListener("error", () => {
+      pianoAudioLoadedCount++;
+      updatePianoAudioProgress();
+    });
+  });
+}
+
+// 更新钢琴音乐加载进度
+function updatePianoAudioProgress() {
+  const progress = pianoAudioLoadedCount / pianoAudioTotalCount;
+  const percentage = Math.round(progress * 100);
+  
+  const difficulty3Btn = document.getElementById("difficulty3");
+  const difficulty4Btn = document.getElementById("difficulty4");
+  const progressBar = document.getElementById("pianoProgressBar");
+  const progressText = document.getElementById("pianoProgressText");
+
+  if (progressBar) {
+    // 粉色进度条从左向右填充
+    progressBar.style.width = percentage + "%";
+  }
+
+  if (progressText) {
+    progressText.textContent = currentLang === "zh" ? `音乐加载中 ${percentage}%` : `Loading music ${percentage}%`;
+  }
+
+  if (progress >= 1 && !pianoAudioLoadingComplete) {
+    pianoAudioLoadingComplete = true;
+    // 启用困难难度按钮
+    if (difficulty3Btn) {
+      difficulty3Btn.disabled = false;
+      difficulty3Btn.style.opacity = "1";
+      difficulty3Btn.style.cursor = "pointer";
+    }
+    if (difficulty4Btn) {
+      difficulty4Btn.disabled = false;
+      difficulty4Btn.style.opacity = "1";
+      difficulty4Btn.style.cursor = "pointer";
+    }
+    if (progressText) {
+      progressText.textContent = currentLang === "zh" ? "音乐就绪" : "Music ready";
+      setTimeout(() => {
+        if (progressText) progressText.style.display = "none";
+      }, 2000);
+    }
+  }
+}
+
 function updateLoadingProgress() {
   const progress = coreAudioLoadedCount / coreAudioTotalCount;
   const percentage = Math.round(progress * 100);
@@ -421,9 +488,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // 初始加载：只加载核心音频
   loadCoreAudioFiles();
   
-  // 后台并行加载：绘画图片和水箱音频
+  // 后台并行加载：绘画图片、水箱音频和钢琴音乐
   initPaintingImages();
   loadTankAudioFiles();
+  loadPianoAudioFiles();
 });
 
 // Default image paths (source1)
@@ -1762,7 +1830,7 @@ function animatePuzzle(idx) {
     const expectedPageId = "page" + (3 + idx);
     if (currentActivePage === expectedPageId) {
       // Play bouncing sound
-      if (currentDifficulty > 1 && currentSong.length > 0) {
+      if (currentDifficulty > 2 && currentSong.length > 0) {
         // Play piano note for higher difficulties
         const noteName = currentSong[noteIndex % currentSong.length];
         playSFX(`audio/music/${noteName}.mp3`, 0.5);
