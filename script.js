@@ -1,5 +1,5 @@
-// 预加载所有音频文件
-const audioFilesPreload = [
+// 核心音频文件（初始加载）
+const coreAudioFiles = [
   // 根音频文件夹
   "audio/beep.mp3",
   "audio/button.m4a",
@@ -76,8 +76,10 @@ const audioFilesPreload = [
   "audio/music/sG3.mp3",
   "audio/music/sG4.mp3",
   "audio/music/sG5.mp3",
+];
 
-  // water 文件夹
+// 水箱场景音频文件（后台加载）
+const tankAudioFiles = [
   "audio/water/into1.mp3",
   "audio/water/into2.mp3",
   "audio/water/into3.mp3",
@@ -111,11 +113,19 @@ const audioFilesPreload = [
   "audio/water/maxdownhigh3.mp3",
 ];
 
-let audioLoadedCount = 0;
-let audioTotalCount = audioFilesPreload.length;
+// 核心音频加载计数
+let coreAudioLoadedCount = 0;
+let coreAudioTotalCount = coreAudioFiles.length;
 
-let imageLoadedCount = 0;
-let imageTotalCount = 100;
+// 绘画图片加载计数（后台加载）
+let paintingImagesLoadedCount = 0;
+let paintingImagesTotalCount = 100;
+let paintingImagesLoadingComplete = false;
+
+// 水箱音频加载计数（后台加载）
+let tankAudioLoadedCount = 0;
+let tankAudioTotalCount = tankAudioFiles.length;
+let tankAudioLoadingComplete = false;
 
 let loadingComplete = false;
 
@@ -219,24 +229,131 @@ function getSource2SolvedCount() {
   return Object.keys(solved).length;
 }
 
+// 初始化绘画图片（后台加载，不阻塞主加载流程）
 function initPaintingImages() {
-  for (let i = 1; i <= imageTotalCount; i++) {
+  for (let i = 1; i <= paintingImagesTotalCount; i++) {
     const img = new Image();
     const src = `images/paintings/${i}.jpg`;
     img.src = src;
 
     img.addEventListener("load", () => {
       paintingImages.push(src);
-      imageLoadedCount++;
-      updateLoadingProgress();
+      paintingImagesLoadedCount++;
+      updatePaintingLoadingProgress();
+    });
+
+    img.addEventListener("error", () => {
+      paintingImages.push(src);
+      paintingImagesLoadedCount++;
+      updatePaintingLoadingProgress();
     });
   }
 }
 
-function updateLoadingProgress() {
-  const progress = (audioLoadedCount + imageLoadedCount) / (audioTotalCount + imageTotalCount);
+// 更新绘画图片加载进度
+function updatePaintingLoadingProgress() {
+  const progress = paintingImagesLoadedCount / paintingImagesTotalCount;
   const percentage = Math.round(progress * 100);
-  console.log("", percentage);
+  
+  const source2Btn = document.getElementById("source2");
+  const progressBar = document.getElementById("paintingProgressBar");
+  const progressText = document.getElementById("paintingProgressText");
+
+  if (progressBar) {
+    // 粉色进度条从左向右填充
+    progressBar.style.width = percentage + "%";
+  }
+
+  if (progressText) {
+    progressText.textContent = currentLang === "zh" ? `名画加载中 ${percentage}%` : `Loading masterpieces ${percentage}%`;
+  }
+
+  if (progress >= 1 && !paintingImagesLoadingComplete) {
+    paintingImagesLoadingComplete = true;
+    // 启用世界名画按钮
+    if (source2Btn) {
+      source2Btn.disabled = false;
+      if (progressText) {
+        progressText.textContent = currentLang === "zh" ? "名画就绪" : "Masterpieces ready";
+      }
+    }
+    // 更新按钮样式
+    updateSource2ButtonStyle();
+  }
+}
+
+// 更新source2按钮样式
+function updateSource2ButtonStyle() {
+  const source2Btn = document.getElementById("source2");
+  const progressContainer = document.getElementById("paintingProgressContainer");
+  
+  if (source2Btn && progressContainer) {
+    if (paintingImagesLoadingComplete) {
+      // 加载完成，移除进度条，显示正常按钮样式
+      progressContainer.style.display = "none";
+      source2Btn.style.opacity = "1";
+      source2Btn.style.cursor = "pointer";
+    } else {
+      // 加载中，显示进度条
+      progressContainer.style.display = "flex";
+    }
+  }
+}
+
+// 加载水箱音频（后台加载）
+function loadTankAudioFiles() {
+  tankAudioFiles.forEach((src) => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.src = src;
+
+    audio.addEventListener("loadeddata", () => {
+      tankAudioLoadedCount++;
+      updateTankAudioProgress();
+    });
+
+    audio.addEventListener("error", () => {
+      tankAudioLoadedCount++;
+      updateTankAudioProgress();
+    });
+  });
+}
+
+// 更新水箱音频加载进度
+function updateTankAudioProgress() {
+  const progress = tankAudioLoadedCount / tankAudioTotalCount;
+  const percentage = Math.round(progress * 100);
+  
+  const pauseButton = document.getElementById("pauseButton");
+  const progressBar = document.getElementById("tankAudioProgressBar");
+  const progressText = document.getElementById("tankAudioProgressText");
+
+  if (progressBar) {
+    // 粉色进度条从左向右填充
+    progressBar.style.width = percentage + "%";
+  }
+
+  if (progressText) {
+    progressText.textContent = currentLang === "zh" ? `音效加载中 ${percentage}%` : `Loading sounds ${percentage}%`;
+  }
+
+  if (progress >= 1 && !tankAudioLoadingComplete) {
+    tankAudioLoadingComplete = true;
+    // 启用水箱开始按钮
+    if (pauseButton) {
+      pauseButton.disabled = false;
+      pauseButton.textContent = currentLang === "zh" ? "开始" : "Start";
+      if (progressText) {
+        progressText.style.display = "none";
+      }
+    }
+  }
+}
+
+function updateLoadingProgress() {
+  const progress = coreAudioLoadedCount / coreAudioTotalCount;
+  const percentage = Math.round(progress * 100);
+  console.log("Loading progress:", percentage);
   const progressBar = document.getElementById("loadingProgress");
   const percentageText = document.getElementById("loadingPercentage");
   const startText = document.getElementById("startText");
@@ -248,10 +365,7 @@ function updateLoadingProgress() {
     percentageText.textContent = percentage + "%";
   }
 
-  if (
-    audioLoadedCount + imageLoadedCount >= audioTotalCount + imageTotalCount &&
-    !loadingComplete
-  ) {
+  if (coreAudioLoadedCount >= coreAudioTotalCount && !loadingComplete) {
     loadingComplete = true;
     completeLoading();
   }
@@ -275,26 +389,26 @@ function completeLoading() {
   removeScrollBlock();
 }
 
-function loadAudioFiles() {
-  audioFilesPreload.forEach((src) => {
+function loadCoreAudioFiles() {
+  coreAudioFiles.forEach((src) => {
     const audio = new Audio();
     audio.preload = "auto";
     audio.src = src;
 
     audio.addEventListener("loadeddata", () => {
-      audioLoadedCount++;
+      coreAudioLoadedCount++;
       updateLoadingProgress();
     });
 
     audio.addEventListener("error", () => {
       // Even if there's an error, count it as loaded to avoid blocking
-      audioLoadedCount++;
+      coreAudioLoadedCount++;
       updateLoadingProgress();
     });
   });
 }
 
-// Start loading audio files when the DOM is loaded
+// Start loading when the DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
   // 初始隐藏startText
   const startText = document.getElementById("startText");
@@ -303,8 +417,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   // Start loading text toggle
   startLoadingTextToggle();
+  
+  // 初始加载：只加载核心音频
+  loadCoreAudioFiles();
+  
+  // 后台并行加载：绘画图片和水箱音频
   initPaintingImages();
-  loadAudioFiles();
+  loadTankAudioFiles();
 });
 
 // Default image paths (source1)
