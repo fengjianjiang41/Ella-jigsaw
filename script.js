@@ -277,8 +277,8 @@ function updatePaintingLoadingProgress() {
 
   if (progress >= 1 && !paintingImagesLoadingComplete) {
     paintingImagesLoadingComplete = true;
-    // 启用世界名画按钮
-    if (source2Btn) {
+    // 只有在source2已解锁的情况下才启用按钮
+    if (source2Btn && source2Unlocked) {
       source2Btn.disabled = false;
       if (progressText) {
         progressText.textContent = currentLang === "zh" ? "名画就绪" : "Masterpieces ready";
@@ -407,11 +407,6 @@ function updatePianoAudioProgress() {
       difficulty3Btn.disabled = false;
       difficulty3Btn.style.opacity = "1";
       difficulty3Btn.style.cursor = "pointer";
-    }
-    if (difficulty4Btn) {
-      difficulty4Btn.disabled = false;
-      difficulty4Btn.style.opacity = "1";
-      difficulty4Btn.style.cursor = "pointer";
     }
     if (progressText) {
       progressText.textContent = currentLang === "zh" ? "音乐就绪" : "Music ready";
@@ -1444,7 +1439,7 @@ function selectRandomSong() {
 // Image source settings
 let currentSource = 1; // 1: 经典三连, 2: 世界名画, 3: 敬请期待
 let sourceSelected = true; // 默认已选择source1
-let source2Unlocked = true; // 标记source2是否已解锁
+let source2Unlocked = false; // 标记source2是否已解锁
 const difficultySettings = {
   1: { gridSize: 2, speed: 4, lensSize: 600 }, // 2x2, 慢, 大镜头
   2: { gridSize: 3, speed: 6, lensSize: 400 }, // 3x3, 中, 中镜头
@@ -2097,10 +2092,20 @@ function solvedScroll() {
       difficulty3SolvedOnce = true;
       // 解锁难度4
       difficulty4Unlocked = true;
-      document.getElementById("difficulty4").disabled = false;
-      // 解锁source2
+      const difficulty4Btn = document.getElementById("difficulty4");
+      if (difficulty4Btn) {
+        difficulty4Btn.disabled = false;
+        difficulty4Btn.style.opacity = "1";
+        difficulty4Btn.style.cursor = "pointer";
+      }
+    }
+    // 解锁source2（在任何难度下完成所有拼图都解锁source2）
+    if (!source2Unlocked) {
       source2Unlocked = true;
-      document.getElementById("source2").disabled = false;
+      const source2Btn = document.getElementById("source2");
+      if (source2Btn && paintingImagesLoadingComplete) {
+        source2Btn.disabled = false;
+      }
     }
     stopTimer();
     // 自动滚动到结果页
