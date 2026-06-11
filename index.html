@@ -296,6 +296,13 @@
         </button>
     </div>
 
+    <!-- Floating Achievements Button -->
+    <div class="floating-achieve-container">
+        <button id="floatingAchieveBtn" class="floating-achieve-btn" title="成就列表 / Achievements">
+            <img src="images/achieve.png" alt="Achievements">
+        </button>
+    </div>
+
     <!-- Options Window -->
     <div id="optionsWindow" class="options-window">
         <div class="options-header">
@@ -322,6 +329,20 @@
 
     <!-- Options Window Overlay -->
     <div id="optionsOverlay" class="options-overlay"></div>
+
+    <!-- Achievements Window -->
+    <div id="achieveWindow" class="achieve-window">
+        <div class="achieve-header">
+            <span class="achieve-title">成就列表</span>
+            <button id="closeAchieveBtn" class="close-achieve-btn">×</button>
+        </div>
+        <div class="achieve-content">
+            <div class="achieve-grid" id="achieveGrid"></div>
+        </div>
+    </div>
+
+    <!-- Achievements Window Overlay -->
+    <div id="achieveOverlay" class="achieve-overlay"></div>
 
     <script src="script.js"></script>
 </body>

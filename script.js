@@ -5425,6 +5425,130 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+// Floating Achievements Button Functionality
+document.addEventListener("DOMContentLoaded", function () {
+  const achieveBtn = document.getElementById("floatingAchieveBtn");
+  const achieveWindow = document.getElementById("achieveWindow");
+  const achieveOverlay = document.getElementById("achieveOverlay");
+  const closeAchieveBtn = document.getElementById("closeAchieveBtn");
+  const achieveGrid = document.getElementById("achieveGrid");
+
+  // Achievements list (40 achievements)
+  const achievements = [
+    { id: 1, title: "初出茅庐", desc: "完成第一次注册并开始游戏" },
+    { id: 2, title: "第一滴血", desc: "成功将两块拼图碎片合并在一起" },
+    { id: 3, title: "小试牛刀", desc: "完成任意难度的第一幅拼图" },
+    { id: 4, title: "青葱岁月", desc: "首次保存个人成绩" },
+    { id: 5, title: "名画解锁", desc: "解锁世界名画图包" },
+    { id: 6, title: "初见彩蛋", desc: "首次玩浴池游戏" },
+    { id: 7, title: "你也台球", desc: "首次玩台球游戏" },
+    { id: 8, title: "我爱旦妹", desc: "首次发现旦妹可以玩" },
+    { id: 9, title: "耳朵享福", desc: "听到困难难度的钢琴背景音乐" },
+    { id: 10, title: "追光逐影", desc: "首次完成一次隐身拼图" },
+    { id: 11, title: "看破皮囊", desc: "首次完成一次透镜拼图" },
+    { id: 12, title: "小孩毕业", desc: "使用小孩模式完成一局" },
+    { id: 13, title: "连击达人", desc: "达成5连击（Combo）" },
+    { id: 14, title: "连击新星", desc: "达成10连击（Combo）" },
+    { id: 15, title: "连击大师", desc: "达成20连击（Combo）" },
+    { id: 16, title: "连击王者", desc: "达成35连击（Combo）" },
+    { id: 17, title: "连击冠军", desc: "达成45连击（最高连击）" },
+    { id: 18, title: "三破茅庐", desc: "在休闲难度下首次完成所有三幅拼图" },
+    { id: 19, title: "普通玩家", desc: "在普通难度下首次完成所有三幅拼图" },
+    { id: 20, title: "音乐精灵", desc: "在困难难度下首次完成所有三幅拼图" },
+    { id: 21, title: "过鬼门关", desc: "在炼狱难度下首次完成所有三幅拼图" },
+    { id: 22, title: "鉴赏家", desc: "收集1幅世界名画拼图" },
+    { id: 23, title: "收藏家", desc: "收集5幅不同的世界名画" },
+    { id: 24, title: "陈列家", desc: "收集20幅不同的世界名画" },
+    { id: 25, title: "博物家", desc: "收集50幅不同的世界名画" },
+    { id: 26, title: "持矿家", desc: "收集88幅不同的世界名画" },
+    { id: 27, title: "手速达人", desc: "在10秒内达成5连击" },
+    { id: 28, title: "手速新星", desc: "在30秒内达成10连击" },
+    { id: 29, title: "手速大师", desc: "在90秒内达成20连击" },
+    { id: 30, title: "手速王者", desc: "在200秒内达成35连击" },
+    { id: 31, title: "手速冠军", desc: "在360秒内达成45连击" },
+    { id: 32, title: "休游果断", desc: "在休闲难度下30秒内完成一局" },
+    { id: 33, title: "普渡众生", desc: "在普通难度下2分钟内完成一局" },
+    { id: 34, title: "困境造神", desc: "在困难难度下5分钟内完成一局" },
+    { id: 35, title: "炼狱修魂", desc: "在炼狱难度下5分钟内完成一局" },
+    { id: 36, title: "三天打鱼", desc: "连续3天每天完成至少一局游戏" },
+    { id: 37, title: "上班一样", desc: "连续5天每天完成至少一局游戏" },
+    { id: 38, title: "全勤玩家", desc: "连续7天每天完成至少一局游戏" },
+    { id: 39, title: "八十一难", desc: "在炼狱难度下完成81幅世界名画" },
+    { id: 40, title: "我，拼图侠", desc: "解锁其他所有成就" }
+  ];
+
+  // Load unlocked achievements from localStorage
+  function loadUnlockedAchievements() {
+    const saved = localStorage.getItem("jigsaw_unlocked_achievements");
+    return saved ? JSON.parse(saved) : [];
+  }
+
+  // Save unlocked achievements to localStorage
+  function saveUnlockedAchievements(unlocked) {
+    localStorage.setItem("jigsaw_unlocked_achievements", JSON.stringify(unlocked));
+  }
+
+  // Get current unlocked achievements
+  let unlockedAchievements = loadUnlockedAchievements();
+
+  // Render achievements grid
+  function renderAchievements() {
+    achieveGrid.innerHTML = "";
+    
+    achievements.forEach((achievement) => {
+      const isUnlocked = unlockedAchievements.includes(achievement.id);
+      const item = document.createElement("div");
+      item.className = `achieve-item ${isUnlocked ? "unlocked" : "locked"}`;
+      item.innerHTML = `
+        <div class="achieve-title-text">${achievement.title}</div>
+        <div class="achieve-desc">${achievement.desc}</div>
+      `;
+      achieveGrid.appendChild(item);
+    });
+  }
+
+  // Open achievements window
+  function openAchieveWindow() {
+    renderAchievements();
+    achieveWindow.style.display = "block";
+    achieveOverlay.style.display = "block";
+    document.body.style.pointerEvents = "none";
+    achieveWindow.style.pointerEvents = "auto";
+    achieveOverlay.style.pointerEvents = "auto";
+    achieveBtn.style.pointerEvents = "none";
+  }
+
+  // Close achievements window
+  function closeAchieveWindow() {
+    achieveWindow.style.display = "none";
+    achieveOverlay.style.display = "none";
+    document.body.style.pointerEvents = "auto";
+    achieveBtn.style.pointerEvents = "auto";
+  }
+
+  // Event listeners
+  achieveBtn?.addEventListener("click", openAchieveWindow);
+  closeAchieveBtn?.addEventListener("click", closeAchieveWindow);
+  achieveOverlay?.addEventListener("click", closeAchieveWindow);
+
+  // Function to unlock an achievement
+  window.unlockAchievement = function(achievementId) {
+    if (!unlockedAchievements.includes(achievementId)) {
+      unlockedAchievements.push(achievementId);
+      saveUnlockedAchievements(unlockedAchievements);
+      // Refresh the display if window is open
+      if (achieveWindow.style.display === "block") {
+        renderAchievements();
+      }
+    }
+  };
+
+  // Function to check if an achievement is unlocked
+  window.isAchievementUnlocked = function(achievementId) {
+    return unlockedAchievements.includes(achievementId);
+  };
+});
+
 // Helper function to play audio with SFX volume
 function playAudioWithVolume(audio, volume = 1) {
   audio.volume = volume * (window.sfxVolume || 0.5);
