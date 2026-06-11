@@ -115,6 +115,19 @@ const pianoAudioFiles = [
   "audio/music/sG5.mp3",
 ];
 
+const achievementsUnlocked = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+ ];
+
 // 核心音频加载计数
 let coreAudioLoadedCount = 0;
 let coreAudioTotalCount = coreAudioFiles.length;
@@ -1999,6 +2012,10 @@ function tryMerge(idx, piece) {
   }
   if (merged) {
     // Play success sound
+    if (!achievementsUnlocked[1]) {
+      window.unlockAchievement(2);
+    }
+
     playSFX("audio/success.m4a", 0.2);
 
     // Handle combo
@@ -2102,6 +2119,9 @@ function solvedScroll() {
     // 解锁source2（在任何难度下完成所有拼图都解锁source2）
     if (!source2Unlocked) {
       source2Unlocked = true;
+      if (!achievementsUnlocked[4]) {
+        window.unlockAchievement(5);
+      }
       const source2Btn = document.getElementById("source2");
       if (source2Btn && paintingImagesLoadingComplete) {
         source2Btn.disabled = false;
@@ -2238,6 +2258,10 @@ function handleSolvedEffects(idx) {
 function checkSolved(idx) {
   const { pieces } = puzzles[idx];
   if (pieces.every((p) => p.group === pieces[0].group)) {
+    if (!achievementsUnlocked[2]) {
+      window.unlockAchievement(3);
+    }
+
     puzzles[idx].solved = true;
     allSolved[idx] = true;
 
@@ -3069,6 +3093,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Start：在注册页点击，开始所有拼图并跳到 page3，显示浮动控件
   startBtn.onclick = async function () {
+    // Unlock achievement #1 "初出茅庐" - first time registering and starting a game
+    if (!achievementsUnlocked[0]) {
+      window.unlockAchievement(1);
+    }
     // Save nickname when start button is clicked
     nickname = nicknameInput.value.trim();
     localStorage.setItem("jigsaw_nickname", nickname);
@@ -3260,6 +3288,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Confirm：保存成绩并更新排行
   confirmBtn.onclick = function () {
+    if (!achievementsUnlocked[3]) {
+      window.unlockAchievement(4);
+    }
     // Play confirmation sound
     const confirmAudio = new Audio("audio/confirm.mp3");
     confirmAudio.currentTime = 0;
