@@ -4829,7 +4829,7 @@ function drawTank() {
     );
     // Load the actual texture
     var img = new Image();
-    img.crossOrigin = "anonymous";
+    // img.crossOrigin = "anonymous";
     img.onload = function () {
       gl.bindTexture(gl.TEXTURE_2D, obstacleTexture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
