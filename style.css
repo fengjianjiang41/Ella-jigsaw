@@ -1017,6 +1017,12 @@ body {
     font-weight: bold;
 }
 
+.achieve-header-btns {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .close-achieve-btn {
     background: none;
     border: none;
@@ -1035,6 +1041,30 @@ body {
 
 .close-achieve-btn:hover {
     transform: scale(1.2);
+}
+
+.reset-achieve-btn {
+    background: none;
+    border: 2px solid #333;
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    border-radius: 4px;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.reset-achieve-btn:hover {
+    transform: scale(1.1);
+    background-color: #333;
+    color: #ffd700;
 }
 
 .achieve-content {

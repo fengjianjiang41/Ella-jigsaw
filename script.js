@@ -126,7 +126,58 @@ const achievementsUnlocked = [
   false, false, false, false,
   false, false, false, false,
   false, false, false, false,
- ];
+];
+
+// ========== 每日游戏记录 ==========
+// 获取今日日期字符串 (YYYY-MM-DD)
+function getTodayDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// 从 localStorage 加载游戏日期记录
+function loadPlayDates() {
+  const saved = localStorage.getItem("jigsaw_play_dates");
+  return saved ? JSON.parse(saved) : [];
+}
+
+// 保存今日到游戏日期记录（去重）
+function addPlayDate() {
+  const dates = loadPlayDates();
+  const today = getTodayDate();
+  if (!dates.includes(today)) {
+    dates.push(today);
+    localStorage.setItem("jigsaw_play_dates", JSON.stringify(dates));
+  }
+  return dates;
+}
+
+// 计算连续天数（从今天往前数，每一天必须都有记录）
+function getConsecutiveDays() {
+  const dates = loadPlayDates();
+  if (dates.length === 0) return 0;
+  const dateSet = new Set(dates);
+  let count = 0;
+  const current = new Date();
+  current.setHours(0, 0, 0, 0);
+  // 如果今天没玩但昨天玩了，从昨天开始算连续；如果今天玩了从今天开始算
+  const todayStr = getTodayDate();
+  if (!dateSet.has(todayStr)) {
+    current.setDate(current.getDate() - 1);
+  }
+  while (true) {
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, "0");
+    const d = String(current.getDate()).padStart(2, "0");
+    if (dateSet.has(`${y}-${m}-${d}`)) {
+      count++;
+      current.setDate(current.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return count;
+}
 
 // 核心音频加载计数
 let coreAudioLoadedCount = 0;
@@ -174,17 +225,17 @@ function addSolvedPainting(imagePath, difficulty) {
     // Get the puzzle index from imagePaths
     const puzzleIdx = imagePaths.indexOf(imagePath);
     // Calculate solve time if available
-    const solveTime = puzzleIdx >= 0 && puzzleSolveTimes[puzzleIdx] ? 
+    const solveTime = puzzleIdx >= 0 && puzzleSolveTimes[puzzleIdx] ?
       Date.now() - puzzleSolveTimes[puzzleIdx] : 0;
     // Get max combo (0 if round not confirmed yet)
     const combo = puzzleIdx >= 0 && maxComboPerPuzzle[puzzleIdx] ? maxComboPerPuzzle[puzzleIdx] : 0;
-    
+
     // Only update if this is a higher difficulty than previously recorded, or same difficulty but higher solve time
     // OR same difficulty but higher combo
-    const shouldUpdate = !solved[num] || 
-                         difficulty > solved[num].difficulty || 
-                         (difficulty === solved[num].difficulty && combo > (solved[num].combo || 0)) || 
-                         (difficulty === solved[num].difficulty && solveTime < (solved[num].solveTime || 0));
+    const shouldUpdate = !solved[num] ||
+      difficulty > solved[num].difficulty ||
+      (difficulty === solved[num].difficulty && combo > (solved[num].combo || 0)) ||
+      (difficulty === solved[num].difficulty && solveTime < (solved[num].solveTime || 0));
 
     // Only update if this is a higher difficulty than previously recorded
     if (shouldUpdate) {
@@ -195,6 +246,46 @@ function addSolvedPainting(imagePath, difficulty) {
         combo: combo
       };
       localStorage.setItem("jigsaw_solved_paintings", JSON.stringify(solved));
+    }
+    // Count unique solved paintings for collection achievements
+    const solvedCount = Object.keys(solved).length;
+    if (solvedCount >= 1) {
+      if (!achievementsUnlocked[21]) {
+        window.unlockAchievement(22);
+      }
+    }
+    if (solvedCount >= 5) {
+      if (!achievementsUnlocked[22]) {
+        window.unlockAchievement(23);
+      }
+    }
+    if (solvedCount >= 20) {
+      if (!achievementsUnlocked[23]) {
+        window.unlockAchievement(24);
+      }
+    }
+    if (solvedCount >= 50) {
+      if (!achievementsUnlocked[24]) {
+        window.unlockAchievement(25);
+      }
+    }
+    if (solvedCount >= 88) {
+      if (!achievementsUnlocked[25]) {
+        window.unlockAchievement(26);
+      }
+    }
+    // 成就#39 "八十一难" - 在炼狱难度下完成81幅世界名画 (i=38)
+    // 统计所有已记录画作中难度为4（炼狱）的数量
+    let purgatoryCount = 0;
+    for (const key in solved) {
+      if (solved[key].difficulty === 4) {
+        purgatoryCount++;
+      }
+    }
+    if (purgatoryCount >= 81) {
+      if (!achievementsUnlocked[38]) {
+        window.unlockAchievement(39);
+      }
     }
   }
 }
@@ -274,7 +365,7 @@ function initPaintingImages() {
 function updatePaintingLoadingProgress() {
   const progress = paintingImagesLoadedCount / paintingImagesTotalCount;
   const percentage = Math.round(progress * 100);
-  
+
   const source2Btn = document.getElementById("source2");
   const progressBar = document.getElementById("paintingProgressBar");
   const progressText = document.getElementById("paintingProgressText");
@@ -306,7 +397,7 @@ function updatePaintingLoadingProgress() {
 function updateSource2ButtonStyle() {
   const source2Btn = document.getElementById("source2");
   const progressContainer = document.getElementById("paintingProgressContainer");
-  
+
   if (source2Btn && progressContainer) {
     if (paintingImagesLoadingComplete) {
       // 加载完成，移除进度条，显示正常按钮样式
@@ -343,7 +434,7 @@ function loadTankAudioFiles() {
 function updateTankAudioProgress() {
   const progress = tankAudioLoadedCount / tankAudioTotalCount;
   const percentage = Math.round(progress * 100);
-  
+
   const pauseButton = document.getElementById("pauseButton");
   const progressBar = document.getElementById("tankAudioProgressBar");
   const progressText = document.getElementById("tankAudioProgressText");
@@ -397,7 +488,7 @@ function loadPianoAudioFiles() {
 function updatePianoAudioProgress() {
   const progress = pianoAudioLoadedCount / pianoAudioTotalCount;
   const percentage = Math.round(progress * 100);
-  
+
   const difficulty3Btn = document.getElementById("difficulty3");
   const difficulty4Btn = document.getElementById("difficulty4");
   const progressBar = document.getElementById("pianoProgressBar");
@@ -497,10 +588,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   // Start loading text toggle
   startLoadingTextToggle();
-  
+
   // 初始加载：只加载核心音频
   loadCoreAudioFiles();
-  
+
   // 后台并行加载：绘画图片、水箱音频和钢琴音乐
   initPaintingImages();
   loadTankAudioFiles();
@@ -728,10 +819,11 @@ let maxComboPerPuzzle = []; // Track max combo for each puzzle individually  // 
 let beepInterval = null; // Track beep sound interval
 let enableBeepSounds = true; // Toggle for beep sounds
 let usedKidMode = false; // Track if kid mode was used during this round
+let comboStartTime = 0; // Track the time of first merge for speed achievements
 
 // Get combo text color style based on difficulty
 function getComboColorStyle(difficulty) {
-  switch(difficulty) {
+  switch (difficulty) {
     case 1:
       return { color: '#cd7f32', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(205, 127, 50, 0.5)', animation: '' };
     case 2:
@@ -751,6 +843,7 @@ function initCombo() {
   currentCombo = 0;
   lastMergeTime = 0;
   maxComboPerPuzzle = [];
+  comboStartTime = 0;
 }
 
 // Handle combo when a piece is merged
@@ -775,6 +868,10 @@ function handleCombo(puzzleIdx, piece) {
     // Reset combo if time limit exceeded
     currentCombo = 1;
   }
+  // Record the start time of first merge for speed achievements
+  if (comboStartTime === 0) {
+    comboStartTime = now;
+  }
 
   // Update last merge time
   lastMergeTime = now;
@@ -787,6 +884,65 @@ function handleCombo(puzzleIdx, piece) {
   // Play combo audio when combo reaches multiples of 5
   if (currentCombo % 5 === 0 && currentCombo <= 45) {
     playSFX(`audio/${currentCombo}.mp3`, 0.5);
+  }
+  // 解锁成就#13 "连击达人" - 首次达成5连击
+  if (currentCombo === 5) {
+    if (!achievementsUnlocked[12]) {
+      window.unlockAchievement(13);
+    }
+  }
+  // 解锁成就#13 "连击达人" - 首次达成10连击
+  if (currentCombo === 10) {
+    if (!achievementsUnlocked[13]) {
+      window.unlockAchievement(14);
+    }
+  }
+  if (currentCombo === 20) {
+    if (!achievementsUnlocked[14]) {
+      window.unlockAchievement(15);
+    }
+  }
+  if (currentCombo === 35) {
+    if (!achievementsUnlocked[15]) {
+      window.unlockAchievement(16);
+    }
+  }
+  if (currentCombo === 45) {
+    if (!achievementsUnlocked[16]) {
+      window.unlockAchievement(17);
+    }
+  }
+  // 解锁手速成就 - 在限定时间内达成特定连击数
+  const elapsed = now - comboStartTime;
+  // 成就#27 "手速达人" - 10秒内达成5连击
+  if (currentCombo === 5 && elapsed <= 10000) {
+    if (!achievementsUnlocked[26]) {
+      window.unlockAchievement(27);
+    }
+  }
+  // 成就#28 "手速新星" - 30秒内达成10连击
+  if (currentCombo === 10 && elapsed <= 30000) {
+    if (!achievementsUnlocked[27]) {
+      window.unlockAchievement(28);
+    }
+  }
+  // 成就#29 "手速大师" - 90秒内达成20连击
+  if (currentCombo === 20 && elapsed <= 90000) {
+    if (!achievementsUnlocked[28]) {
+      window.unlockAchievement(29);
+    }
+  }
+  // 成就#30 "手速王者" - 200秒内达成35连击
+  if (currentCombo === 35 && elapsed <= 200000) {
+    if (!achievementsUnlocked[29]) {
+      window.unlockAchievement(30);
+    }
+  }
+  // 成就#31 "手速冠军" - 360秒内达成45连击
+  if (currentCombo === 45 && elapsed <= 360000) {
+    if (!achievementsUnlocked[30]) {
+      window.unlockAchievement(31);
+    }
   }
 
   // Show combo text above the merged piece
@@ -825,11 +981,11 @@ function showComboText(currentCombo, puzzleIdx, piece) {
 
   // Animate opacity from 1 to 0 over comboLimit duration
   const startTime = Date.now();
-  
+
   // Easing functions for smooth transitions
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
   const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  
+
   const animate = () => {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / comboLimit, 1);
@@ -844,7 +1000,7 @@ function showComboText(currentCombo, puzzleIdx, piece) {
     // Remaining 4/5 of comboLimit: shrink from 1 to 0.5 (100% to 50%)
     let scale;
     const expandPhase = 0.1; // 1/5 of combo limit
-    
+
     if (progress < expandPhase) {
       // Expansion phase: easeOut for smooth start
       const expandProgress = progress / expandPhase;
@@ -856,7 +1012,7 @@ function showComboText(currentCombo, puzzleIdx, piece) {
       const easedProgress = easeInOutCubic(shrinkProgress);
       scale = 1 - easedProgress * 0.5; // from 1 to 0.5
     }
-    
+
     comboElement.style.transform = `translate(-50%, -100%) scale(${scale})`;
 
     if (progress < 1) {
@@ -1895,7 +2051,7 @@ function onMouseDown(idx, e) {
       });
       piece.offsetX = mx - piece.x;
       piece.offsetY = my - piece.y;
-      
+
       // Shrink to 0.9 immediately when dragging starts
       piece.size = 0.95;
       // Automatically expand back to 1.0 after 0.3 seconds
@@ -1904,10 +2060,10 @@ function onMouseDown(idx, e) {
           piece.size = 1.0;
         }
       }, 100); // 0.3 seconds
-      
+
       // Change cursor to grabbing hand
       canvases[idx].style.cursor = 'grabbing';
-      
+
       // Bring to front
       pieces.splice(i, 1);
       pieces.push(piece);
@@ -1939,7 +2095,7 @@ function onMouseUp(idx, e) {
   if (piece) {
     piece.dragging = false;
     puzzles[idx].draggingPiece = null;
-    
+
     // Restore cursor to default
     canvases[idx].style.cursor = 'default';
 
@@ -1982,9 +2138,9 @@ function tryMerge(idx, piece) {
       Math.floor(other.idx / gridSize) - Math.floor(piece.idx / gridSize);
     if (Math.abs(dx) + Math.abs(dy) === 1) {
       // If close enough in current position - distance depends on difficulty
-      const mergeDistance = currentDifficulty === 1 ? 60 : 
-                           currentDifficulty === 2 ? 50 : 
-                           currentDifficulty === 3 ? 40 : 30;
+      const mergeDistance = currentDifficulty === 1 ? 60 :
+        currentDifficulty === 2 ? 50 :
+          currentDifficulty === 3 ? 40 : 30;
       if (
         Math.abs(other.x - piece.x - dx * pieceXSize) < mergeDistance &&
         Math.abs(other.y - piece.y - dy * pieceYSize) < mergeDistance
@@ -2127,7 +2283,84 @@ function solvedScroll() {
         source2Btn.disabled = false;
       }
     }
+    // 解锁成就#12 "小孩毕业" - 使用小孩模式完成一局
+    if (usedKidMode) {
+      if (!achievementsUnlocked[11]) {
+        window.unlockAchievement(12);
+      }
+    }
+    // 解锁成就#18 "三破茅庐" - 休闲难度下首次完成所有三幅拼图
+    if (currentDifficulty === 1) {
+      if (!achievementsUnlocked[17]) {
+        window.unlockAchievement(18);
+      }
+    }
+    // 解锁成就#19 "普通玩家" - 普通难度下首次完成所有三幅拼图
+    if (currentDifficulty === 2) {
+      if (!achievementsUnlocked[18]) {
+        window.unlockAchievement(19);
+      }
+    }
+    // 解锁成就#20 "音乐精灵" - 困难难度下首次完成所有三幅拼图
+    if (currentDifficulty === 3) {
+      if (!achievementsUnlocked[19]) {
+        window.unlockAchievement(20);
+      }
+    }
+    // 解锁成就#21 "过鬼门关" - 炼狱难度下首次完成所有三幅拼图
+    if (currentDifficulty === 4) {
+      if (!achievementsUnlocked[20]) {
+        window.unlockAchievement(21);
+      }
+    }
+    // 解锁限时成就 - 根据难度在限定时间内完成一局
+    // 成就#32 "休游果断" - 休闲难度下30秒内完成一局 (i=31)
+    if (currentDifficulty === 1 && timer <= 30000) {
+      if (!achievementsUnlocked[31]) {
+        window.unlockAchievement(32);
+      }
+    }
+    // 成就#33 "普渡众生" - 普通难度下1分钟内完成一局 (i=32)
+    if (currentDifficulty === 2 && timer <= 60000) {
+      if (!achievementsUnlocked[32]) {
+        window.unlockAchievement(33);
+      }
+    }
+    // 成就#34 "困境造神" - 困难难度下3分钟内完成一局 (i=33)
+    if (currentDifficulty === 3 && timer <= 180000) {
+      if (!achievementsUnlocked[33]) {
+        window.unlockAchievement(34);
+      }
+    }
+    // 成就#35 "炼狱修魂" - 炼狱难度下3分钟内完成一局 (i=34)
+    if (currentDifficulty === 4 && timer <= 180000) {
+      if (!achievementsUnlocked[34]) {
+        window.unlockAchievement(35);
+      }
+    }
     stopTimer();
+    // 记录今日游戏日期并检查连续天数成就
+    addPlayDate();
+    const consecutiveDays = getConsecutiveDays();
+    console.log(consecutiveDays);
+    // 成就#36 "三天打鱼" - 连续3天每天完成至少一局游戏 (i=35)
+    if (consecutiveDays >= 3) {
+      if (!achievementsUnlocked[35]) {
+        window.unlockAchievement(36);
+      }
+    }
+    // 成就#37 "上班一样" - 连续5天每天完成至少一局游戏 (i=36)
+    if (consecutiveDays >= 5) {
+      if (!achievementsUnlocked[36]) {
+        window.unlockAchievement(37);
+      }
+    }
+    // 成就#38 "全勤玩家" - 连续7天每天完成至少一局游戏 (i=37)
+    if (consecutiveDays >= 7) {
+      if (!achievementsUnlocked[37]) {
+        window.unlockAchievement(38);
+      }
+    }
     // 自动滚动到结果页
     const resultPage = document.getElementById("page6");
     if (resultPage)
@@ -2260,6 +2493,18 @@ function checkSolved(idx) {
   if (pieces.every((p) => p.group === pieces[0].group)) {
     if (!achievementsUnlocked[2]) {
       window.unlockAchievement(3);
+    }
+    // Unlock achievement #10 "追光逐影" - first time solving the invisible puzzle (second puzzle)
+    if (idx === 1) {
+      if (!achievementsUnlocked[9]) {
+        window.unlockAchievement(10);
+      }
+    }
+
+    if (idx === 2) {
+      if (!achievementsUnlocked[10]) {
+        window.unlockAchievement(11);
+      }
     }
 
     puzzles[idx].solved = true;
@@ -2669,23 +2914,23 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastScrollTop = 0;
   let isScrollingDown = false;
   let scrollDirectionTimeout;
-  
+
   pagesContainer.addEventListener("scroll", function () {
     // Detect scroll direction
     const currentScrollTop = pagesContainer.scrollTop;
     isScrollingDown = currentScrollTop > lastScrollTop;
     lastScrollTop = currentScrollTop;
-    
+
     // Update congratulations text based on scroll direction
     updateCongratulationsTextOnScroll(isScrollingDown);
-    
+
     // Clear previous direction timeout and set new one
     clearTimeout(scrollDirectionTimeout);
     scrollDirectionTimeout = setTimeout(() => {
       // When scrolling stops, show combo text again
       updateCongratulationsTextOnScroll(false);
     }, 200);
-    
+
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       let currentPageId = "page1";
@@ -2731,13 +2976,13 @@ document.addEventListener("DOMContentLoaded", function () {
   function updateCongratulationsTextOnScroll(scrollingDown) {
     const congratulationsText = document.getElementById("congratulationsText");
     if (!congratulationsText || !confirmBtnClicked) return;
-    
+
     const h2 = congratulationsText.querySelector("h2");
     if (!h2) return;
-    
+
     // Check if current text is combo text (contains "Combo!")
     const isComboText = h2.textContent.includes("ComBo!");
-    
+
     if (scrollingDown && isComboText) {
       // Show "往下有惊喜" when scrolling down
       congratulationsText.innerHTML =
@@ -2840,18 +3085,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Random number of sin wave components (1-5)
     const numWaves = Math.floor(Math.random() * 5) + 1;
-    
+
     // Generate wave parameters with total amplitude constraint
     const maxTotalAmplitude = window.innerHeight * 0.3; // 30% of screen height
     const waves = [];
     let totalAmplitude = 0;
-    
+
     for (let i = 0; i < numWaves; i++) {
       const remainingAmplitude = maxTotalAmplitude - totalAmplitude;
       const amplitude = remainingAmplitude * Math.random();
       const frequency = 0.5 + Math.random() * 2; // Random frequency 0.5-2.5
       const phase = Math.random() * Math.PI * 2; // Random phase
-      
+
       waves.push({ amplitude, frequency, phase });
       totalAmplitude += amplitude;
     }
@@ -2951,7 +3196,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function vanishFlyingSide(instance) {
     // Play jcxbroken sound
     playSFX("audio/jcxbroken.m4a");
-    
+
     // Stop the flying animation
     if (instance.animationId) {
       cancelAnimationFrame(instance.animationId);
@@ -2979,7 +3224,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Start animation
     let startTime = null;
-    
+
     function comboAnimate(timestamp) {
       if (!startTime) startTime = timestamp;
       const elapsed = timestamp - startTime;
@@ -3024,6 +3269,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Replace the existing bunImg click event listener with this one
   bunImg.addEventListener("click", function () {
+    // Unlock achievement #8 "我爱旦妹" - first time clicking the bun image
+    if (!achievementsUnlocked[7]) {
+      window.unlockAchievement(8);
+    }
+
     bunClickCount++;
 
     // Get the left-bottom image element
@@ -3104,6 +3354,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!difficultySelected) return alert("请选择难度!");
     if (!sourceSelected) return alert("请选择图包!");
+    // Unlock achievement #9 "耳朵享福" - hearing piano music in hard difficulty
+    if (currentDifficulty === 3) {
+      if (!achievementsUnlocked[8]) {
+        window.unlockAchievement(9);
+      }
+    }
     selectRandomSong();
 
     // Initialize combo for new round
@@ -3223,7 +3479,7 @@ document.addEventListener("DOMContentLoaded", function () {
     restartBtnFloat.disabled = true;
     startBtn.disabled = false;
     checkStartButtonEnabled();
-    
+
     // Switch options button image to option.png when game restarts
     updateOptionsButtonImage(false);
 
@@ -3393,26 +3649,26 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Update all-time max combo
-      if (maxCombo > allTimeMaxCombo) {
-        allTimeMaxCombo = maxCombo;
-      }
+        if (maxCombo > allTimeMaxCombo) {
+          allTimeMaxCombo = maxCombo;
+        }
 
-      // Record the completed difficulty for the combo text color
-      completedDifficulty = currentDifficulty;
+        // Record the completed difficulty for the combo text color
+        completedDifficulty = currentDifficulty;
 
-      // Display "xx Combo!" with difficulty-based color
-      const comboColorStyle = getComboColorStyle(completedDifficulty);
-      congratulationsText.innerHTML = `<h2 style="color: ${comboColorStyle.color}; text-shadow: ${comboColorStyle.textShadow}; ${comboColorStyle.animation};">${allTimeMaxCombo} ComBo!</h2>`;
+        // Display "xx Combo!" with difficulty-based color
+        const comboColorStyle = getComboColorStyle(completedDifficulty);
+        congratulationsText.innerHTML = `<h2 style="color: ${comboColorStyle.color}; text-shadow: ${comboColorStyle.textShadow}; ${comboColorStyle.animation};">${allTimeMaxCombo} ComBo!</h2>`;
 
-      // Reset positioning
-      congratulationsText.style.position = "";
+        // Reset positioning
+        congratulationsText.style.position = "";
 
-      // Ensure no unwanted animations are applied
-      const h2 = congratulationsText.querySelector("h2");
-      if (h2) {
-        h2.classList.remove("congrats-animate", "color-dancing");
-      }
-    }, 1400); // Adjust timing based on actual gif duration
+        // Ensure no unwanted animations are applied
+        const h2 = congratulationsText.querySelector("h2");
+        if (h2) {
+          h2.classList.remove("congrats-animate", "color-dancing");
+        }
+      }, 1400); // Adjust timing based on actual gif duration
     }
   };
 
@@ -5118,6 +5374,9 @@ canvas1.addEventListener(
 );
 
 function togglePause() {
+  if (!achievementsUnlocked[5]) {
+    window.unlockAchievement(6);
+  }
   var button = document.getElementById("pauseButton");
   scene.paused = !scene.paused;
   button.innerHTML = scene.paused
@@ -5125,9 +5384,9 @@ function togglePause() {
       ? window.getTranslatedText("继续")
       : "继续"
     : window.getTranslatedText
-    ? window.getTranslatedText("暂停")
-    : "暂停";
-  
+      ? window.getTranslatedText("暂停")
+      : "暂停";
+
   // Switch options button image based on pause state
   updateOptionsButtonImage(!scene.paused);
 }
@@ -5404,7 +5663,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Function to update options button image
-  window.updateOptionsButtonImage = function(isPausedState) {
+  window.updateOptionsButtonImage = function (isPausedState) {
     const btnImg = optionsBtn.querySelector("img");
     if (btnImg) {
       btnImg.src = isPausedState ? "images/pause.png" : "images/option.png";
@@ -5443,7 +5702,7 @@ document.addEventListener("DOMContentLoaded", function () {
   optionsOverlay?.addEventListener("click", closeOptionsWindow);
 
   // Beep toggle checkbox
-  noBeepsCheckbox?.addEventListener("change", function() {
+  noBeepsCheckbox?.addEventListener("change", function () {
     enableBeepSounds = !this.checked;
   });
 
@@ -5462,6 +5721,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const achieveWindow = document.getElementById("achieveWindow");
   const achieveOverlay = document.getElementById("achieveOverlay");
   const closeAchieveBtn = document.getElementById("closeAchieveBtn");
+  const resetAchieveBtn = document.getElementById("resetAchieveBtn");
   const achieveGrid = document.getElementById("achieveGrid");
 
   // Achievements list (40 achievements)
@@ -5498,9 +5758,9 @@ document.addEventListener("DOMContentLoaded", function () {
     { id: 30, title: "手速王者", desc: "在200秒内达成35连击" },
     { id: 31, title: "手速冠军", desc: "在360秒内达成45连击" },
     { id: 32, title: "休游果断", desc: "在休闲难度下30秒内完成一局" },
-    { id: 33, title: "普渡众生", desc: "在普通难度下2分钟内完成一局" },
-    { id: 34, title: "困境造神", desc: "在困难难度下5分钟内完成一局" },
-    { id: 35, title: "炼狱修魂", desc: "在炼狱难度下5分钟内完成一局" },
+    { id: 33, title: "普渡众生", desc: "在普通难度下1分钟内完成一局" },
+    { id: 34, title: "困境造神", desc: "在困难难度下3分钟内完成一局" },
+    { id: 35, title: "炼狱修魂", desc: "在炼狱难度下3分钟内完成一局" },
     { id: 36, title: "三天打鱼", desc: "连续3天每天完成至少一局游戏" },
     { id: 37, title: "上班一样", desc: "连续5天每天完成至少一局游戏" },
     { id: 38, title: "全勤玩家", desc: "连续7天每天完成至少一局游戏" },
@@ -5521,11 +5781,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Get current unlocked achievements
   let unlockedAchievements = loadUnlockedAchievements();
+  // Sync achievementsUnlocked boolean array from localStorage on load
+  for (let i = 0; i < achievementsUnlocked.length; i++) {
+    if (unlockedAchievements.includes(i + 1)) {
+      achievementsUnlocked[i] = true;
+    }
+  }
 
   // Render achievements grid
   function renderAchievements() {
     achieveGrid.innerHTML = "";
-    
+
     achievements.forEach((achievement) => {
       const isUnlocked = unlockedAchievements.includes(achievement.id);
       const item = document.createElement("div");
@@ -5557,16 +5823,53 @@ document.addEventListener("DOMContentLoaded", function () {
     achieveBtn.style.pointerEvents = "auto";
   }
 
+  // Reset all achievements to locked state
+  function resetAllAchievements() {
+    unlockedAchievements = [];
+    saveUnlockedAchievements(unlockedAchievements);
+    // Clear play dates
+    localStorage.removeItem("jigsaw_play_dates");
+    // Reset the achievementsUnlocked boolean array as well
+    for (let i = 0; i < achievementsUnlocked.length; i++) {
+      achievementsUnlocked[i] = false;
+    }
+    // Refresh the display if window is open
+    if (achieveWindow.style.display === "block") {
+      renderAchievements();
+    }
+  }
+
   // Event listeners
   achieveBtn?.addEventListener("click", openAchieveWindow);
   closeAchieveBtn?.addEventListener("click", closeAchieveWindow);
   achieveOverlay?.addEventListener("click", closeAchieveWindow);
+  resetAchieveBtn?.addEventListener("click", resetAllAchievements);
 
   // Function to unlock an achievement
-  window.unlockAchievement = function(achievementId) {
+  window.unlockAchievement = function (achievementId) {
     if (!unlockedAchievements.includes(achievementId)) {
       unlockedAchievements.push(achievementId);
+      // Update the boolean array tracking too
+      if (achievementId >= 1 && achievementId <= achievementsUnlocked.length) {
+        achievementsUnlocked[achievementId - 1] = true;
+      }
       saveUnlockedAchievements(unlockedAchievements);
+      // Check if all other achievements are now unlocked -> unlock #40 "我，拼图侠" (i=39)
+      if (achievementId !== 40 && !achievementsUnlocked[39]) {
+        // Check if achievements 1-39 are all unlocked
+        let allOthersUnlocked = true;
+        for (let id = 1; id <= 39; id++) {
+          if (!unlockedAchievements.includes(id)) {
+            allOthersUnlocked = false;
+            break;
+          }
+        }
+        if (allOthersUnlocked) {
+          unlockedAchievements.push(40);
+          achievementsUnlocked[39] = true;
+          saveUnlockedAchievements(unlockedAchievements);
+        }
+      }
       // Refresh the display if window is open
       if (achieveWindow.style.display === "block") {
         renderAchievements();
@@ -5575,7 +5878,7 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   // Function to check if an achievement is unlocked
-  window.isAchievementUnlocked = function(achievementId) {
+  window.isAchievementUnlocked = function (achievementId) {
     return unlockedAchievements.includes(achievementId);
   };
 });
@@ -6302,6 +6605,9 @@ function toggleBilliards() {
 
 // Functions to handle dragging for canvas2 - always drag the fixed ball
 function startDrag2(x, y) {
+  if (!achievementsUnlocked[6]) {
+    window.unlockAchievement(7);
+  }
   let bounds = canvas2.getBoundingClientRect();
   let mx = x - bounds.left - canvas2.clientLeft;
   let my = y - bounds.top - canvas2.clientTop;
