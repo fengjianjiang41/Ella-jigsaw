@@ -518,6 +518,9 @@ function updatePianoAudioProgress() {
         if (progressText) progressText.style.display = "none";
       }, 2000);
     }
+    if (progressContainer) {
+      progressContainer.style.display = "none";
+    }
   }
 }
 
