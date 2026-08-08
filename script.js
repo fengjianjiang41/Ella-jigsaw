@@ -2829,11 +2829,21 @@ document.addEventListener("DOMContentLoaded", function () {
       return false;
     }
   }
+  function handleSpaceKey(e) {
+    if (e.code === "Space") {
+      if (!loadingComplete || !confirmBtnClicked) {
+        e.preventDefault();
+        return false;
+      }
+    }
+  }
   // Add scroll blocking event listener initially
   pagesContainer.addEventListener("wheel", handleScroll, { passive: false });
+  document.addEventListener("keydown", handleSpaceKey);
 
   function removeScrollBlock() {
     pagesContainer.removeEventListener("wheel", handleScroll);
+    document.removeEventListener("keydown", handleSpaceKey);
   }
   // 首次按键：显示导航并跳到第二页
   function onFirstKey(e) {
@@ -3442,6 +3452,8 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+    restartBtn.classList.add("active");
+    restartBtnFloat.classList.add("active");
 
     updateOptionsButtonImage(false);
 
@@ -3598,6 +3610,8 @@ document.addEventListener("DOMContentLoaded", function () {
     stopBtn.disabled = true;
     restartBtn.disabled = false;
     restartBtnFloat.disabled = false;
+    restartBtn.classList.add("active");
+    restartBtnFloat.classList.add("active");
     topBtn.disabled = false;
     if (difficulty4Unlocked) {
       difficulty4Btn.disabled = false;
@@ -5727,49 +5741,52 @@ document.addEventListener("DOMContentLoaded", function () {
   const resetAchieveBtn = document.getElementById("resetAchieveBtn");
   const achieveGrid = document.getElementById("achieveGrid");
 
-  // Achievements list (40 achievements)
+  // Achievements list (40 achievements) total count 286
   const achievements = [
-    { id: 1, title: "初出茅庐", desc: "完成第一次注册并开始游戏" },
-    { id: 2, title: "第一滴血", desc: "成功将两块拼图碎片合并在一起" },
-    { id: 3, title: "小试牛刀", desc: "完成任意难度的第一幅拼图" },
-    { id: 4, title: "青葱岁月", desc: "首次保存个人成绩" },
-    { id: 5, title: "名画解锁", desc: "解锁世界名画图包" },
-    { id: 6, title: "初见彩蛋", desc: "首次玩浴池游戏" },
-    { id: 7, title: "你也台球", desc: "首次玩台球游戏" },
-    { id: 8, title: "我爱旦妹", desc: "首次发现旦妹可以玩" },
-    { id: 9, title: "耳朵享福", desc: "听到困难难度的钢琴背景音乐" },
-    { id: 10, title: "追光逐影", desc: "首次完成一次隐身拼图" },
-    { id: 11, title: "看破皮囊", desc: "首次完成一次透镜拼图" },
-    { id: 12, title: "小孩毕业", desc: "使用小孩模式完成一局" },
-    { id: 13, title: "连击达人", desc: "达成5连击（Combo）" },
-    { id: 14, title: "连击新星", desc: "达成10连击（Combo）" },
-    { id: 15, title: "连击大师", desc: "达成20连击（Combo）" },
-    { id: 16, title: "连击王者", desc: "达成35连击（Combo）" },
-    { id: 17, title: "连击冠军", desc: "达成45连击（最高连击）" },
-    { id: 18, title: "三破茅庐", desc: "在休闲难度下首次完成所有三幅拼图" },
-    { id: 19, title: "普通玩家", desc: "在普通难度下首次完成所有三幅拼图" },
-    { id: 20, title: "音乐精灵", desc: "在困难难度下首次完成所有三幅拼图" },
-    { id: 21, title: "过鬼门关", desc: "在炼狱难度下首次完成所有三幅拼图" },
-    { id: 22, title: "鉴赏家", desc: "收集1幅世界名画拼图" },
-    { id: 23, title: "收藏家", desc: "收集5幅不同的世界名画" },
-    { id: 24, title: "陈列家", desc: "收集20幅不同的世界名画" },
-    { id: 25, title: "博物家", desc: "收集50幅不同的世界名画" },
-    { id: 26, title: "持矿家", desc: "收集88幅不同的世界名画" },
-    { id: 27, title: "手速达人", desc: "在10秒内达成5连击" },
-    { id: 28, title: "手速新星", desc: "在30秒内达成10连击" },
-    { id: 29, title: "手速大师", desc: "在90秒内达成20连击" },
-    { id: 30, title: "手速王者", desc: "在200秒内达成35连击" },
-    { id: 31, title: "手速冠军", desc: "在360秒内达成45连击" },
-    { id: 32, title: "休游果断", desc: "在休闲难度下30秒内完成一局" },
-    { id: 33, title: "普渡众生", desc: "在普通难度下1分钟内完成一局" },
-    { id: 34, title: "困境造神", desc: "在困难难度下3分钟内完成一局" },
-    { id: 35, title: "炼狱修魂", desc: "在炼狱难度下3分钟内完成一局" },
-    { id: 36, title: "三天打鱼", desc: "连续3天每天完成至少一局游戏" },
-    { id: 37, title: "上班一样", desc: "连续5天每天完成至少一局游戏" },
-    { id: 38, title: "全勤玩家", desc: "连续7天每天完成至少一局游戏" },
-    { id: 39, title: "八十一难", desc: "在炼狱难度下完成81幅世界名画" },
-    { id: 40, title: "我，拼图侠", desc: "解锁其他所有成就" }
+    { id: 1, title: "初出茅庐", titleEn: "Rookie", desc: "完成第一次注册并开始游戏", descEn: "Complete registration and start your first game", count: 0 },
+    { id: 2, title: "第一滴血", titleEn: "First Blood", desc: "成功将两块拼图碎片合并在一起", descEn: "Successfully merge two puzzle pieces together", count: 1 },
+    { id: 3, title: "小试牛刀", titleEn: "Trial Run", desc: "完成任意难度的第一幅拼图", descEn: "Complete your first puzzle at any difficulty", count: 1 },
+    { id: 4, title: "青葱岁月", titleEn: "Memory Lane", desc: "首次保存个人成绩", descEn: "Save your personal score for the first time", count: 1 },
+    { id: 5, title: "名画解锁", titleEn: "Masterpieces Unlocked", desc: "解锁世界名画图包", descEn: "Unlock the World Masterpieces pack", count: 1 },
+    { id: 6, title: "初见彩蛋", titleEn: "Easter Egg", desc: "首次玩浴池游戏", descEn: "Play the pool game for the first time", count: 2 },
+    { id: 7, title: "你也台球", titleEn: "Billiards Try", desc: "首次玩台球游戏", descEn: "Play the billiards game for the first time", count: 2 },
+    { id: 8, title: "我爱旦妹", titleEn: "I Love Danmei", desc: "首次发现旦妹可以玩", descEn: "Discover that Danmei can be played with", count: 2 },
+    { id: 9, title: "耳朵享福", titleEn: "Sweet Ears", desc: "听到困难难度的钢琴背景音乐", descEn: "Listen to the piano BGM on Hard difficulty", count: 1 },
+    { id: 10, title: "追光逐影", titleEn: "Chase the Shadow", desc: "首次完成一次隐身拼图", descEn: "Complete an invisible puzzle for the first time", count: 1 },
+    { id: 11, title: "看破皮囊", titleEn: "See Through", desc: "首次完成一次透镜拼图", descEn: "Complete a lens puzzle for the first time", count: 1 },
+    { id: 12, title: "小孩毕业", titleEn: "Kid Graduates", desc: "使用小孩模式完成一局", descEn: "Finish a round using Kid Mode", count: 1 },
+    { id: 13, title: "连击达人", titleEn: "Combo Master", desc: "达成5连击（Combo）", descEn: "Reach a 5x combo", count: 1 },
+    { id: 14, title: "连击新星", titleEn: "Combo Rising Star", desc: "达成10连击（Combo）", descEn: "Reach a 10x combo", count: 2 },
+    { id: 15, title: "连击大师", titleEn: "Combo Champion", desc: "达成20连击（Combo）", descEn: "Reach a 20x combo", count: 3 },
+    { id: 16, title: "连击王者", titleEn: "Combo King", desc: "达成35连击（Combo）", descEn: "Reach a 35x combo", count: 4 },
+    { id: 17, title: "连击冠军", titleEn: "Combo Legend", desc: "达成45连击（最高连击）", descEn: "Reach a 45x combo (max combo)", count: 5 },
+    { id: 18, title: "三破茅庐", titleEn: "Three Cleared", desc: "在休闲难度下首次完成所有三幅拼图", descEn: "Complete all 3 puzzles on Easy difficulty", count: 2 },
+    { id: 19, title: "普通玩家", titleEn: "Regular Player", desc: "在普通难度下首次完成所有三幅拼图", descEn: "Complete all 3 puzzles on Medium difficulty", count: 4 },
+    { id: 20, title: "音乐精灵", titleEn: "Music Sprite", desc: "在困难难度下首次完成所有三幅拼图", descEn: "Complete all 3 puzzles on Hard difficulty", count: 6 },
+    { id: 21, title: "过鬼门关", titleEn: "Hell Survivor", desc: "在炼狱难度下首次完成所有三幅拼图", descEn: "Complete all 3 puzzles on HELL difficulty", count: 8 },
+    { id: 22, title: "鉴赏家", titleEn: "Connoisseur", desc: "收集1幅世界名画拼图", descEn: "Collect 1 World Masterpiece puzzle", count: 1 },
+    { id: 23, title: "收藏家", titleEn: "Collector", desc: "收集5幅不同的世界名画", descEn: "Collect 5 different World Masterpieces", count: 2 },
+    { id: 24, title: "陈列家", titleEn: "Curator", desc: "收集20幅不同的世界名画", descEn: "Collect 20 different World Masterpieces", count: 10 },
+    { id: 25, title: "博物家", titleEn: "Museum Keeper", desc: "收集50幅不同的世界名画", descEn: "Collect 50 different World Masterpieces", count: 25 },
+    { id: 26, title: "持矿家", titleEn: "Art Tycoon", desc: "收集88幅不同的世界名画", descEn: "Collect 88 different World Masterpieces", count: 50 },
+    { id: 27, title: "手速达人", titleEn: "Speed Master", desc: "在10秒内达成5连击", descEn: "Reach a 5x combo within 10 seconds", count: 1 },
+    { id: 28, title: "手速新星", titleEn: "Speed Rising Star", desc: "在30秒内达成10连击", descEn: "Reach a 10x combo within 30 seconds", count: 2 },
+    { id: 29, title: "手速大师", titleEn: "Speed Champion", desc: "在90秒内达成20连击", descEn: "Reach a 20x combo within 90 seconds", count: 4 },
+    { id: 30, title: "手速王者", titleEn: "Speed King", desc: "在200秒内达成35连击", descEn: "Reach a 35x combo within 200 seconds", count: 7 },
+    { id: 31, title: "手速冠军", titleEn: "Speed Legend", desc: "在360秒内达成45连击", descEn: "Reach a 45x combo within 360 seconds", count: 9 },
+    { id: 32, title: "休游果断", titleEn: "Easy Does It", desc: "在休闲难度下30秒内完成一局", descEn: "Finish a round within 30 seconds on Easy", count: 1 },
+    { id: 33, title: "普渡众生", titleEn: "For All", desc: "在普通难度下1分钟内完成一局", descEn: "Finish a round within 1 minute on Medium", count: 4 },
+    { id: 34, title: "困境造神", titleEn: "Hardcore God", desc: "在困难难度下3分钟内完成一局", descEn: "Finish a round within 3 minutes on Hard", count: 9 },
+    { id: 35, title: "炼狱修魂", titleEn: "Soul Forged", desc: "在炼狱难度下3分钟内完成一局", descEn: "Finish a round within 3 minutes on HELL", count: 16 },
+    { id: 36, title: "三天打鱼", titleEn: "3-Day Streak", desc: "连续3天每天完成至少一局游戏", descEn: "Play at least one round for 3 consecutive days", count: 3 },
+    { id: 37, title: "上班一样", titleEn: "Workaholic", desc: "连续5天每天完成至少一局游戏", descEn: "Play at least one round for 5 consecutive days", count: 5 },
+    { id: 38, title: "全勤玩家", titleEn: "Full Attendance", desc: "连续7天每天完成至少一局游戏", descEn: "Play at least one round for 7 consecutive days", count: 7 },
+    { id: 39, title: "八十一难", titleEn: "81 Tribulations", desc: "在炼狱难度下完成81幅世界名画", descEn: "Complete 81 World Masterpieces on HELL difficulty", count: 81 },
+    { id: 40, title: "我，拼图侠", titleEn: "I, Puzzle Hero", desc: "解锁其他所有成就", descEn: "Unlock all other achievements", count: 0 }
   ];
+
+  // Snapshot original counts for reset recovery
+  const originalCounts = achievements.map(a => a.count);
 
   // Load unlocked achievements from localStorage
   function loadUnlockedAchievements() {
@@ -5791,6 +5808,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // Achievement animation state
+  let achieveAnimRunning = false;
+  let achieveAnimTimeout = null;
+  let achieveCollectedSum = 0;
+  let achieveVisitedIds = new Set();
+
   // Render achievements grid
   function renderAchievements() {
     achieveGrid.innerHTML = "";
@@ -5799,12 +5822,161 @@ document.addEventListener("DOMContentLoaded", function () {
       const isUnlocked = unlockedAchievements.includes(achievement.id);
       const item = document.createElement("div");
       item.className = `achieve-item ${isUnlocked ? "unlocked" : "locked"}`;
+      item.setAttribute("data-achieve-id", achievement.id);
+      const titleText = currentLang === "en" && achievement.titleEn ? achievement.titleEn : achievement.title;
+      const descText = currentLang === "en" && achievement.descEn ? achievement.descEn : achievement.desc;
       item.innerHTML = `
-        <div class="achieve-title-text">${achievement.title}</div>
-        <div class="achieve-desc">${achievement.desc}</div>
+        <div class="item-bun-counter">
+          <img src="images/bun_white.png" alt="bun" class="item-bun-icon">
+          <span class="item-bun-count">${achievement.count || 0}</span>
+        </div>
+        <div class="achieve-title-text">${titleText}</div>
+        <div class="achieve-desc">${descText}</div>
       `;
+
+      if (isUnlocked) {
+        item.addEventListener("click", () => {
+          if (achieveAnimRunning) return;
+          const allItems = achieveGrid.querySelectorAll(".achieve-item.unlocked");
+          const currentIndex = Array.from(allItems).indexOf(item);
+          if (currentIndex === -1) return;
+          achieveCollectedSum = 0;
+          achieveVisitedIds = new Set();
+          const firstAchieveId = parseInt(item.dataset.achieveId);
+          const firstAchieve = achievements.find(a => a.id === firstAchieveId);
+          if (firstAchieve) {
+            achieveCollectedSum += firstAchieve.count;
+            achieveVisitedIds.add(firstAchieveId);
+            firstAchieve.count = 0;
+            const countEl = item.querySelector(".item-bun-count");
+            if (countEl) countEl.textContent = "0";
+          }
+          startAchieveAnimation(allItems, currentIndex, allItems.length);
+        });
+      }
+
       achieveGrid.appendChild(item);
     });
+  }
+
+  // Find a valid unlocked neighbor in the 4-column grid
+  function getAchieveNeighbor(allItems, currentIndex) {
+    const total = allItems.length;
+    const cols = 4;
+    const row = Math.floor(currentIndex / cols);
+    const col = currentIndex % cols;
+
+    const directions = [
+      { dr: -1, dc: 0 },  // up
+      { dr: 1, dc: 0 },   // down
+      { dr: 0, dc: -1 },  // left
+      { dr: 0, dc: 1 }    // right
+    ];
+
+    // Shuffle directions to pick randomly
+    for (let i = directions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [directions[i], directions[j]] = [directions[j], directions[i]];
+    }
+
+    for (const dir of directions) {
+      const newRow = row + dir.dr;
+      const newCol = col + dir.dc;
+      if (newRow < 0 || newCol < 0 || newCol >= cols) continue;
+      const newIndex = newRow * cols + newCol;
+      if (newIndex >= 0 && newIndex < total) {
+        return newIndex;
+      }
+    }
+
+    return -1;
+  }
+
+  // Start the achievement pass-the-torch animation
+  function startAchieveAnimation(allItems, currentIndex, x) {
+    if (x < 1 || currentIndex < 0 || currentIndex >= allItems.length) {
+      achieveAnimRunning = false;
+      return;
+    }
+
+    achieveAnimRunning = true;
+
+    // Collect count from this achievement
+    const achieveId = parseInt(allItems[currentIndex].dataset.achieveId);
+    if (achieveId && !achieveVisitedIds.has(achieveId)) {
+      const achieve = achievements.find(a => a.id === achieveId);
+      if (achieve) {
+        achieveCollectedSum += achieve.count;
+        achieveVisitedIds.add(achieveId);
+        achieve.count = 0;
+        const countEl = allItems[currentIndex].querySelector(".item-bun-count");
+        if (countEl) countEl.textContent = "0";
+      }
+    }
+
+    const passingAudio = new Audio("audio/passing.mp3");
+    passingAudio.currentTime = 0;
+    playAudioWithVolume(passingAudio, 0.6);
+
+    allItems[currentIndex].classList.add("highlight");
+
+    const duration = (1 / x) * 1000;
+
+    achieveAnimTimeout = setTimeout(() => {
+      allItems[currentIndex].classList.remove("highlight");
+
+      const newX = x - 1;
+
+      if (newX <= 1) {
+        if (newX === 1) {
+          const nextIndex = getAchieveNeighbor(allItems, currentIndex);
+          if (nextIndex >= 0) {
+            startAchieveAnimation(allItems, nextIndex, 1);
+          } else {
+            achieveAnimRunning = false;
+            animateCountUp(achieveCollectedSum);
+          }
+        } else {
+          achieveAnimRunning = false;
+          const dingAudio = new Audio("audio/ding.mp3");
+          dingAudio.currentTime = 0;
+          playAudioWithVolume(dingAudio, 0.6);
+          animateCountUp(achieveCollectedSum);
+        }
+        return;
+      }
+
+      const nextIndex = getAchieveNeighbor(allItems, currentIndex);
+      if (nextIndex >= 0) {
+        startAchieveAnimation(allItems, nextIndex, newX);
+      } else {
+        achieveAnimRunning = false;
+      }
+    }, duration);
+  }
+
+  // Animate header bun counter from current to current + targetSum
+  function animateCountUp(targetSum) {
+    if (targetSum <= 0) return;
+    const headerBunCount = document.getElementById("headerBunCount");
+    const headerBunIcon = document.querySelector(".achieve-bun-counter .bun-icon");
+    if (!headerBunCount) return;
+    let current = parseInt(headerBunCount.textContent) || 0;
+    const target = current + targetSum;
+
+    function step() {
+      if (current >= target) return;
+      current++;
+      headerBunCount.textContent = current;
+      headerBunCount.classList.add("pulse");
+      if (headerBunIcon) headerBunIcon.classList.add("pulse");
+      setTimeout(() => {
+        headerBunCount.classList.remove("pulse");
+        if (headerBunIcon) headerBunIcon.classList.remove("pulse");
+      }, 50);
+      setTimeout(step, 100);
+    }
+    step();
   }
 
   // Open achievements window
@@ -5836,6 +6008,11 @@ document.addEventListener("DOMContentLoaded", function () {
     for (let i = 0; i < achievementsUnlocked.length; i++) {
       achievementsUnlocked[i] = false;
     }
+    // Restore achievement counts to original values
+    achievements.forEach((a, i) => { a.count = originalCounts[i]; });
+    // Reset header bun counter to 0
+    const headerBunCount = document.getElementById("headerBunCount");
+    if (headerBunCount) headerBunCount.textContent = "0";
     // Refresh the display if window is open
     if (achieveWindow.style.display === "block") {
       renderAchievements();
@@ -5884,6 +6061,15 @@ document.addEventListener("DOMContentLoaded", function () {
   window.isAchievementUnlocked = function (achievementId) {
     return unlockedAchievements.includes(achievementId);
   };
+
+  // Make renderAchievements globally accessible for language switching
+  window.renderAchievements = renderAchievements;
+
+  // Also update window title when language changes
+  const achieveTitleEl = document.querySelector(".achieve-title");
+  if (achieveTitleEl) {
+    achieveTitleEl.textContent = currentLang === "en" ? "Achievements" : "成就列表";
+  }
 });
 
 // Helper function to play audio with SFX volume
@@ -6037,7 +6223,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Footer
     { selector: ".footer-link", zh: "隐私政策", en: "Privacy Policy" },
-    { selector: ".wechat-text", zh: "微信公众号", en: "Wechat Official Account" }
+    { selector: ".wechat-text", zh: "微信公众号", en: "Wechat Official Account" },
+
+    // Achievements window
+    { selector: ".achieve-title", zh: "成就列表", en: "Achievements" },
+    { selector: ".achieve-header-btns .reset-achieve-btn", zh: "重置所有成就", en: "Reset All" }
   ];
 
   // Dynamic text translations (used in functions)
@@ -6128,6 +6318,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Update navigation button images using dynamic CSS injection
     updateNavImages(currentLang);
+
+    // Re-render achievements window if open
+    const achieveWindow = document.getElementById("achieveWindow");
+    if (achieveWindow && achieveWindow.style.display === "block") {
+      if (typeof window.renderAchievements === "function") {
+        window.renderAchievements();
+      }
+    }
 
     // Note: Language preference is not saved to localStorage
   }
@@ -6242,11 +6440,8 @@ document.addEventListener("DOMContentLoaded", function () {
     kidBtn.addEventListener("click", toggleKidMode);
   }
 
-  // Make functions and variables available globally
-  window.isKidMode = function () {
-    return isKidMode;
-  };
-  window.toggleKidMode = toggleKidMode;
+  // Make renderAchievements globally accessible for language switching
+  // (Defined inside the achievements DOMContentLoaded block below)
 });
 
 // Note: Translation is now handled directly in the language switch functionality above
