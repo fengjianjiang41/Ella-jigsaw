@@ -85,6 +85,30 @@ const BILLIARDS_CONFIG = {
     ],
     wallpaperSourceSize: { w: 1344, h: 768 },  // 壁纸原始尺寸
   },
+
+  // ========== 星际台球模式 ==========
+  starBilliards: {
+    // 点位配置
+    pocketMargin: 0.006,        // 点位距边缘的距离
+    pocketRadius: 0.012,        // 点位半径
+    pocketSideOffset: 0.004,    // 侧边点位偏移量
+    
+    // 球桌布局
+    triangleStartX: 0.65,       // 三角形起始位置（占宽度比例）
+    triangleStartY: 0.5,        // 三角形中心Y位置（占高度比例）
+    ballSpacingRatio: 2.1,      // 球间距与半径的比例
+    targetBallRadiusRatio: 0.85, // 目标球半径与主球半径的比例
+    triangleRows: 5,            // 三角形行数（5行=15球）
+    
+    // 主球位置
+    cueBallX: 0.25,             // 主球X位置（占宽度比例）
+    cueBallY: 0.5,              // 主球Y位置（占高度比例）
+  },
+
+  // ========== 空间网格配置 ==========
+  spatialGrid: {
+    cellSize: 0.05,             // 网格单元大小
+  },
 };
 
 // 导出到全局

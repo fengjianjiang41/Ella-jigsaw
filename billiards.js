@@ -121,7 +121,12 @@ var physicsScene = {
   wallpaperImages: config.images.wallpapers,
   wallpaperImage: new Image(),
   starBilliardsMode: false,
-  pockets: [], // 6个点位
+  pockets: [],
+  // 空间网格系统 - 用于高效碰撞检测
+  spatialGrid: null,
+  cellSize: config.spatialGrid.cellSize,
+  gridCols: 0,
+  gridRows: 0,
 };
 
 var DRAGGABLE_BALL_INDEX = config.balls.draggableIndex;
@@ -388,42 +393,117 @@ function toggleStarBilliards() {
 
 // 设置6个点位（4个角 + 2个长边中间）
 function setupPockets() {
-  const margin = 0.006; // 边距（模拟坐标）
-  const pocketRadius = 0.012; // 点位半径
+  const { pocketMargin, pocketRadius, pocketSideOffset } = config.starBilliards;
   const w = simWidth2;
   const h = simHeight2;
   
   physicsScene.pockets = [
     // 4个角
-    { x: margin, y: margin, r: pocketRadius },
-    { x: w - margin, y: margin, r: pocketRadius },
-    { x: margin, y: h - margin, r: pocketRadius },
-    { x: w - margin, y: h - margin, r: pocketRadius },
+    { x: pocketMargin, y: pocketMargin, r: pocketRadius },
+    { x: w - pocketMargin, y: pocketMargin, r: pocketRadius },
+    { x: pocketMargin, y: h - pocketMargin, r: pocketRadius },
+    { x: w - pocketMargin, y: h - pocketMargin, r: pocketRadius },
     // 2个长边中间
-    { x: w / 2, y: margin-0.004, r: pocketRadius },
-    { x: w / 2, y: h - margin+0.004, r: pocketRadius },
+    { x: w / 2, y: pocketMargin - pocketSideOffset, r: pocketRadius },
+    { x: w / 2, y: h - pocketMargin + pocketSideOffset, r: pocketRadius },
   ];
 }
 
-// 星际台球模式的球设置（移除地球，只保留月球和拖拽球）
+// 初始化空间网格
+function initSpatialGrid() {
+  const { cellSize } = physicsScene;
+  physicsScene.gridCols = Math.ceil(simWidth2 / cellSize);
+  physicsScene.gridRows = Math.ceil(simHeight2 / cellSize);
+  physicsScene.spatialGrid = new Array(physicsScene.gridCols * physicsScene.gridRows);
+  for (let i = 0; i < physicsScene.spatialGrid.length; i++) {
+    physicsScene.spatialGrid[i] = [];
+  }
+}
+
+// 更新空间网格
+function updateSpatialGrid() {
+  const { cellSize, gridCols, gridRows, spatialGrid } = physicsScene;
+  // 清空网格
+  for (let i = 0; i < spatialGrid.length; i++) {
+    spatialGrid[i].length = 0;
+  }
+  // 填充球体
+  for (let i = 0; i < physicsScene.balls.length; i++) {
+    const ball = physicsScene.balls[i];
+    const col = Math.floor(ball.pos.x / cellSize);
+    const row = Math.floor(ball.pos.y / cellSize);
+    if (col >= 0 && col < gridCols && row >= 0 && row < gridRows) {
+      const cellIdx = row * gridCols + col;
+      spatialGrid[cellIdx].push(i);
+    }
+  }
+}
+
+// 获取相邻网格中的所有球索引
+function getNeighborBallIndices(ballIdx) {
+  const { cellSize, gridCols, gridRows, spatialGrid } = physicsScene;
+  const ball = physicsScene.balls[ballIdx];
+  const col = Math.floor(ball.pos.x / cellSize);
+  const row = Math.floor(ball.pos.y / cellSize);
+  const result = [];
+  
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const nr = row + dr;
+      const nc = col + dc;
+      if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) {
+        const cellIdx = nr * gridCols + nc;
+        const cell = spatialGrid[cellIdx];
+        for (let k = 0; k < cell.length; k++) {
+          if (cell[k] !== ballIdx) {
+            result.push(cell[k]);
+          }
+        }
+      }
+    }
+  }
+  return result;
+}
+
+// 星际台球模式的球设置
 function setupStarBalls() {
   physicsScene.balls = [];
+  const { cueBallX, cueBallY, triangleStartX, triangleStartY, ballSpacingRatio, pocketRadius, triangleRows } = config.starBilliards;
   
-  // 月球（小球，原索引1）
-  const moonRadius = config.canvas.simMinWidth * config.balls.radiusRatios[1];
-  const moonMass = Math.PI * moonRadius * moonRadius;
-  const moonInertia = (moonMass * moonRadius * moonRadius) / 2.0;
-  const moonPos = new Vector2(simWidth2 * 0.3, simHeight2 * 0.5);
-  const moonVel = new Vector2(0.0, 0.0);
-  physicsScene.balls.push(new Ball(moonRadius, moonMass, moonInertia, moonPos, moonVel, 0.0, 0.0));
+  // 主球（Cue Ball）- 拖拽球
+  const cueRadius = config.canvas.simMinWidth * config.balls.radiusRatios[2];
+  const cueMass = Math.PI * cueRadius * cueRadius;
+  const cueInertia = (cueMass * cueRadius * cueRadius) / 2.0;
+  const cuePos = new Vector2(simWidth2 * cueBallX, simHeight2 * cueBallY);
+  physicsScene.balls.push(new Ball(cueRadius, cueMass, cueInertia, cuePos, new Vector2(0, 0), 0.0, 0.0));
   
-  // 拖拽球（包子，原索引2）
-  const bunRadius = config.canvas.simMinWidth * config.balls.radiusRatios[2];
-  const bunMass = Math.PI * bunRadius * bunRadius;
-  const bunInertia = (bunMass * bunRadius * bunRadius) / 2.0;
-  const bunPos = new Vector2(simWidth2 * 0.7, simHeight2 * 0.5);
-  const bunVel = new Vector2(0.0, 0.0);
-  physicsScene.balls.push(new Ball(bunRadius, bunMass, bunInertia, bunPos, bunVel, 0.0, 0.0));
+  // 15个目标球 - 三角形排列
+  const ballRadius = pocketRadius;
+  const ballMass = Math.PI * ballRadius * ballRadius;
+  const ballInertia = (ballMass * ballRadius * ballRadius) / 2.0;
+  
+  const startX = simWidth2 * triangleStartX;
+  const startY = simHeight2 * triangleStartY;
+  const spacing = ballRadius * ballSpacingRatio;
+  
+  // 三角形排列：第1行1个，第2行2个，...，第5行5个
+  for (let row = 0; row < triangleRows; row++) {
+    const ballsInRow = row + 1;
+    const rowWidth = (ballsInRow - 1) * spacing;
+    const rowStartX = startX + row * spacing * Math.cos(Math.PI / 6);
+    const rowY = startY - row * spacing * Math.sin(Math.PI / 6);
+    
+    for (let col = 0; col < ballsInRow; col++) {
+      const x = rowStartX;
+      const y = rowY + col * spacing - rowWidth / 2;
+      const pos = new Vector2(x, y);
+      const vel = new Vector2(0.0, 0.0);
+      physicsScene.balls.push(new Ball(ballRadius, ballMass, ballInertia, pos, vel, 0.0, 0.0));
+    }
+  }
+  
+  // 初始化空间网格
+  initSpatialGrid();
   
   mouseDown2 = false;
 }
@@ -433,7 +513,7 @@ var mouseDown2 = false;
 
 // 获取当前拖拽球索引
 function getDraggableBallIndex() {
-  return physicsScene.starBilliardsMode ? 1 : DRAGGABLE_BALL_INDEX;
+  return physicsScene.starBilliardsMode ? 0 : DRAGGABLE_BALL_INDEX;
 }
 
 // Functions to handle dragging for canvas2 - always drag the fixed ball
@@ -564,13 +644,14 @@ function drawGravity() {
 
   // 绘制星际台球模式的6个点位
   if (physicsScene.starBilliardsMode) {
+    const pocketRadius = config.starBilliards.pocketRadius;
     c.fillStyle = "#1a1a1a";
     c.strokeStyle = "#4a4a4a";
     c.lineWidth = 2;
     for (var pocket of physicsScene.pockets) {
       var px = cX(new Vector2(pocket.x, 0));
       var py = cY(new Vector2(0, pocket.y));
-      var pr = cScale2 * pocket.r;
+      var pr = cScale2 * pocketRadius;
       c.beginPath();
       c.arc(px, py, pr, 0, 2 * Math.PI);
       c.fill();
@@ -596,10 +677,8 @@ function drawGravity() {
     c.rotate(ball.ang);
 
     if (physicsScene.starBilliardsMode) {
-      // 星际台球模式：只有月球(索引0)和拖拽球(索引1)
-      if (i === 0 && moonImage.complete) {
-        c.drawImage(moonImage, -radius, -radius, radius * 2, radius * 2);
-      } else if (i === 1 && bunImage.complete) {
+      // 星际台球模式：主球(索引0)和所有目标球(索引1-15)都使用bun_white
+      if (bunImage.complete) {
         c.drawImage(bunImage, -radius, -radius, radius * 2, radius * 2);
       } else {
         c.beginPath();
@@ -862,59 +941,104 @@ function handleWallCollision(ball, worldSize, restitution) {
 // simulation -------------------------------------------------------
 
 function simulateGravity() {
-  // Calculate gravitational forces between all pairs of balls
   const dragIdx = getDraggableBallIndex();
-  for (i = 0; i < physicsScene.balls.length; i++) {
-    // Skip physics simulation for the draggable ball when it's being dragged
-    if (mouseDown2 && i === dragIdx) continue;
-
-    var ball1 = physicsScene.balls[i];
-
-    // Apply constant gravity
-    ball1.simulate(physicsScene.dt, physicsScene.gravity);
-
-    // Calculate gravitational forces from other balls
-    if (physicsScene.gravityEnabled) {
-      for (j = 0; j < physicsScene.balls.length; j++) {
-        if (i === j) continue; // Skip self
-
-        var ball2 = physicsScene.balls[j];
-
-        // Calculate distance between balls
-        var dir = new Vector2();
-        dir.subtractVectors(ball2.pos, ball1.pos);
-        var distance = dir.length();
-
-        if (distance < config.physics.minDistance) continue;
-
-        // Calculate gravitational force (F = G * m1 * m2 / r^2)
-        var forceMagnitude =
-          (physicsScene.G * ball1.mass * ball2.mass) / (distance * distance);
-
-        // Normalize direction and apply force
-        dir.scale(forceMagnitude / distance);
-        ball1.vel.add(dir, physicsScene.dt / ball1.mass);
+  const isStarMode = physicsScene.starBilliardsMode;
+  
+  // 星际台球模式使用空间网格优化
+  if (isStarMode && physicsScene.spatialGrid) {
+    // 更新空间网格
+    updateSpatialGrid();
+    
+    const balls = physicsScene.balls;
+    const dt = physicsScene.dt;
+    const gravity = physicsScene.gravity;
+    const gravityEnabled = physicsScene.gravityEnabled;
+    const G = physicsScene.G;
+    const restitution = physicsScene.restitution;
+    const minDist = config.physics.minDistance;
+    
+    // 第一遍：应用物理和计算引力
+    for (let i = 0; i < balls.length; i++) {
+      if (mouseDown2 && i === dragIdx) continue;
+      
+      const ball = balls[i];
+      ball.simulate(dt, gravity);
+      
+      // 计算引力（仅检查邻近球）
+      if (gravityEnabled) {
+        const neighbors = getNeighborBallIndices(i);
+        for (let j = 0; j < neighbors.length; j++) {
+          const other = balls[neighbors[j]];
+          const dx = other.pos.x - ball.pos.x;
+          const dy = other.pos.y - ball.pos.y;
+          const distSq = dx * dx + dy * dy;
+          
+          if (distSq < minDist * minDist) continue;
+          
+          const dist = Math.sqrt(distSq);
+          const forceMag = (G * ball.mass * other.mass) / distSq;
+          const invDist = 1.0 / dist;
+          ball.vel.x += dx * invDist * forceMag * dt / ball.mass;
+          ball.vel.y += dy * invDist * forceMag * dt / ball.mass;
+        }
       }
     }
-
-    // Handle collisions
-    for (j = i + 1; j < physicsScene.balls.length; j++) {
-      // Skip collision if either ball is the draggable ball and is currently being dragged
-      if (
-        mouseDown2 &&
-        (i === dragIdx || j === dragIdx)
-      )
-        continue;
-
-      var ball2 = physicsScene.balls[j];
-      handleBallCollision(ball1, ball2, physicsScene.restitution);
+    
+    // 第二遍：使用空间网格进行碰撞检测
+    updateSpatialGrid();
+    const processed = new Set();
+    
+    for (let i = 0; i < balls.length; i++) {
+      const ball1 = balls[i];
+      
+      // 墙壁碰撞
+      handleWallCollision(ball1, physicsScene.worldSize, restitution);
+      
+      // 球-球碰撞（仅检查邻近球）
+      const neighbors = getNeighborBallIndices(i);
+      for (let j = 0; j < neighbors.length; j++) {
+        const idx2 = neighbors[j];
+        const pairKey = i < idx2 ? i + '_' + idx2 : idx2 + '_' + i;
+        
+        if (processed.has(pairKey)) continue;
+        processed.add(pairKey);
+        
+        // 跳过拖拽球的碰撞
+        if (mouseDown2 && (i === dragIdx || idx2 === dragIdx)) continue;
+        
+        handleBallCollision(ball1, balls[idx2], restitution);
+      }
     }
+  } else {
+    // 普通模式：原始碰撞检测
+    for (let i = 0; i < physicsScene.balls.length; i++) {
+      if (mouseDown2 && i === dragIdx) continue;
 
-    handleWallCollision(
-      ball1,
-      physicsScene.worldSize,
-      physicsScene.restitution,
-    );
+      var ball1 = physicsScene.balls[i];
+      ball1.simulate(physicsScene.dt, physicsScene.gravity);
+
+      if (physicsScene.gravityEnabled) {
+        for (let j = 0; j < physicsScene.balls.length; j++) {
+          if (i === j) continue;
+          var ball2 = physicsScene.balls[j];
+          var dir = new Vector2();
+          dir.subtractVectors(ball2.pos, ball1.pos);
+          var distance = dir.length();
+          if (distance < config.physics.minDistance) continue;
+          var forceMagnitude = (physicsScene.G * ball1.mass * ball2.mass) / (distance * distance);
+          dir.scale(forceMagnitude / distance);
+          ball1.vel.add(dir, physicsScene.dt / ball1.mass);
+        }
+      }
+
+      for (let j = i + 1; j < physicsScene.balls.length; j++) {
+        if (mouseDown2 && (i === dragIdx || j === dragIdx)) continue;
+        var ball2 = physicsScene.balls[j];
+        handleBallCollision(ball1, ball2, physicsScene.restitution);
+      }
+
+      handleWallCollision(ball1, physicsScene.worldSize, physicsScene.restitution);
+    }
   }
 }
 
