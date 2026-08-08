@@ -120,6 +120,8 @@ var physicsScene = {
   wallpaperOffset: { x: 0, y: 0 },
   wallpaperImages: config.images.wallpapers,
   wallpaperImage: new Image(),
+  starBilliardsMode: false,
+  pockets: [], // 6个点位
 };
 
 var DRAGGABLE_BALL_INDEX = config.balls.draggableIndex;
@@ -248,6 +250,11 @@ function playBallGlassSound(normalVel) {
 }
 
 function setupSceneGravity() {
+  if (physicsScene.starBilliardsMode) {
+    setupStarBalls();
+    return;
+  }
+
   physicsScene.balls = [];
   const numBalls = config.balls.count;
   const { radiusRatios, initialVelocity } = config.balls;
@@ -343,8 +350,91 @@ function toggleBilliards() {
   }
 }
 
+// 星际台球模式
+function toggleStarBilliards() {
+  physicsScene.starBilliardsMode = !physicsScene.starBilliardsMode;
+  var button = document.getElementById("starBilliardsBtn");
+  var gravityBtn = document.getElementById("gravityBtn");
+  var billiardsBtn = document.getElementById("billiardsBtn");
+
+  if (physicsScene.starBilliardsMode) {
+    // 进入星际台球模式
+    button.textContent = "退出星际";
+    // 锁住取消重力和试下壁纸按钮
+    gravityBtn.disabled = true;
+    gravityBtn.style.opacity = "0.5";
+    gravityBtn.style.cursor = "not-allowed";
+    billiardsBtn.disabled = true;
+    billiardsBtn.style.opacity = "0.5";
+    billiardsBtn.style.cursor = "not-allowed";
+    // 设置6个点位
+    setupPockets();
+    // 移除地球球（索引0），只保留月球和拖拽球
+    setupStarBalls();
+  } else {
+    // 退出星际台球模式
+    button.textContent = "星际台球";
+    // 解锁按钮
+    gravityBtn.disabled = false;
+    gravityBtn.style.opacity = "1";
+    gravityBtn.style.cursor = "pointer";
+    billiardsBtn.disabled = false;
+    billiardsBtn.style.opacity = "1";
+    billiardsBtn.style.cursor = "pointer";
+    // 恢复原始球
+    setupSceneGravity();
+  }
+}
+
+// 设置6个点位（4个角 + 2个长边中间）
+function setupPockets() {
+  const margin = 0.006; // 边距（模拟坐标）
+  const pocketRadius = 0.012; // 点位半径
+  const w = simWidth2;
+  const h = simHeight2;
+  
+  physicsScene.pockets = [
+    // 4个角
+    { x: margin, y: margin, r: pocketRadius },
+    { x: w - margin, y: margin, r: pocketRadius },
+    { x: margin, y: h - margin, r: pocketRadius },
+    { x: w - margin, y: h - margin, r: pocketRadius },
+    // 2个长边中间
+    { x: w / 2, y: margin-0.004, r: pocketRadius },
+    { x: w / 2, y: h - margin+0.004, r: pocketRadius },
+  ];
+}
+
+// 星际台球模式的球设置（移除地球，只保留月球和拖拽球）
+function setupStarBalls() {
+  physicsScene.balls = [];
+  
+  // 月球（小球，原索引1）
+  const moonRadius = config.canvas.simMinWidth * config.balls.radiusRatios[1];
+  const moonMass = Math.PI * moonRadius * moonRadius;
+  const moonInertia = (moonMass * moonRadius * moonRadius) / 2.0;
+  const moonPos = new Vector2(simWidth2 * 0.3, simHeight2 * 0.5);
+  const moonVel = new Vector2(0.0, 0.0);
+  physicsScene.balls.push(new Ball(moonRadius, moonMass, moonInertia, moonPos, moonVel, 0.0, 0.0));
+  
+  // 拖拽球（包子，原索引2）
+  const bunRadius = config.canvas.simMinWidth * config.balls.radiusRatios[2];
+  const bunMass = Math.PI * bunRadius * bunRadius;
+  const bunInertia = (bunMass * bunRadius * bunRadius) / 2.0;
+  const bunPos = new Vector2(simWidth2 * 0.7, simHeight2 * 0.5);
+  const bunVel = new Vector2(0.0, 0.0);
+  physicsScene.balls.push(new Ball(bunRadius, bunMass, bunInertia, bunPos, bunVel, 0.0, 0.0));
+  
+  mouseDown2 = false;
+}
+
 // Global drag state
 var mouseDown2 = false;
+
+// 获取当前拖拽球索引
+function getDraggableBallIndex() {
+  return physicsScene.starBilliardsMode ? 1 : DRAGGABLE_BALL_INDEX;
+}
 
 // Functions to handle dragging for canvas2 - always drag the fixed ball
 function startDrag2(x, y) {
@@ -360,7 +450,7 @@ function startDrag2(x, y) {
   let simY = (canvas2.height - my) / cScale2; // Flip Y coordinate
 
   // Always target the fixed draggable ball
-  const ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
+  const ball = physicsScene.balls[getDraggableBallIndex()];
 
   // Set the ball's position to the mouse position
   ball.pos.x = simX;
@@ -382,7 +472,7 @@ function drag2(x, y) {
     let newX = mx / cScale2;
     let newY = (canvas2.height - my) / cScale2; // Flip Y coordinate
 
-    let ball = physicsScene.balls[DRAGGABLE_BALL_INDEX];
+    let ball = physicsScene.balls[getDraggableBallIndex()];
 
     ball.vel.x = (newX - ball.pos.x) / physicsScene.dt;
     ball.vel.y = (newY - ball.pos.y) / physicsScene.dt;
@@ -472,6 +562,22 @@ function drawGravity() {
     c.fillRect(0, 0, canvas2.width, canvas2.height);
   }
 
+  // 绘制星际台球模式的6个点位
+  if (physicsScene.starBilliardsMode) {
+    c.fillStyle = "#1a1a1a";
+    c.strokeStyle = "#4a4a4a";
+    c.lineWidth = 2;
+    for (var pocket of physicsScene.pockets) {
+      var px = cX(new Vector2(pocket.x, 0));
+      var py = cY(new Vector2(0, pocket.y));
+      var pr = cScale2 * pocket.r;
+      c.beginPath();
+      c.arc(px, py, pr, 0, 2 * Math.PI);
+      c.fill();
+      c.stroke();
+    }
+  }
+
   c.fillStyle = "#000000";
 
   for (i = 0; i < physicsScene.balls.length; i++) {
@@ -489,21 +595,32 @@ function drawGravity() {
     // 旋转Canvas到球体的角度
     c.rotate(ball.ang);
 
-    if (i === 0 && earthImage.complete) {
-      // Draw earth image for the biggest ball
-      c.drawImage(earthImage, -radius, -radius, radius * 2, radius * 2);
-    } else if (i === 1 && moonImage.complete) {
-      // Draw moon image for the smallest ball
-      c.drawImage(moonImage, -radius, -radius, radius * 2, radius * 2);
-    } else if (i === DRAGGABLE_BALL_INDEX && bunImage.complete) {
-      // Draw the bun image for the draggable ball
-      c.drawImage(bunImage, -radius, -radius, radius * 2, radius * 2);
+    if (physicsScene.starBilliardsMode) {
+      // 星际台球模式：只有月球(索引0)和拖拽球(索引1)
+      if (i === 0 && moonImage.complete) {
+        c.drawImage(moonImage, -radius, -radius, radius * 2, radius * 2);
+      } else if (i === 1 && bunImage.complete) {
+        c.drawImage(bunImage, -radius, -radius, radius * 2, radius * 2);
+      } else {
+        c.beginPath();
+        c.arc(0, 0, radius, 0.0, 2.0 * Math.PI);
+        c.closePath();
+        c.fill();
+      }
     } else {
-      // Draw regular balls as circles
-      c.beginPath();
-      c.arc(0, 0, radius, 0.0, 2.0 * Math.PI);
-      c.closePath();
-      c.fill();
+      // 普通模式
+      if (i === 0 && earthImage.complete) {
+        c.drawImage(earthImage, -radius, -radius, radius * 2, radius * 2);
+      } else if (i === 1 && moonImage.complete) {
+        c.drawImage(moonImage, -radius, -radius, radius * 2, radius * 2);
+      } else if (i === DRAGGABLE_BALL_INDEX && bunImage.complete) {
+        c.drawImage(bunImage, -radius, -radius, radius * 2, radius * 2);
+      } else {
+        c.beginPath();
+        c.arc(0, 0, radius, 0.0, 2.0 * Math.PI);
+        c.closePath();
+        c.fill();
+      }
     }
 
     // 恢复Canvas状态
@@ -746,9 +863,10 @@ function handleWallCollision(ball, worldSize, restitution) {
 
 function simulateGravity() {
   // Calculate gravitational forces between all pairs of balls
+  const dragIdx = getDraggableBallIndex();
   for (i = 0; i < physicsScene.balls.length; i++) {
     // Skip physics simulation for the draggable ball when it's being dragged
-    if (mouseDown2 && i === DRAGGABLE_BALL_INDEX) continue;
+    if (mouseDown2 && i === dragIdx) continue;
 
     var ball1 = physicsScene.balls[i];
 
@@ -784,7 +902,7 @@ function simulateGravity() {
       // Skip collision if either ball is the draggable ball and is currently being dragged
       if (
         mouseDown2 &&
-        (i === DRAGGABLE_BALL_INDEX || j === DRAGGABLE_BALL_INDEX)
+        (i === dragIdx || j === dragIdx)
       )
         continue;
 
@@ -817,3 +935,5 @@ window.setupSceneGravity = setupSceneGravity;
 window.toggleGravity = toggleGravity;
 window.toggleBilliards = toggleBilliards;
 window.toggleSound = toggleSound;
+window.toggleStarBilliards = toggleStarBilliards;
+window.getDraggableBallIndex = getDraggableBallIndex;
