@@ -92,13 +92,28 @@ class Ball {
     this.inertia = inertia;
     this.pos = pos.clone();
     this.vel = vel.clone();
-    this.ang = ang; // 角度是标量
-    this.omega = omega; // 角速度是标量
+    this.ang = ang;
+    this.omega = omega;
   }
   simulate(dt, gravity) {
+    // 施加重力
     this.vel.add(gravity, dt);
+    
+    // 平动阻力（速度随时间指数衰减）
+    const linDamp = config.physics.linearDamping;
+    const linDampFactor = Math.pow(1.0 - linDamp, dt);
+    this.vel.scale(linDampFactor);
+    
+    // 位置更新
     this.pos.add(this.vel, dt);
-    this.ang += this.omega * dt; // 角度更新
+    
+    // 转动阻力（角速度随时间指数衰减）
+    const angDamp = config.physics.angularDamping;
+    const angDampFactor = Math.pow(1.0 - angDamp, dt);
+    this.omega *= angDampFactor;
+    
+    // 角度更新
+    this.ang += this.omega * dt;
   }
 }
 
@@ -122,6 +137,7 @@ var physicsScene = {
   wallpaperImage: new Image(),
   starBilliardsMode: false,
   pockets: [],
+  currentPlanetWallpaper: null,  // 当前星球壁纸
   // 空间网格系统 - 用于高效碰撞检测
   spatialGrid: null,
   cellSize: config.spatialGrid.cellSize,
@@ -391,22 +407,55 @@ function toggleStarBilliards() {
   }
 }
 
-// 设置6个点位（4个角 + 2个长边中间）
+// 设置6个点位（4个角 + 2个长边中间），随机分配星球
 function setupPockets() {
   const { pocketMargin, pocketRadius, pocketSideOffset } = config.starBilliards;
   const w = simWidth2;
   const h = simHeight2;
   
-  physicsScene.pockets = [
-    // 4个角
-    { x: pocketMargin, y: pocketMargin, r: pocketRadius },
-    { x: w - pocketMargin, y: pocketMargin, r: pocketRadius },
-    { x: pocketMargin, y: h - pocketMargin, r: pocketRadius },
-    { x: w - pocketMargin, y: h - pocketMargin, r: pocketRadius },
-    // 2个长边中间
-    { x: w / 2, y: pocketMargin - pocketSideOffset, r: pocketRadius },
-    { x: w / 2, y: h - pocketMargin + pocketSideOffset, r: pocketRadius },
+  // 随机分配星球到6个口袋
+  const planets = [...config.starBilliards.planets];
+  shuffleArray(planets);
+  
+  const pocketPositions = [
+    { x: pocketMargin, y: pocketMargin },                    // 左上角
+    { x: w - pocketMargin, y: pocketMargin },                // 右上角
+    { x: pocketMargin, y: h - pocketMargin },                // 左下角
+    { x: w - pocketMargin, y: h - pocketMargin },            // 右下角
+    { x: w / 2, y: pocketMargin - pocketSideOffset },         // 上边中间
+    { x: w / 2, y: h - pocketMargin + pocketSideOffset },     // 下边中间
   ];
+  
+  physicsScene.pockets = pocketPositions.map((pos, i) => ({
+    x: pos.x,
+    y: pos.y,
+    r: pocketRadius,
+    triggerR: config.starBilliards.pocketTriggerRadius,
+    planet: planets[i],
+    active: false,
+  }));
+  
+  // 默认地球口袋激活，并加载地球壁纸
+  const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
+  const earthPocketIndex = physicsScene.pockets.findIndex(p => p.planet.name === "earth");
+  
+  if (earthPocketIndex !== -1) {
+    physicsScene.pockets[earthPocketIndex].active = true;
+  }
+  
+  // 加载地球壁纸
+  if (earthPlanet) {
+    const earthImg = config.starBilliards.planetImagePath + earthPlanet.name + ".png";
+    loadPlanetWallpaper(earthImg);
+  }
+}
+
+// 数组随机洗牌
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
 }
 
 // 初始化空间网格
@@ -463,6 +512,76 @@ function getNeighborBallIndices(ballIdx) {
     }
   }
   return result;
+}
+
+// 检测球与口袋碰撞
+function checkPocketCollisions() {
+  const { pockets, balls } = physicsScene;
+  const ballsToRemove = new Set();
+  const dragIdx = getDraggableBallIndex();
+  
+  for (let i = 0; i < balls.length; i++) {
+    // 跳过 cue ball
+    if (i === dragIdx) continue;
+    
+    const ball = balls[i];
+    for (let j = 0; j < pockets.length; j++) {
+      const pocket = pockets[j];
+      const dx = ball.pos.x - pocket.x;
+      const dy = ball.pos.y - pocket.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < pocket.triggerR) {
+        // 球进入口袋
+        onBallEnterPocket(i, j, pocket.planet);
+        ballsToRemove.add(i);
+        break;
+      }
+    }
+  }
+  
+  // 移除已进球的球（从后往前，避免索引变化）
+  if (ballsToRemove.size > 0) {
+    const indices = [...ballsToRemove].sort((a, b) => b - a);
+    for (const idx of indices) {
+      balls.splice(idx, 1);
+    }
+    // 重新初始化空间网格
+    if (physicsScene.spatialGrid) {
+      initSpatialGrid();
+      updateSpatialGrid();
+    }
+  }
+}
+
+// 球进入口袋时触发
+function onBallEnterPocket(ballIdx, pocketIdx, planet) {
+  const pocket = physicsScene.pockets[pocketIdx];
+  
+  // 设置口袋为激活状态
+  pocket.active = true;
+  
+  // 其他口袋恢复为未激活
+  for (let i = 0; i < physicsScene.pockets.length; i++) {
+    if (i !== pocketIdx) {
+      physicsScene.pockets[i].active = false;
+    }
+  }
+  
+  // 切换壁纸为星球图片
+  const planetImg = config.starBilliards.planetImagePath + planet.name + ".png";
+  loadPlanetWallpaper(planetImg);
+  
+  console.log(`球进入 ${planet.nameCN} 口袋！`);
+}
+
+// 加载星球壁纸
+function loadPlanetWallpaper(src) {
+  const img = new Image();
+  img.onload = function() {
+    physicsScene.currentPlanetWallpaper = img;
+  };
+  img.src = src;
 }
 
 // 星际台球模式的球设置
@@ -605,39 +724,32 @@ function drawGravity() {
   // Clear canvas
   c.clearRect(0, 0, canvas2.width, canvas2.height);
 
-  // Draw wallpaper if in billiards mode and wallpaper is loaded
-  if (
-    physicsScene.billiardsMode &&
-    physicsScene.currentWallpaper &&
-    physicsScene.wallpaperImage.complete
-  ) {
-    const { w: srcW, h: srcH } = config.images.wallpaperSourceSize;
+  // 决定使用哪个壁纸
+  let wallpaperToDraw = null;
+  let useBilliardsWallpaper = false;
+  
+  if (physicsScene.starBilliardsMode && physicsScene.currentPlanetWallpaper && physicsScene.currentPlanetWallpaper.complete) {
+    // 星际模式：使用星球壁纸
+    wallpaperToDraw = physicsScene.currentPlanetWallpaper;
+  } else if (physicsScene.billiardsMode && physicsScene.currentWallpaper && physicsScene.wallpaperImage.complete) {
+    // 普通模式：使用普通壁纸
+    wallpaperToDraw = physicsScene.wallpaperImage;
+    useBilliardsWallpaper = true;
+  }
 
-    // Calculate source rectangle to ensure we don't draw outside the image
-    const srcX = Math.max(0, physicsScene.wallpaperOffset.x);
-    const srcY = Math.max(0, physicsScene.wallpaperOffset.y);
-    const srcWidth = Math.min(srcW, physicsScene.wallpaperImage.width - srcX);
-    const srcHeight = Math.min(srcH, physicsScene.wallpaperImage.height - srcY);
-
-    // Calculate destination rectangle to fit within canvas
-    const destWidth = (srcWidth / srcW) * canvas2.width;
-    const destHeight = (srcHeight / srcH) * canvas2.height;
-    const destX = (canvas2.width - destWidth) / 2;
-    const destY = (canvas2.height - destHeight) / 2;
-
-    c.drawImage(
-      physicsScene.wallpaperImage,
-      srcX,
-      srcY,
-      srcWidth,
-      srcHeight,
-      destX,
-      destY,
-      destWidth,
-      destHeight,
-    );
+  if (wallpaperToDraw && wallpaperToDraw.width > 0 && wallpaperToDraw.height > 0) {
+    const imgW = wallpaperToDraw.width;
+    const imgH = wallpaperToDraw.height;
+    
+    // 计算缩放比例：保持图片比例，使canvas完全被覆盖
+    const scale = Math.max(canvas2.width / imgW, canvas2.height / imgH);
+    const displayW = imgW * scale;
+    const displayH = imgH * scale;
+    const offsetX = (canvas2.width - displayW) / 2;
+    const offsetY = (canvas2.height - displayH) / 2;
+    
+    c.drawImage(wallpaperToDraw, offsetX, offsetY, displayW, displayH);
   } else {
-    // Draw original pink background
     c.fillStyle = "#ffe4e1";
     c.fillRect(0, 0, canvas2.width, canvas2.height);
   }
@@ -645,13 +757,20 @@ function drawGravity() {
   // 绘制星际台球模式的6个点位
   if (physicsScene.starBilliardsMode) {
     const pocketRadius = config.starBilliards.pocketRadius;
-    c.fillStyle = "#1a1a1a";
-    c.strokeStyle = "#4a4a4a";
-    c.lineWidth = 2;
     for (var pocket of physicsScene.pockets) {
       var px = cX(new Vector2(pocket.x, 0));
       var py = cY(new Vector2(0, pocket.y));
       var pr = cScale2 * pocketRadius;
+      
+      // 激活的口袋显示星球颜色，未激活的显示黑色
+      if (pocket.active && pocket.planet) {
+        c.fillStyle = pocket.planet.color;
+        c.strokeStyle = "#ffffff";
+      } else {
+        c.fillStyle = "#1a1a1a";
+        c.strokeStyle = "#4a4a4a";
+      }
+      c.lineWidth = 2;
       c.beginPath();
       c.arc(px, py, pr, 0, 2 * Math.PI);
       c.fill();
@@ -964,7 +1083,7 @@ function simulateGravity() {
       const ball = balls[i];
       ball.simulate(dt, gravity);
       
-      // 计算引力（仅检查邻近球）
+      // 计算球间引力（仅检查邻近球）
       if (gravityEnabled) {
         const neighbors = getNeighborBallIndices(i);
         for (let j = 0; j < neighbors.length; j++) {
@@ -980,6 +1099,26 @@ function simulateGravity() {
           const invDist = 1.0 / dist;
           ball.vel.x += dx * invDist * forceMag * dt / ball.mass;
           ball.vel.y += dy * invDist * forceMag * dt / ball.mass;
+        }
+      }
+      
+      // 口袋引力效果（球靠近口袋时被吸入）- 跳过 cue ball
+      if (i !== dragIdx) {
+        for (let p = 0; p < physicsScene.pockets.length; p++) {
+          const pocket = physicsScene.pockets[p];
+          const dx = pocket.x - ball.pos.x;
+          const dy = pocket.y - ball.pos.y;
+          const distSq = dx * dx + dy * dy;
+          const triggerR = pocket.triggerR * 3; // 吸引范围
+          
+          if (distSq < triggerR * triggerR && distSq > minDist * minDist) {
+            const dist = Math.sqrt(distSq);
+            // 吸引力随距离减小而增大
+            const attractForce = 0.5 / (dist * dist);
+            const invDist = 1.0 / dist;
+            ball.vel.x += dx * invDist * attractForce * dt;
+            ball.vel.y += dy * invDist * attractForce * dt;
+          }
         }
       }
     }
@@ -1009,6 +1148,9 @@ function simulateGravity() {
         handleBallCollision(ball1, balls[idx2], restitution);
       }
     }
+    
+    // 检测口袋碰撞
+    checkPocketCollisions();
   } else {
     // 普通模式：原始碰撞检测
     for (let i = 0; i < physicsScene.balls.length; i++) {

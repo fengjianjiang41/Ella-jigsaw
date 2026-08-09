@@ -17,9 +17,12 @@ const BILLIARDS_CONFIG = {
     dt: 1.0 / 60.0,        // 时间步长（秒）
     gravity: { x: 0.0, y: 0.0 },  // 恒定重力加速度
     restitution: 1.0,      // 弹性系数（0=完全非弹性, 1=完全弹性）
-    G: 9.8,                // 万有引力常数
+    G: 4,                // 万有引力常数
     gravityEnabled: true,  // 是否启用球体间引力
     minDistance: 0.01,     // 避免除零的最小距离
+    // 阻力（每秒减少的比例，0=无阻力，1=瞬间停止）
+    linearDamping: 0.05,    // 平动阻尼系数
+    angularDamping: 0.10,  // 转动阻尼系数
   },
 
   // ========== 球配置 ==========
@@ -35,7 +38,7 @@ const BILLIARDS_CONFIG = {
   collision: {
     ballBallFriction: 0.5,       // 球-球摩擦系数
     ballWallFriction: 0.5,       // 球-墙摩擦系数
-    normalAdjustment: 2.0,       // 法向冲量调整系数
+    normalAdjustment: 2.5,       // 法向冲量调整系数
     tangentVelThreshold: 0.001,  // 切向速度阈值（低于此值不应用摩擦）
     soundVolumeThreshold: 0.1,  // 球-球音效触发音量阈值
   },
@@ -92,6 +95,7 @@ const BILLIARDS_CONFIG = {
     pocketMargin: 0.006,        // 点位距边缘的距离
     pocketRadius: 0.012,        // 点位半径
     pocketSideOffset: 0.004,    // 侧边点位偏移量
+    pocketTriggerRadius: 0.01, // 球被口袋吸入的触发半径
     
     // 球桌布局
     triangleStartX: 0.65,       // 三角形起始位置（占宽度比例）
@@ -103,6 +107,17 @@ const BILLIARDS_CONFIG = {
     // 主球位置
     cueBallX: 0.25,             // 主球X位置（占宽度比例）
     cueBallY: 0.5,              // 主球Y位置（占高度比例）
+    
+    // 星球配置
+    planets: [
+      { name: "mercury", color: "#C0C0C0", nameCN: "水星" },  // 银色
+      { name: "venus", color: "#FFE55C", nameCN: "金星" },    // 白黄色
+      { name: "earth", color: "#4B7BE5", nameCN: "地球" },   // 蓝色
+      { name: "mars", color: "#E54B4B", nameCN: "火星" },    // 红色
+      { name: "jupiter", color: "#FFA500", nameCN: "木星" },  // 橘色
+      { name: "saturn", color: "#B8860B", nameCN: "土星" },   // 暗黄色
+    ],
+    planetImagePath: "images/billiards/",  // 星球壁纸路径
   },
 
   // ========== 空间网格配置 ==========
