@@ -65,6 +65,10 @@ const BILLIARDS_CONFIG = {
       maxSize: 3,
       src: "audio/ballball.mp3",
     },
+    cueHit: {
+      maxSize: 3,
+      src: "audio/cue.mp3",
+    },
     ballGlass: {
       maxSize: 10,
       longSrc: "audio/ballglasslong.mp3",

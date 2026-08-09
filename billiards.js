@@ -170,9 +170,33 @@ var physicsScene = {
   cellSize: config.spatialGrid.cellSize,
   gridCols: 0,
   gridRows: 0,
+  // 壁纸动画状态
+  wallpaperAnim: {
+    offsetX: 0,        // 当前偏移
+    offsetY: 0,
+    scale: 1.0,        // 当前缩放
+    targetScale: 1.0,  // 目标缩放
+    wanderTimer: 0,    // 漫游计时器
+    wanderDirX: 0,     // 漫游方向
+    wanderDirY: 0,
+    bounceOffsetX: 0,  // 碰撞冲击偏移
+    bounceOffsetY: 0,
+    bounceDecay: 0,    // 碰撞衰减
+  },
 };
 
 var DRAGGABLE_BALL_INDEX = config.balls.draggableIndex;
+
+// 壁纸冲击效果：球碰壁时壁纸反方向移动
+function triggerWallpaperBounce(wallNormal, impactForce) {
+  if (!physicsScene.starBilliardsMode) return;
+  const anim = physicsScene.wallpaperAnim;
+  const force = Math.min(Math.abs(impactForce) * 0.3, 30);  // 限制最大偏移
+  // 反方向：wallNormal 是球的法向（指向墙外），壁纸朝反方向移动
+  anim.bounceOffsetX -= wallNormal.x * force;
+  anim.bounceOffsetY += wallNormal.y * force;
+  anim.bounceDecay = 1.0;  // 启动衰减
+}
 
 // Global sound enable state
 let soundEnabled = config.sound.enabled;
@@ -210,6 +234,26 @@ const ballBallAudioPool = {
     }
     if (this.audioObjects.length < this.maxPoolSize) {
       const newAudio = new Audio(config.audioPools.ballBall.src);
+      this.audioObjects.push(newAudio);
+      return newAudio;
+    }
+    return this.audioObjects[0];
+  },
+};
+
+// Audio pool for cue stick hit sounds
+const cueAudioPool = {
+  audioObjects: [],
+  maxPoolSize: config.audioPools.cueHit.maxSize,
+
+  getAudio() {
+    for (let audio of this.audioObjects) {
+      if (audio.ended || audio.currentTime === 0) {
+        return audio;
+      }
+    }
+    if (this.audioObjects.length < this.maxPoolSize) {
+      const newAudio = new Audio(config.audioPools.cueHit.src);
       this.audioObjects.push(newAudio);
       return newAudio;
     }
@@ -837,6 +881,23 @@ function releaseCueStick() {
   ball.vel.x -= stick.direction.x * speed;
   ball.vel.y -= stick.direction.y * speed;
   
+  // 播放音效：cue.mp3 和 ballball.mp3
+  if (soundEnabled) {
+    const volume = Math.min(stick.chargeAmount / config.cueStick.maxChargeDistance, 1.0);
+    
+    // 播放 cue 音效
+    const cueAudio = cueAudioPool.getAudio();
+    cueAudio.currentTime = 0;
+    cueAudio.volume = 0.8;
+    cueAudio.play().catch((e) => console.log("Cue audio play failed:", e));
+    
+    // 播放 ballball 音效
+    const ballballAudio = ballBallAudioPool.getAudio();
+    ballballAudio.currentTime = 0;
+    ballballAudio.volume = volume;
+    ballballAudio.play().catch((e) => console.log("Ballball audio play failed:", e));
+  }
+  
   // 重置球杆状态
   stick.active = false;
   stick.charging = false;
@@ -1002,14 +1063,67 @@ function drawGravity() {
     const imgW = wallpaperToDraw.width;
     const imgH = wallpaperToDraw.height;
     
-    // 计算缩放比例：保持图片比例，使canvas完全被覆盖
-    const scale = Math.max(canvas2.width / imgW, canvas2.height / imgH);
-    const displayW = imgW * scale;
-    const displayH = imgH * scale;
-    const offsetX = (canvas2.width - displayW) / 2;
-    const offsetY = (canvas2.height - displayH) / 2;
+    // 计算基础缩放：保持图片比例，使canvas完全被覆盖（cover模式）+ 额外放大
+    const baseScale = Math.max(canvas2.width / imgW, canvas2.height / imgH) * 1.15;
     
-    c.drawImage(wallpaperToDraw, offsetX, offsetY, displayW, displayH);
+    // 星际台球模式下添加动态效果
+    if (physicsScene.starBilliardsMode) {
+      const anim = physicsScene.wallpaperAnim;
+      const simDt = physicsScene.dt || 1 / 60;
+      
+      // 1. 缓慢放大缩小（呼吸效果）
+      anim.wanderTimer += simDt;
+      anim.targetScale = 1.0 + Math.sin(anim.wanderTimer * 0.3) * 0.03;  // ±3%
+      anim.scale += (anim.targetScale - anim.scale) * 0.02;  // 平滑过渡
+      
+      // 2. 二维随机游走
+      if (anim.wanderTimer > 2.0) {
+        anim.wanderTimer = 0;
+        anim.wanderDirX = (Math.random() - 0.5) * 2;
+        anim.wanderDirY = (Math.random() - 0.5) * 2;
+      }
+      const wanderSpeed = 8;  // 像素/秒
+      anim.offsetX += anim.wanderDirX * wanderSpeed * simDt;
+      anim.offsetY += anim.wanderDirY * wanderSpeed * simDt;
+      
+      // 3. 边界限制（确保覆盖canvas）
+      const maxOffset = 20;
+      anim.offsetX = Math.max(-maxOffset, Math.min(maxOffset, anim.offsetX));
+      anim.offsetY = Math.max(-maxOffset, Math.min(maxOffset, anim.offsetY));
+      
+      // 4. 碰撞冲击衰减
+      if (anim.bounceDecay > 0) {
+        anim.bounceDecay -= simDt * 3;
+        if (anim.bounceDecay <= 0) {
+          anim.bounceOffsetX = 0;
+          anim.bounceOffsetY = 0;
+          anim.bounceDecay = 0;
+        }
+      } else {
+        anim.bounceOffsetX *= 0.9;
+        anim.bounceOffsetY *= 0.9;
+      }
+      
+      // 应用缩放：基于图片原始比例计算显示尺寸
+      const totalScale = baseScale * anim.scale;
+      const displayW = imgW * totalScale;
+      const displayH = imgH * totalScale;
+      
+      // 居中 + 偏移
+      const centerX = (canvas2.width - displayW) / 2;
+      const centerY = (canvas2.height - displayH) / 2;
+      const totalOffsetX = centerX + anim.offsetX + anim.bounceOffsetX;
+      const totalOffsetY = centerY + anim.offsetY + anim.bounceOffsetY;
+      
+      c.drawImage(wallpaperToDraw, totalOffsetX, totalOffsetY, displayW, displayH);
+    } else {
+      // 普通模式：保持原始比例覆盖canvas
+      const displayW = imgW * baseScale;
+      const displayH = imgH * baseScale;
+      const offsetX = (canvas2.width - displayW) / 2;
+      const offsetY = (canvas2.height - displayH) / 2;
+      c.drawImage(wallpaperToDraw, offsetX, offsetY, displayW, displayH);
+    }
   } else {
     c.fillStyle = "#ffe4e1";
     c.fillRect(0, 0, canvas2.width, canvas2.height);
@@ -1216,6 +1330,7 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     // Play wall collision sound
     playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
+    triggerWallpaperBounce(normal, normalVel);  // 左墙冲击
 
     // 切向冲量（摩擦力）
     if (Math.abs(tangentVel) > config.collision.tangentVelThreshold) {
@@ -1250,6 +1365,7 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     // Play wall collision sound
     playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
+    triggerWallpaperBounce(normal, normalVel);  // 右墙冲击
 
     if (Math.abs(tangentVel) > config.collision.tangentVelThreshold) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
@@ -1283,6 +1399,7 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     // Play wall collision sound
     playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
+    triggerWallpaperBounce(normal, normalVel);  // 地面冲击
 
     if (Math.abs(tangentVel) > config.collision.tangentVelThreshold) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
@@ -1316,6 +1433,7 @@ function handleWallCollision(ball, worldSize, restitution) {
 
     // Play wall collision sound
     playBallWallSound(ballWallSoundAdjustment * ball.mass * normalVel);
+    triggerWallpaperBounce(normal, normalVel);  // 天花板冲击
 
     if (Math.abs(tangentVel) > config.collision.tangentVelThreshold) {
       var impulseTangent = -friction * impulseNormal * Math.sign(tangentVel);
@@ -1642,8 +1760,9 @@ function drawVenusEquilibriumCircles() {
   c.strokeStyle = "rgba(255, 229, 92, 0.4)";
   c.lineWidth = 1;
   
-  // 绘制每个球的平衡距离环
-  for (const ball of balls) {
+  // 绘制每个球的平衡距离环（跳过 cueball）
+  for (let i = 1; i < balls.length; i++) {
+    const ball = balls[i];
     const cx = cX(ball.pos);
     const cy = cY(ball.pos);
     const r = cScale * equilibriumDist;
