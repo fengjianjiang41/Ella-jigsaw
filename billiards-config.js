@@ -192,6 +192,20 @@ const BILLIARDS_CONFIG = {
     restitution: 1.0,
   },
 
+  // ========== 虚拟球杆配置 ==========
+  cueStick: {
+    idleSpeedThreshold: 0.2,    // cueball 速度低于此值可击打
+    stickLength: 0.28,          // 球杆固定长度（sim 坐标）
+    maxChargeDistance: 0.8,    // 最大蓄力距离
+    chargeSpeed: 0.8,          // 蓄力速度（每秒增加的距离）
+    hitPower: 8.0,              // 击打功率（将蓄力距离转换为速度）
+    cueBallRadius: 0.0165,      // cueball 半径
+    interactRadius: 1.5,       // 可交互半径（相对于 cueball）
+    ringColor: "#ffffff",       // 白圆圈颜色
+    stickColor: "#ffffff",      // 球杆颜色
+    stickWidth: 0.005,          // 球杆宽度（sim 坐标）
+  },
+
   // ========== 空间网格配置 ==========
   spatialGrid: {
     cellSize: 0.05,             // 网格单元大小

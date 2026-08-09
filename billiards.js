@@ -157,6 +157,14 @@ var physicsScene = {
   saturnPocketedBalls: [],  // [{ball, pocketIdx, vel, omega}]
   // 土星：吐球历史（已吐出的球位置）
   saturnEjectedBalls: new Set(),
+  // 虚拟球杆系统
+  cueStick: {
+    active: false,           // 球杆是否显示
+    charging: false,         // 是否正在蓄力
+    chargeAmount: 0,         // 当前蓄力距离
+    mousePos: new Vector2(), // 鼠标位置（sim 坐标）
+    direction: new Vector2(),// 球杆方向（从 cueball 指向鼠标）
+  },
   // 空间网格系统
   spatialGrid: null,
   cellSize: config.spatialGrid.cellSize,
@@ -706,82 +714,256 @@ function setupStarBalls() {
   mouseDown2 = false;
 }
 
-// Global drag state
+// Global state
 var mouseDown2 = false;
+var mouseInCanvas = false;
+var lastMousePos = new Vector2();
 
 // 获取当前拖拽球索引
 function getDraggableBallIndex() {
   return physicsScene.starBilliardsMode ? 0 : DRAGGABLE_BALL_INDEX;
 }
 
-// Functions to handle dragging for canvas2 - always drag the fixed ball
-function startDrag2(x, y) {
-  if (!achievementsUnlocked[6]) {
-    window.unlockAchievement(7);
-  }
+// 屏幕坐标转模拟坐标
+function screenToSim(x, y) {
   let bounds = canvas2.getBoundingClientRect();
   let mx = x - bounds.left - canvas2.clientLeft;
   let my = y - bounds.top - canvas2.clientTop;
-
-  // Convert mouse coordinates to simulation coordinates
-  let simX = mx / cScale2;
-  let simY = (canvas2.height - my) / cScale2; // Flip Y coordinate
-
-  // Always target the fixed draggable ball
-  const ball = physicsScene.balls[getDraggableBallIndex()];
-
-  // Set the ball's position to the mouse position
-  ball.pos.x = simX;
-  ball.pos.y = simY;
-
-  // Set velocity to zero when starting drag
-  ball.vel.set(new Vector2(0, 0));
-
-  mouseDown2 = true;
+  return new Vector2(mx / cScale2, (canvas2.height - my) / cScale2);
 }
 
-function drag2(x, y) {
-  if (mouseDown2) {
-    let bounds = canvas2.getBoundingClientRect();
-    let mx = x - bounds.left - canvas2.clientLeft;
-    let my = y - bounds.top - canvas2.clientTop;
+// 获取 cueball 速度
+function getCueBallSpeed() {
+  const ball = physicsScene.balls[0];
+  if (!ball) return Infinity;
+  return Math.sqrt(ball.vel.x * ball.vel.x + ball.vel.y * ball.vel.y);
+}
 
-    // Convert mouse coordinates to simulation coordinates
-    let newX = mx / cScale2;
-    let newY = (canvas2.height - my) / cScale2; // Flip Y coordinate
+// 检查鼠标是否在交互范围内
+function isMouseInCueBallRange(mousePos) {
+  const ball = physicsScene.balls[0];
+  if (!ball) return false;
+  const dx = mousePos.x - ball.pos.x;
+  const dy = mousePos.y - ball.pos.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  return dist < config.cueStick.interactRadius;
+}
 
-    let ball = physicsScene.balls[getDraggableBallIndex()];
-
-    ball.vel.x = (newX - ball.pos.x) / physicsScene.dt;
-    ball.vel.y = (newY - ball.pos.y) / physicsScene.dt;
-
-    // Update the fixed draggable ball position directly
-    ball.pos.x = newX;
-    ball.pos.y = newY;
+// 更新球杆状态
+function updateCueStick(mousePos) {
+  const ball = physicsScene.balls[0];
+  if (!ball) return;
+  
+  const speed = getCueBallSpeed();
+  const canInteract = speed < config.cueStick.idleSpeedThreshold;
+  const inRange = isMouseInCueBallRange(mousePos);
+  
+  const stick = physicsScene.cueStick;
+  
+  if (!canInteract || !inRange) {
+    // 不能交互或超出范围
+    if (stick.charging) {
+      // 松开前离开范围，取消击打
+      cancelCueStick();
+    } else {
+      stick.active = false;
+      stick.charging = false;
+      stick.chargeAmount = 0;
+    }
+    return;
+  }
+  
+  // 可以交互
+  stick.active = true;
+  stick.mousePos = mousePos.clone();
+  
+  // 计算方向：从 cueball 指向鼠标
+  const dx = mousePos.x - ball.pos.x;
+  const dy = mousePos.y - ball.pos.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist > 0.0001) {
+    stick.direction = new Vector2(dx / dist, dy / dist);
+  }
+  
+  // 正在蓄力：基于鼠标距离 cueball 的远近来决定蓄力量
+  if (stick.charging) {
+    const mouseDist = dist;  // 鼠标到 cueball 的距离
+    const chargeDist = Math.max(0, mouseDist - ball.radius * 2);
+    stick.chargeAmount = Math.min(chargeDist, config.cueStick.maxChargeDistance);
   }
 }
 
-function endDrag2() {
-  mouseDown2 = false;
+// 开始蓄力
+function startCueCharge(mousePos) {
+  const ball = physicsScene.balls[0];
+  if (!ball) return false;
+  
+  const speed = getCueBallSpeed();
+  if (speed >= config.cueStick.idleSpeedThreshold) return false;
+  if (!isMouseInCueBallRange(mousePos)) return false;
+  
+  const stick = physicsScene.cueStick;
+  stick.active = true;
+  stick.charging = true;
+  stick.chargeAmount = 0;
+  stick.mousePos = mousePos.clone();
+  
+  // 计算方向
+  const dx = ball.pos.x - mousePos.x;
+  const dy = ball.pos.y - mousePos.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist > 0.0001) {
+    stick.direction = new Vector2(dx / dist, dy / dist);
+  }
+  
+  return true;
 }
 
-// Add event listeners for canvas2
-canvas2.addEventListener("mousedown", (event) => startDrag2(event.x, event.y));
-canvas2.addEventListener("mouseup", (event) => endDrag2());
-canvas2.addEventListener("mousemove", (event) => drag2(event.x, event.y));
-canvas2.addEventListener("touchstart", (event) =>
-  startDrag2(event.touches[0].clientX, event.touches[0].clientY),
-);
-canvas2.addEventListener("touchend", (event) => endDrag2());
-canvas2.addEventListener(
-  "touchmove",
-  (event) => {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    drag2(event.touches[0].clientX, event.touches[0].clientY);
-  },
-  { passive: false },
-);
+// 释放击打
+function releaseCueStick() {
+  const stick = physicsScene.cueStick;
+  const ball = physicsScene.balls[0];
+  
+  if (!stick.charging || !ball) {
+    cancelCueStick();
+    return;
+  }
+  
+  // 计算击打速度
+  const power = config.cueStick.hitPower;
+  const speed = stick.chargeAmount * power;
+  
+  // 施加沿方向的速度
+  ball.vel.x -= stick.direction.x * speed;
+  ball.vel.y -= stick.direction.y * speed;
+  
+  // 重置球杆状态
+  stick.active = false;
+  stick.charging = false;
+  stick.chargeAmount = 0;
+  
+  console.log(`击打！速度: ${speed.toFixed(3)}`);
+}
+
+// 取消球杆
+function cancelCueStick() {
+  const stick = physicsScene.cueStick;
+  stick.active = false;
+  stick.charging = false;
+  stick.chargeAmount = 0;
+}
+
+// 屏幕坐标转模拟坐标的辅助函数
+function toSimCoords(clientX, clientY) {
+  let bounds = canvas2.getBoundingClientRect();
+  let mx = clientX - bounds.left - canvas2.clientLeft;
+  let my = clientY - bounds.top - canvas2.clientTop;
+  return new Vector2(mx / cScale2, (canvas2.height - my) / cScale2);
+}
+
+// 鼠标事件处理
+canvas2.addEventListener("mousedown", (event) => {
+  if (!physicsScene.starBilliardsMode) {
+    // 普通模式保持原有拖拽
+    if (!achievementsUnlocked[6]) {
+      window.unlockAchievement(7);
+    }
+    const simPos = toSimCoords(event.clientX, event.clientY);
+    const ball = physicsScene.balls[getDraggableBallIndex()];
+    ball.pos.x = simPos.x;
+    ball.pos.y = simPos.y;
+    ball.vel.set(new Vector2(0, 0));
+    mouseDown2 = true;
+  } else {
+    // 星际模式：球杆系统
+    const simPos = toSimCoords(event.clientX, event.clientY);
+    startCueCharge(simPos);
+  }
+});
+
+canvas2.addEventListener("mouseup", (event) => {
+  if (!physicsScene.starBilliardsMode) {
+    mouseDown2 = false;
+  } else {
+    releaseCueStick();
+  }
+});
+
+canvas2.addEventListener("mousemove", (event) => {
+  const simPos = toSimCoords(event.clientX, event.clientY);
+  lastMousePos = simPos.clone();
+  
+  if (!physicsScene.starBilliardsMode) {
+    // 普通模式拖拽
+    if (mouseDown2) {
+      const ball = physicsScene.balls[getDraggableBallIndex()];
+      ball.vel.x = (simPos.x - ball.pos.x) / physicsScene.dt;
+      ball.vel.y = (simPos.y - ball.pos.y) / physicsScene.dt;
+      ball.pos.x = simPos.x;
+      ball.pos.y = simPos.y;
+    }
+  } else {
+    // 星际模式：更新球杆
+    updateCueStick(simPos);
+  }
+});
+
+canvas2.addEventListener("mouseleave", () => {
+  mouseInCanvas = false;
+  if (physicsScene.starBilliardsMode) {
+    cancelCueStick();
+  }
+});
+
+canvas2.addEventListener("mouseenter", () => {
+  mouseInCanvas = true;
+});
+
+// 触摸支持
+canvas2.addEventListener("touchstart", (event) => {
+  event.preventDefault();
+  if (!physicsScene.starBilliardsMode) {
+    if (!achievementsUnlocked[6]) {
+      window.unlockAchievement(7);
+    }
+    const simPos = toSimCoords(event.touches[0].clientX, event.touches[0].clientY);
+    const ball = physicsScene.balls[getDraggableBallIndex()];
+    ball.pos.x = simPos.x;
+    ball.pos.y = simPos.y;
+    ball.vel.set(new Vector2(0, 0));
+    mouseDown2 = true;
+  } else {
+    const simPos = toSimCoords(event.touches[0].clientX, event.touches[0].clientY);
+    startCueCharge(simPos);
+  }
+}, { passive: false });
+
+canvas2.addEventListener("touchend", (event) => {
+  event.preventDefault();
+  if (!physicsScene.starBilliardsMode) {
+    mouseDown2 = false;
+  } else {
+    releaseCueStick();
+  }
+}, { passive: false });
+
+canvas2.addEventListener("touchmove", (event) => {
+  event.preventDefault();
+  const simPos = toSimCoords(event.touches[0].clientX, event.touches[0].clientY);
+  lastMousePos = simPos.clone();
+  
+  if (!physicsScene.starBilliardsMode) {
+    if (mouseDown2) {
+      const ball = physicsScene.balls[getDraggableBallIndex()];
+      ball.vel.x = (simPos.x - ball.pos.x) / physicsScene.dt;
+      ball.vel.y = (simPos.y - ball.pos.y) / physicsScene.dt;
+      ball.pos.x = simPos.x;
+      ball.pos.y = simPos.y;
+    }
+  } else {
+    updateCueStick(simPos);
+  }
+}, { passive: false });
 
 // Preload wallpaper images
 physicsScene.wallpaperImages.forEach((src) => {
@@ -908,6 +1090,8 @@ function drawGravity() {
   drawVenusEquilibriumCircles();
   // 绘制木星闪烁效果
   drawJupiterFlash();
+  // 绘制虚拟球杆
+  drawCueStick();
 }
 
 // collision handling -------------------------------------------------------
@@ -1162,7 +1346,8 @@ function simulateGravity() {
     
     // 第一遍：应用物理和计算引力
     for (let i = 0; i < balls.length; i++) {
-      if (mouseDown2 && i === dragIdx) continue;
+      // 普通模式拖拽时跳过被拖球；星际模式下 cueball 正常参与
+      if (!physicsScene.starBilliardsMode && mouseDown2 && i === dragIdx) continue;
       
       const ball = balls[i];
       ball.simulate(dt, gravity);
@@ -1494,7 +1679,90 @@ function drawJupiterFlash() {
   }
 }
 
-// ========== 启动台球游戏 ==========
+// 绘制虚拟球杆
+function drawCueStick() {
+  if (!physicsScene.starBilliardsMode) return;
+  
+  const ball = physicsScene.balls[0];
+  if (!ball) return;
+  
+  const stick = physicsScene.cueStick;
+  const speed = getCueBallSpeed();
+  const cfg = config.cueStick;
+  
+  // 只有当 cueball 速度足够慢且鼠标在范围内才显示
+  const canInteract = speed < cfg.idleSpeedThreshold;
+  const inRange = isMouseInCueBallRange(lastMousePos);
+  
+  if (!canInteract || !inRange) {
+    // 不显示白圆圈
+    return;
+  }
+  
+  // 绘制白圆圈（指示 cueball 可击打）
+  const ballCx = cX(ball.pos);
+  const ballCy = cY(ball.pos);
+  const ballR = cScale2 * ball.radius;
+  
+  c.strokeStyle = cfg.ringColor;
+  c.lineWidth = 2;
+  c.setLineDash([4, 4]);
+  c.beginPath();
+  c.arc(ballCx, ballCy, ballR * 1.3, 0, Math.PI * 2);
+  c.stroke();
+  c.setLineDash([]);
+  
+  // 如果球杆未激活，不绘制球杆
+  if (!stick.active) return;
+  
+  // 计算球杆位置
+  // dir: 从 cueball 指向鼠标的方向
+  // 布局: cueball --- 击球端(鼠标位置) --- 球杆尾端
+  const dir = stick.direction;
+  const cueCx = cX(ball.pos);
+  const cueCy = cY(ball.pos);
+  
+  // 击球端位置：鼠标位置（在 cueball 和球杆尾端之间）
+  // 用 chargeAmount 控制击球端离 cueball 的距离
+  const hitEndDist = ball.radius * 0.8 + stick.chargeAmount;  // 击球端到 cueball 的距离
+  const tailEndDist = hitEndDist + cfg.stickLength;  // 球杆尾端到 cueball 的距离
+  
+  // 转换为屏幕坐标（Y 轴翻转）
+  const hitEndX = cueCx + dir.x * cScale2 * hitEndDist;
+  const hitEndY = cueCy - dir.y * cScale2 * hitEndDist;
+  const tailEndX = cueCx + dir.x * cScale2 * tailEndDist;
+  const tailEndY = cueCy - dir.y * cScale2 * tailEndDist;
+  
+  // 绘制球杆
+  c.strokeStyle = cfg.stickColor;
+  c.lineWidth = cfg.stickWidth * cScale2;
+  c.lineCap = "round";
+  c.beginPath();
+  c.moveTo(hitEndX, hitEndY);
+  c.lineTo(tailEndX, tailEndY);
+  c.stroke();
+  
+  // 绘制击球端圆圈（跟随鼠标）
+  c.strokeStyle = cfg.ringColor;
+  c.lineWidth = 1.5;
+  c.setLineDash([3, 3]);
+  c.beginPath();
+  c.arc(hitEndX, hitEndY, ball.radius * 0.3, 0, Math.PI * 2);
+  c.stroke();
+  c.setLineDash([]);
+  
+  // 绘制蓄力指示
+  if (stick.charging && stick.chargeAmount > 0) {
+    const chargeRatio = stick.chargeAmount / cfg.maxChargeDistance;
+    c.strokeStyle = `rgba(255, 255, 255, ${0.3 + chargeRatio * 0.5})`;
+    c.lineWidth = 3;
+    c.beginPath();
+    c.arc(ballCx, ballCy, ballR * 1.5, -Math.PI / 2, -Math.PI / 2 + chargeRatio * Math.PI * 2);
+    c.stroke();
+  }
+}
+
+// ========== 星球特殊物理处理 ==========
 setupSceneGravity();
 updateGravity();
 
