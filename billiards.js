@@ -94,22 +94,29 @@ class Ball {
     this.vel = vel.clone();
     this.ang = ang;
     this.omega = omega;
+    this.ejectProtection = 0;  // 土星吐球保护时间（秒）
   }
   simulate(dt, gravity) {
+    // 衰减保护时间
+    if (this.ejectProtection > 0) {
+      this.ejectProtection -= dt;
+    }
+    
     // 施加重力
     this.vel.add(gravity, dt);
     
+    // 获取当前星球模式的阻尼参数
+    const damping = getCurrentDamping();
+    
     // 平动阻力（速度随时间指数衰减）
-    const linDamp = config.physics.linearDamping;
-    const linDampFactor = Math.pow(1.0 - linDamp, dt);
+    const linDampFactor = Math.pow(1.0 - damping.linear, dt);
     this.vel.scale(linDampFactor);
     
     // 位置更新
     this.pos.add(this.vel, dt);
     
     // 转动阻力（角速度随时间指数衰减）
-    const angDamp = config.physics.angularDamping;
-    const angDampFactor = Math.pow(1.0 - angDamp, dt);
+    const angDampFactor = Math.pow(1.0 - damping.angular, dt);
     this.omega *= angDampFactor;
     
     // 角度更新
@@ -137,8 +144,20 @@ var physicsScene = {
   wallpaperImage: new Image(),
   starBilliardsMode: false,
   pockets: [],
-  currentPlanetWallpaper: null,  // 当前星球壁纸
-  // 空间网格系统 - 用于高效碰撞检测
+  currentPlanetWallpaper: null,
+  // 当前星球模式
+  currentPlanet: null,  // 当前激活的星球对象
+  planetMode: "normal",  // 当前星球模式
+  // 木星：动量交换计时器
+  jupiterSwapTimer: 0,
+  // 木星：需要闪烁的球（闪烁效果）
+  jupiterFlashBalls: new Set(),
+  jupiterFlashTimer: 0,
+  // 土星：进球历史（用于吐球）
+  saturnPocketedBalls: [],  // [{ball, pocketIdx, vel, omega}]
+  // 土星：吐球历史（已吐出的球位置）
+  saturnEjectedBalls: new Set(),
+  // 空间网格系统
   spatialGrid: null,
   cellSize: config.spatialGrid.cellSize,
   gridCols: 0,
@@ -388,6 +407,9 @@ function toggleStarBilliards() {
     billiardsBtn.disabled = true;
     billiardsBtn.style.opacity = "0.5";
     billiardsBtn.style.cursor = "not-allowed";
+    // 清空土星吐球历史
+    physicsScene.saturnPocketedBalls = [];
+    physicsScene.saturnEjectedBalls.clear();
     // 设置6个点位
     setupPockets();
     // 移除地球球（索引0），只保留月球和拖拽球
@@ -435,7 +457,7 @@ function setupPockets() {
     active: false,
   }));
   
-  // 默认地球口袋激活，并加载地球壁纸
+  // 默认地球口袋激活，并加载地球壁纸和物理
   const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
   const earthPocketIndex = physicsScene.pockets.findIndex(p => p.planet.name === "earth");
   
@@ -447,6 +469,8 @@ function setupPockets() {
   if (earthPlanet) {
     const earthImg = config.starBilliards.planetImagePath + earthPlanet.name + ".png";
     loadPlanetWallpaper(earthImg);
+    // 应用地球物理参数
+    applyPlanetPhysics(earthPlanet);
   }
 }
 
@@ -521,8 +545,9 @@ function checkPocketCollisions() {
   const dragIdx = getDraggableBallIndex();
   
   for (let i = 0; i < balls.length; i++) {
-    // 跳过 cue ball
+    // 跳过 cue ball 和保护中的球
     if (i === dragIdx) continue;
+    if (balls[i].ejectProtection > 0) continue;
     
     const ball = balls[i];
     for (let j = 0; j < pockets.length; j++) {
@@ -557,6 +582,23 @@ function checkPocketCollisions() {
 // 球进入口袋时触发
 function onBallEnterPocket(ballIdx, pocketIdx, planet) {
   const pocket = physicsScene.pockets[pocketIdx];
+  const ball = physicsScene.balls[ballIdx];
+  
+  // 记录进球历史（所有模式都记录，用于土星吐球）
+  if (ball && ballIdx !== 0) {  // 不记录cueball
+    physicsScene.saturnPocketedBalls.push({
+      ball: {
+        radius: ball.radius,
+        mass: ball.mass,
+        inertia: ball.inertia,
+        ang: ball.ang,
+      },
+      pocket: { x: pocket.x, y: pocket.y },
+      vel: { x: ball.vel.x, y: ball.vel.y },
+      omega: ball.omega,
+      pocketIdx: pocketIdx,
+    });
+  }
   
   // 设置口袋为激活状态
   pocket.active = true;
@@ -572,7 +614,36 @@ function onBallEnterPocket(ballIdx, pocketIdx, planet) {
   const planetImg = config.starBilliards.planetImagePath + planet.name + ".png";
   loadPlanetWallpaper(planetImg);
   
-  console.log(`球进入 ${planet.nameCN} 口袋！`);
+  // 切换物理模式
+  applyPlanetPhysics(planet);
+  
+  console.log(`球进入 ${planet.nameCN} 口袋！物理模式已切换`);
+}
+
+// 应用星球物理参数
+function applyPlanetPhysics(planet) {
+  const multipliers = planet.physicsMultipliers;
+  
+  // 计算星球模式下的物理参数
+  config.planetPhysics.currentPlanet = planet.name;
+  config.planetPhysics.linearDamping = config.physics.linearDamping * multipliers.linearDamping;
+  config.planetPhysics.angularDamping = config.physics.angularDamping * multipliers.angularDamping;
+  config.planetPhysics.gravity = config.physics.G * multipliers.gravity;
+  config.planetPhysics.restitution = config.physics.restitution * multipliers.restitution;
+  
+  // 更新 physicsScene
+  physicsScene.G = config.planetPhysics.gravity;
+  physicsScene.restitution = config.planetPhysics.restitution;
+  
+  // 设置星球模式
+  physicsScene.currentPlanet = planet;
+  physicsScene.planetMode = planet.mode || "normal";
+  
+  // 重置木星状态
+  physicsScene.jupiterSwapTimer = 0;
+  physicsScene.jupiterFlashBalls.clear();
+  
+  console.log(`切换到 ${planet.nameCN} 模式: ${planet.mode}`);
 }
 
 // 加载星球壁纸
@@ -582,6 +653,14 @@ function loadPlanetWallpaper(src) {
     physicsScene.currentPlanetWallpaper = img;
   };
   img.src = src;
+}
+
+// 获取当前星球模式的阻尼参数
+function getCurrentDamping() {
+  return {
+    linear: config.planetPhysics.linearDamping,
+    angular: config.planetPhysics.angularDamping,
+  };
 }
 
 // 星际台球模式的球设置
@@ -824,6 +903,11 @@ function drawGravity() {
     // 恢复Canvas状态
     c.restore();
   }
+  
+  // 绘制金星V型势能平衡距离圆环
+  drawVenusEquilibriumCircles();
+  // 绘制木星闪烁效果
+  drawJupiterFlash();
 }
 
 // collision handling -------------------------------------------------------
@@ -1102,8 +1186,8 @@ function simulateGravity() {
         }
       }
       
-      // 口袋引力效果（球靠近口袋时被吸入）- 跳过 cue ball
-      if (i !== dragIdx) {
+      // 口袋引力效果（球靠近口袋时被吸入）- 跳过 cue ball 和保护中的球
+      if (i !== dragIdx && ball.ejectProtection <= 0) {
         for (let p = 0; p < physicsScene.pockets.length; p++) {
           const pocket = physicsScene.pockets[p];
           const dx = pocket.x - ball.pos.x;
@@ -1151,6 +1235,9 @@ function simulateGravity() {
     
     // 检测口袋碰撞
     checkPocketCollisions();
+    
+    // 应用星球特殊物理
+    applyPlanetSpecialPhysics(dt, dragIdx);
   } else {
     // 普通模式：原始碰撞检测
     for (let i = 0; i < physicsScene.balls.length; i++) {
@@ -1188,6 +1275,223 @@ function updateGravity() {
   simulateGravity();
   drawGravity();
   requestAnimationFrame(updateGravity);
+}
+
+// ========== 星球特殊物理处理 ==========
+
+// 应用星球特殊物理
+function applyPlanetSpecialPhysics(dt, dragIdx) {
+  const mode = physicsScene.planetMode;
+  
+  switch (mode) {
+    case "vShaped":
+      applyVenusVShapedForce(dt, dragIdx);
+      break;
+    case "superBounce":
+      // 火星模式已通过 restitution 全局设置生效
+      break;
+    case "momentumSwap":
+      applyJupiterMomentumSwap(dt, dragIdx);
+      break;
+    case "ballEjector":
+      applySaturnBallEjector(dt);
+      break;
+  }
+}
+
+// 金星：V型势能函数
+// 小球（非cueball）之间在平衡距离外吸引、内排斥
+function applyVenusVShapedForce(dt, dragIdx) {
+  const planet = physicsScene.currentPlanet;
+  if (!planet || !planet.vShapedParams) return;
+  
+  const { equilibriumDist, wellDepth } = planet.vShapedParams;
+  const balls = physicsScene.balls;
+  
+  for (let i = 0; i < balls.length; i++) {
+    if (i === dragIdx) continue;  // 跳过cueball
+    const ball = balls[i];
+    
+    // 检查邻近球
+    const neighbors = getNeighborBallIndices(i);
+    for (let j = 0; j < neighbors.length; j++) {
+      const other = balls[neighbors[j]];
+      const dx = other.pos.x - ball.pos.x;
+      const dy = other.pos.y - ball.pos.y;
+      const distSq = dx * dx + dy * dy;
+      const minDist = config.physics.minDistance;
+      
+      if (distSq < minDist * minDist) continue;
+      
+      const dist = Math.sqrt(distSq);
+      const invDist = 1.0 / dist;
+      
+      // V型势能的力函数
+      // F = -dU/dr, U(r) = wellDepth * |r - equilibriumDist|
+      // r > eqDist: F = -wellDepth (吸引)
+      // r < eqDist: F = +wellDepth (排斥)
+      let forceMag;
+      if (dist > equilibriumDist) {
+        forceMag = wellDepth;  // 吸引力
+      } else {
+        forceMag = -wellDepth;   // 排斥力
+      }
+
+      forceMag *= 10;
+      
+      // 应用力
+      ball.vel.x += dx * invDist * forceMag * dt;
+      ball.vel.y += dy * invDist * forceMag * dt;
+    }
+  }
+}
+
+// 木星：随机交换两个球的动量和角动量
+function applyJupiterMomentumSwap(dt, dragIdx) {
+  const planet = physicsScene.currentPlanet;
+  if (!planet) return;
+  
+  physicsScene.jupiterSwapTimer += dt;
+  
+  if (physicsScene.jupiterSwapTimer >= planet.swapInterval) {
+    physicsScene.jupiterSwapTimer -= planet.swapInterval;
+    
+    const balls = physicsScene.balls;
+    // 跳过cueball，选两个随机球
+    const validIndices = [];
+    for (let i = 0; i < balls.length; i++) {
+      if (i !== dragIdx) validIndices.push(i);
+    }
+    
+    if (validIndices.length >= 2) {
+      const idx1 = validIndices[Math.floor(Math.random() * validIndices.length)];
+      let idx2 = validIndices[Math.floor(Math.random() * validIndices.length)];
+      while (idx2 === idx1) {
+        idx2 = validIndices[Math.floor(Math.random() * validIndices.length)];
+      }
+      
+      const ball1 = balls[idx1];
+      const ball2 = balls[idx2];
+      
+      // 交换动量
+      const velTemp = ball1.vel.clone();
+      ball1.vel = ball2.vel.clone();
+      ball2.vel = velTemp;
+      
+      // 交换角动量
+      const omegaTemp = ball1.omega;
+      ball1.omega = ball2.omega;
+      ball2.omega = omegaTemp;
+      
+      // 标记闪烁
+      physicsScene.jupiterFlashBalls.add(idx1);
+      physicsScene.jupiterFlashBalls.add(idx2);
+      physicsScene.jupiterFlashTimer = 0.3;  // 闪烁0.3秒
+    }
+  }
+  
+  // 更新闪烁计时器
+  if (physicsScene.jupiterFlashTimer > 0) {
+    physicsScene.jupiterFlashTimer -= dt;
+    if (physicsScene.jupiterFlashTimer <= 0) {
+      physicsScene.jupiterFlashBalls.clear();
+    }
+  }
+}
+
+// 土星：吐出所有进球，保持目标球数量为15
+function applySaturnBallEjector(dt) {
+  const planet = physicsScene.currentPlanet;
+  if (!planet) return;
+  
+  const history = physicsScene.saturnPocketedBalls;
+  const balls = physicsScene.balls;
+  
+  // 统计当前目标球数量（不含cueball，索引>0）
+  let targetBallCount = 0;
+  for (let i = 1; i < balls.length; i++) {
+    targetBallCount++;
+  }
+  
+  const TARGET_COUNT = 15;  // 目标球总数
+  
+  // 如果目标球不足15个，从历史中吐出
+  if (targetBallCount < TARGET_COUNT && history.length > 0) {
+    const pocketed = history.shift();  // 取出最早的进球
+    
+    // 从口袋位置喷出，动量反转
+    const ball = new Ball(
+      pocketed.ball.radius,
+      pocketed.ball.mass,
+      pocketed.ball.inertia,
+      new Vector2(pocketed.pocket.x, pocketed.pocket.y),
+      new Vector2(-pocketed.vel.x, -pocketed.vel.y),
+      pocketed.ball.ang,
+      -pocketed.omega
+    );
+    
+    // 设置保护时间，防止立即被吸回去
+    ball.ejectProtection = 2.0;  // 2秒保护
+    
+    physicsScene.balls.push(ball);
+    
+    // 重新初始化空间网格
+    if (physicsScene.spatialGrid) {
+      initSpatialGrid();
+      updateSpatialGrid();
+    }
+  }
+}
+
+// 绘制金星V型势能平衡距离圆环
+function drawVenusEquilibriumCircles() {
+  if (physicsScene.planetMode !== "vShaped") return;
+  
+  const planet = physicsScene.currentPlanet;
+  if (!planet || !planet.vShapedParams) return;
+  
+  const { equilibriumDist } = planet.vShapedParams;
+  const balls = physicsScene.balls;
+  const cScale = cScale2;
+  
+  c.strokeStyle = "rgba(255, 229, 92, 0.4)";
+  c.lineWidth = 1;
+  
+  // 绘制每个球的平衡距离环
+  for (const ball of balls) {
+    const cx = cX(ball.pos);
+    const cy = cY(ball.pos);
+    const r = cScale * equilibriumDist;
+    
+    c.beginPath();
+    c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.stroke();
+  }
+}
+
+// 绘制木星闪烁效果
+function drawJupiterFlash() {
+  if (physicsScene.planetMode !== "momentumSwap") return;
+  if (physicsScene.jupiterFlashBalls.size === 0) return;
+  
+  const balls = physicsScene.balls;
+  const planet = physicsScene.currentPlanet;
+  if (!planet) return;
+  
+  c.strokeStyle = planet.color;
+  c.lineWidth = 3;
+  
+  for (const idx of physicsScene.jupiterFlashBalls) {
+    if (idx >= balls.length) continue;
+    const ball = balls[idx];
+    const cx = cX(ball.pos);
+    const cy = cY(ball.pos);
+    const r = cScale2 * ball.radius * 1.5;
+    
+    c.beginPath();
+    c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.stroke();
+  }
 }
 
 // ========== 启动台球游戏 ==========

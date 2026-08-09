@@ -108,16 +108,88 @@ const BILLIARDS_CONFIG = {
     cueBallX: 0.25,             // 主球X位置（占宽度比例）
     cueBallY: 0.5,              // 主球Y位置（占高度比例）
     
-    // 星球配置
+    // 星球配置（包含物理参数倍率和特殊模式）
     planets: [
-      { name: "mercury", color: "#C0C0C0", nameCN: "水星" },  // 银色
-      { name: "venus", color: "#FFE55C", nameCN: "金星" },    // 白黄色
-      { name: "earth", color: "#4B7BE5", nameCN: "地球" },   // 蓝色
-      { name: "mars", color: "#E54B4B", nameCN: "火星" },    // 红色
-      { name: "jupiter", color: "#FFA500", nameCN: "木星" },  // 橘色
-      { name: "saturn", color: "#B8860B", nameCN: "土星" },   // 暗黄色
+      {
+        name: "mercury", color: "#C0C0C0", nameCN: "水星",
+        physicsMultipliers: {
+          linearDamping: 10.0,
+          angularDamping: 10.0,
+          gravity: 1.0,
+          restitution: 1.0,
+        },
+        mode: "damped",  // 高阻力模式
+      },
+      {
+        name: "venus", color: "#FFE55C", nameCN: "金星",
+        physicsMultipliers: {
+          linearDamping: 1.0,
+          angularDamping: 1.0,
+          gravity: 1.0,
+          restitution: 1.0,
+        },
+        mode: "vShaped",  // V型势能模式
+        vShapedParams: {
+          equilibriumDist: 0.08,  // 平衡距离
+          wellDepth: 2.0,         // 势阱深度
+          repulsionRange: 0.03,   // 排斥范围
+        },
+      },
+      {
+        name: "earth", color: "#4B7BE5", nameCN: "地球",
+        physicsMultipliers: {
+          linearDamping: 1.0,
+          angularDamping: 1.0,
+          gravity: 1.0,
+          restitution: 1.0,
+        },
+        mode: "normal",  // 正常模式
+      },
+      {
+        name: "mars", color: "#E54B4B", nameCN: "火星",
+        physicsMultipliers: {
+          linearDamping: 1.0,
+          angularDamping: 1.0,
+          gravity: 1.0,
+          restitution: 2.0,  // 弹性系数2
+        },
+        mode: "superBounce",  // 超级弹跳模式
+      },
+      {
+        name: "jupiter", color: "#FFA500", nameCN: "木星",
+        physicsMultipliers: {
+          linearDamping: 1.0,
+          angularDamping: 1.0,
+          gravity: 1.0,
+          restitution: 1.0,
+        },
+        mode: "momentumSwap",  // 动量交换模式
+        swapInterval: 1.0,  // 每秒交换
+      },
+      {
+        name: "saturn", color: "#B8860B", nameCN: "土星",
+        physicsMultipliers: {
+          linearDamping: 1.0,
+          angularDamping: 1.0,
+          gravity: 1.0,
+          restitution: 1.0,
+        },
+        mode: "ballEjector",  // 吐球模式
+        ejectCount: 2,  // 吐出前2个进球
+      },
     ],
-    planetImagePath: "images/billiards/",  // 星球壁纸路径
+    planetImagePath: "images/billiards/",
+  },
+
+  // ========== 星球物理模式 ==========
+  // 当前星球模式使用的物理参数（由 planets 配置的倍率计算）
+  planetPhysics: {
+    currentPlanet: "earth",  // 当前激活的星球
+    // 运行时计算的参数（基础参数 * 倍率）
+    linearDamping: 0.5,
+    angularDamping: 1.0,
+    gravity: 4,
+    restitution: 1.0,
   },
 
   // ========== 空间网格配置 ==========
