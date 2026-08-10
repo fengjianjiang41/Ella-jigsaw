@@ -5633,6 +5633,35 @@ document.addEventListener("DOMContentLoaded", function () {
   const sfxVolumeValue = sfxVolumeSlider?.nextElementSibling;
   const noBeepsCheckbox = document.getElementById("noBeepsCheckbox");
 
+  // 指引提示框相关
+  const optionsHintBubble = document.getElementById("optionsHintBubble");
+  const OPTIONS_HINT_SEEN_KEY = "options_hint_seen";
+
+  // 检查是否已经看过指引
+  function hasSeenOptionsHint() {
+    return localStorage.getItem(OPTIONS_HINT_SEEN_KEY) === "true";
+  }
+
+  // 显示指引提示框
+  function showOptionsHint() {
+    if (optionsHintBubble && !hasSeenOptionsHint()) {
+      optionsHintBubble.classList.remove("hidden");
+    }
+  }
+
+  // 隐藏指引提示框并保存状态
+  function hideOptionsHint() {
+    if (optionsHintBubble) {
+      optionsHintBubble.classList.add("hidden");
+      localStorage.setItem(OPTIONS_HINT_SEEN_KEY, "true");
+    }
+  }
+
+  // 初始化：如果没看过就显示提示
+  if (!hasSeenOptionsHint()) {
+    showOptionsHint();
+  }
+
   // Was timer running before options window opened
   let wasTimerRunning = false;
 
@@ -5714,13 +5743,23 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Event listeners
-  optionsBtn?.addEventListener("click", openOptionsWindow);
+  optionsBtn?.addEventListener("click", function () {
+    // 点击选项按钮时隐藏提示框
+    hideOptionsHint();
+    openOptionsWindow();
+  });
   closeOptionsBtn?.addEventListener("click", closeOptionsWindow);
   optionsOverlay?.addEventListener("click", closeOptionsWindow);
 
   // Beep toggle checkbox
   noBeepsCheckbox?.addEventListener("change", function () {
     enableBeepSounds = !this.checked;
+  });
+
+  // Guide button - open guide.html in new tab
+  const guideBtn = document.getElementById("guideBtn");
+  guideBtn?.addEventListener("click", function () {
+    window.open("guide.html", "_blank");
   });
 
   // Initialize volume displays

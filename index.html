@@ -295,6 +295,11 @@
         <button id="floatingOptionsBtn" class="floating-options-btn" title="Options">
             <img src="images/option.png" alt="Options">
         </button>
+        <!-- 指引提示气泡 -->
+        <div id="optionsHintBubble" class="options-hint-bubble">
+            <span class="options-hint-text">游戏指引在这里！</span>
+            <div class="options-hint-arrow"></div>
+        </div>
     </div>
 
     <!-- Floating Achievements Button -->
@@ -321,9 +326,12 @@
                 <input type="range" id="sfxVolumeSlider" min="0" max="1" step="0.05" value="0.5">
                 <span class="volume-value">50%</span>
             </div>
-            <div class="checkbox-control">
-                <input type="checkbox" id="noBeepsCheckbox">
-                <label for="noBeepsCheckbox" id="noBeepsLabel">别哔哔 / No beeps</label>
+            <div class="checkbox-control" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center;">
+                    <input type="checkbox" id="noBeepsCheckbox">
+                    <label for="noBeepsCheckbox" id="noBeepsLabel">别哔哔 / No beeps</label>
+                </div>
+                <button id="guideBtn" class="guide-btn">游戏指引</button>
             </div>
         </div>
     </div>

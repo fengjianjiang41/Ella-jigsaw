@@ -853,6 +853,57 @@ body {
     object-fit: contain;
 }
 
+/* Options Hint Bubble Styles */
+.options-hint-bubble {
+    position: absolute;
+    left: 75px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(255, 107, 138, 0.4);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    animation: hintPulse 2s ease-in-out infinite;
+}
+
+.options-hint-bubble.hidden {
+    display: none;
+}
+
+.options-hint-text {
+    color: #ffffff;
+}
+
+.options-hint-arrow {
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 6px solid #ff8fab;
+}
+
+@keyframes hintPulse {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(255, 107, 138, 0.4);
+        transform: translateY(-50%) scale(1);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(255, 107, 138, 0.7);
+        transform: translateY(-50%) scale(1.03);
+    }
+}
+
 /* Options Window Styles */
 .options-overlay {
     position: fixed;
@@ -939,6 +990,26 @@ body {
     margin-right: 12px;
     cursor: pointer;
     accent-color: #ff8fab;
+}
+
+/* Guide Button Styles */
+.guide-btn {
+    background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.guide-btn:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+    box-shadow: 0 4px 12px rgba(255, 107, 138, 0.4);
 }
 
 /* Floating Achievements Button Styles */

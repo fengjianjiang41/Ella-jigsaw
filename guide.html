@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>游戏指引 - 旦妹的拼图游戏</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe4e1 100%);
+            overflow-y: scroll;
+        }
+        
+        .guide-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #fff;
+            min-height: 100vh;
+        }
+        
+        .floating-lang-container {
+            position: fixed !important;
+            bottom: 30px !important;
+            right: 30px !important;
+            left: auto !important;
+            z-index: 999 !important;
+            display: block !important;
+            flex-direction: row !important;
+        }
+        
+        .floating-lang-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'CustomFont', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+        
+        .floating-lang-btn:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+        }
+        
+        .guide-container h1 {
+            text-align: center;
+            color: #ff6b8a;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        
+        .guide-container h2 {
+            color: #ff6b8a;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            font-size: 22px;
+            border-bottom: 2px solid #ffe4e1;
+            padding-bottom: 8px;
+        }
+        
+        .guide-container p {
+            color: #333;
+            line-height: 2;
+            margin-bottom: 15px;
+            text-align: justify;
+            font-size: 16px;
+        }
+        
+        .guide-container ul {
+            margin-left: 20px;
+            line-height: 2;
+        }
+        
+        .guide-container li {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe4e1 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid #ffb3c2;
+        }
+        
+        .tip {
+            background: #fff9e6;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #ffd700;
+            line-height: 1.8;
+        }
+        
+        .tip strong {
+            color: #cc9900;
+        }
+        
+        .warning {
+            background: #fff0f0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #ff6b6b;
+            line-height: 1.8;
+        }
+        
+        .center-btn {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .back-btn {
+            background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(255, 107, 138, 0.3);
+        }
+        
+        .back-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .last-updated {
+            font-size: 14px;
+            color: #999;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="guide-container">
+        <h1 id="pageTitle">🎮 游戏指引</h1>
+        <div class="last-updated" id="lastUpdated">最后更新：2026年8月10日</div>
+        
+        <div class="highlight">
+            <p id="intro">欢迎来到<b>旦妹的拼图游戏</b>！这是一个集拼图、音乐、物理、成就于一身的"缝合怪"游戏。本指引将带您了解所有玩法，让您从"萌新"变成"拼图大师"！准备好了吗？Let's go！🚀</p>
+        </div>
+
+        <h2 id="section1">📖 一、基本流程</h2>
+        <ul>
+            <li id="section1Item1"><b>1. 注册昵称：</b>输入一个响当当的昵称（比如"拼图王者"），这就是您在排行榜上的大名啦！</li>
+            <li id="section1Item2"><b>2. 选择难度：</b>
+                <ul>
+                    <li>🥉 <b>休闲</b>：适合新手，慢慢来不着急</li>
+                    <li>🥈 <b>普通</b>：有挑战性但不劝退</li>
+                    <li>🥇 <b>困难</b>：需要加载钢琴音乐，手速与听力的双重考验</li>
+                    <li>👑 <b>炼狱</b>：传说中的难度，勇者来战！</li>
+                </ul>
+            </li>
+            <li id="section1Item3"><b>3. 选择图包：</b>
+                <ul>
+                    <li>经典三连：就那三张图，闭着眼拼</li>
+                    <li>世界名画：100张名画等你来征服（需加载）</li>
+                </ul>
+            </li>
+            <li id="section1Item4"><b>4. 开始游戏：</b>点击"点我开始！"，挑战就开始了！</li>
+        </ul>
+
+        <h2 id="section2">🧩 二、拼图玩法</h2>
+        <ul>
+            <li id="section2Item1"><b>拖动碎片：</b>按住鼠标左键拖动拼图碎片，拖到正确位置附近它会自动吸附（就像有磁力一样）。</li>
+            <li id="section2Item2"><b>三种拼图模式：</b>
+                <ul>
+                    <li>第1幅：标准拼图 - 看清位置拖就完了</li>
+                    <li>第2幅：<b>隐身拼图</b> - 碎片接近正确位置才显形，考眼力！</li>
+                    <li>第3幅：<b>透镜拼图</b> - 只能在放大镜范围内看清碎片位置，更刺激！</li>
+                </ul>
+            </li>
+            <li id="section2Item3"><b>完成拼图：</b>三幅图全部完成后，点击"确认"按钮结束本轮。</li>
+        </ul>
+
+        <div class="tip" id="tip1">
+            <strong>💡 小贴士：</strong>拼图碎片即使放错位置也不会重叠，它们会"礼貌地"排排队。所以大胆试，没错！
+        </div>
+
+        <h2 id="section3">⚡ 三、连击系统（Combo）</h2>
+        <ul>
+            <li id="section3Item1"><b>什么是连击？</b>在短时间内（2秒）连续完成碎片合并，就会触发连击（Combo）！</li>
+            <li id="section3Item2"><b>连击效果：</b>
+                <ul>
+                    <li>屏幕上出现酷炫的"ComBo!"动画文字</li>
+                    <li>右下角的计时器和按钮会闪烁提示</li>
+                    <li>连击越高，音调越特别（5连击、10连击...都有专属音效）</li>
+                </ul>
+            </li>
+            <li id="section3Item3"><b>连击分级：</b>
+                <ul>
+                    <li>5连击：铜牌色，入门级成就</li>
+                    <li>10连击：银牌色，渐入佳境</li>
+                    <li>20连击：金牌色，高手风范</li>
+                    <li>35+连击：蓝白色光芒闪耀，全场最靓的仔！</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2 id="section4">⏱️ 四、计时与排名</h2>
+        <ul>
+            <li id="section4Item1"><b>计时器：</b>右下角浮动窗口显示实时用时，精确到毫秒。</li>
+            <li id="section4Item2"><b>确认成绩：</b>完成所有拼图后点击"确认"保存成绩。</li>
+            <li id="section4Item3"><b>排行榜：</b>
+                <ul>
+                    <li>📊 个人历史成绩：您的所有最佳记录</li>
+                    <li>🌐 全服最佳：所有玩家的TOP记录</li>
+                </ul>
+            </li>
+            <li id="section4Item4"><b>重新开始：</b>点击"重新开始"按钮即可再战一局。</li>
+        </ul>
+
+        <h2 id="section5">🎵 五、音频与音乐</h2>
+        <ul>
+            <li id="section5Item1"><b>BGM：</b>背景音乐《Yoshigemia》by Kevin Villecco，轻松解压。</li>
+            <li id="section5Item2"><b>音效：</b>
+                <ul>
+                    <li>碎片放置："啵"的一声，清脆悦耳</li>
+                    <li>合并成功："叮"的一声，成就感拉满</li>
+                    <li>连击音效：不同连击数有不同音调</li>
+                    <li>钢琴音乐：困难难度专属，边拼边欣赏钢琴曲</li>
+                </ul>
+            </li>
+            <li id="section5Item3"><b>音量调节：</b>点击左侧选项按钮⚙️，在设置中分别调节BGM和音效音量。</li>
+            <li id="section5Item4"><b>静音模式：</b>勾选"别哔哔/No beeps"，就不会有连击哔哔声了（音乐不受影响）。</li>
+        </ul>
+
+        <h2 id="section6">🧪 六、彩蛋玩法</h2>
+        <ul>
+            <li id="section6Item1"><b>💧 水箱游戏：</b>在结果页面可以玩水互动！点击"开始"按钮启动，还可以调节音量。</li>
+            <li id="section6Item2"><b>🎱 星际台球：</b>在水箱下方有台球游戏！
+                <ul>
+                    <li>点击"原力同在"：开启/关闭引力</li>
+                    <li>点击"换个颜色"：切换星球颜色主题</li>
+                    <li>点击"来点动静"：开启/关闭音效</li>
+                    <li>点击"试下壁纸"：切换背景壁纸</li>
+                </ul>
+            </li>
+            <li id="section6Item3"><b>🐰 旦妹彩蛋：</b>首页的小兔子头像可以点击哦！点多了会有惊喜~</li>
+            <li id="section6Item4"><b>🚪 收集门：</b>左侧的门按钮会根据您完成的名画图包数量闪烁，点击进入收集页面！</li>
+        </ul>
+
+        <h2 id="section7">🏆 七、成就系统</h2>
+        <ul>
+            <li id="section7Item1"><b>如何解锁：</b>点击左侧的金色成就按钮🏆查看成就列表。</li>
+            <li id="section7Item2"><b>成就类型：</b>
+                <ul>
+                    <li>📈 进度成就：完成特定游戏行为解锁</li>
+                    <li>⚡ 手速成就：限时内达成特定连击数</li>
+                    <li>💎 收集成就：完成一定数量的名画拼图</li>
+                    <li>🎨 特殊成就：触发彩蛋玩法解锁</li>
+                </ul>
+            </li>
+        </ul>
+
+        <div class="warning" id="warning1">
+            <strong>⚠️ 温馨提示：</strong>成就数据存储在本地浏览器中，清除浏览器数据会导致成就丢失。建议定期保存您的成绩！
+        </div>
+
+        <h2 id="section8">🔧 八、实用小贴士</h2>
+        <ul>
+            <li id="section8Item1">🖱️ <b>鼠标滚轮：</b>在拼图区域可以滚动缩放查看</li>
+            <li id="section8Item2">📱 <b>分页导航：</b>右侧有6个小圆点，可以快速跳转到不同页面</li>
+            <li id="section8Item3">🌍 <b>语言切换：</b>左下角有语言按钮，可以中英文切换</li>
+            <li id="section8Item4">👶 <b>小孩模式：</b>"小孩内桌"按钮可以切换到小孩模式，适合带娃一起玩</li>
+            <li id="section8Item5">⏸️ <b>暂停功能：</b>拼图过程中打开设置窗口会自动暂停计时</li>
+        </ul>
+
+        <div class="highlight" style="text-align: center; margin-top: 40px;">
+            <p id="ending">🎊 祝您玩得愉快！旦妹的拼图游戏，拼图不只是拼图，更是一场冒险！🎊</p>
+        </div>
+
+        <div class="center-btn">
+            <button class="back-btn" onclick="window.close()">关闭</button>
+        </div>
+    </div>
+
+    <!-- Floating Language Switch Button -->
+    <div class="floating-lang-container">
+        <button id="floatingLangBtn" class="floating-lang-btn">EN</button>
+    </div>
+
+    <script>
+        let currentLang = "zh";
+
+        const translations = {
+            zh: {
+                pageTitle: "🎮 游戏指引",
+                lastUpdated: "最后更新：2026年8月10日",
+                intro: "欢迎来到<b>旦妹的拼图游戏</b>！这是一个关于拼图、音乐、物理和成就的\"缝合怪\"游戏。本指引将带您了解所有玩法，让您从\"萌新\"变成\"拼图大师\"！准备好了吗？Let's go！🚀",
+                section1: "📖 一、基本流程",
+                section1Item1: "<b>1. 注册昵称：</b>输入一个响当当的昵称（比如\"拼图王者\"），这就是您在排行榜上的大名啦！",
+                section1Item2: "<b>2. 选择难度：</b><br>🥉 <b>休闲</b>：适合新手，慢慢来不着急<br>🥈 <b>普通</b>：有挑战性但不劝退<br>🥇 <b>困难</b>：加载钢琴音乐，享受音乐中拼手速<br>👑 <b>炼狱</b>：传说中的难度，勇者来战！",
+                section1Item3: "<b>3. 选择图包：</b><br>经典三连：就那三张图，闭着眼拼<br>世界名画：100张名画等你来征服（需加载）",
+                section1Item4: "<b>4. 开始游戏：</b>点击\"点我开始！\"，挑战就开始了！",
+                section2: "🧩 二、拼图玩法",
+                section2Item1: "<b>拖动碎片：</b>按住鼠标左键拖动拼图碎片，拖到正确位置附近它会自动吸附（就像有磁力一样）。",
+                section2Item2: "<b>三种拼图模式：</b><br>第1幅：标准拼图 - 看清位置拖就完了<br>第2幅：<b>隐身拼图</b> - 碎片时隐时现，考眼力！<br>第3幅：<b>透镜拼图</b> - 只能在放大镜范围内看清碎片位置，更刺激！",
+                section2Item3: "<b>完成拼图：</b>三幅图全部完成后，点击\"确认\"按钮结束本轮。",
+                tip1: "💡 小贴士：拼图碎片即使放错位置也不会重叠，它们会\"礼貌地\"排排队。所以大胆试，没错！",
+                section3: "⚡ 三、连击系统（Combo）",
+                section3Item1: "<b>什么是连击？</b>在短时间内连续完成碎片合并，就会触发连击（Combo）！",
+                section3Item2: "<b>连击效果：</b><br>屏幕上出现酷炫的\"ComBo!\"动画文字<br>右下角的计时器和按钮会闪烁提示<br>连击越高，音调越特别（5连击、10连击...都有专属音效）",
+                section3Item3: "<b>连击分级：</b><br>5连击：铜牌色，入门级成就<br>10连击：银牌色，渐入佳境<br>20连击：金牌色，高手风范<br>35+连击：蓝白色光芒闪耀，全场最靓的仔！",
+                section4: "⏱️ 四、计时与排名",
+                section4Item1: "<b>计时器：</b>右下角浮动窗口显示实时用时，精确到毫秒。",
+                section4Item2: "<b>确认成绩：</b>完成所有拼图后点击\"确认\"保存成绩。",
+                section4Item3: "<b>排行榜：</b><br>📊 个人历史成绩：您的所有最佳记录<br>🌐 全服最佳：所有玩家的TOP记录",
+                section4Item4: "<b>重新开始：</b>点击\"重新开始\"按钮即可再战一局。",
+                section5: "🎵 五、音频与音乐",
+                section5Item1: "<b>BGM：</b>背景音乐《Yoshigemia》by Kevin Villecco，轻松解压。",
+                section5Item2: "<b>音效：</b><br>连击音效：不同连击数有不同音调<br>钢琴音乐：困难难度专属，边拼边欣赏钢琴曲",
+                section5Item3: "<b>音量调节：</b>点击左侧选项按钮⚙️，在设置中分别调节BGM和音效音量。",
+                section5Item4: "<b>静音模式：</b>勾选\"别哔哔/No beeps\"，就不会有连击哔哔声了（音乐不受影响）。",
+                section6: "🧪 六、彩蛋玩法",
+                section6Item1: "<b>💧 水箱游戏：</b>在结果页面可以玩水互动！点击\"开始\"按钮启动，还可以调节音量。",
+                section6Item2: "<b>🎱 星际台球：</b>在水箱下方有台球游戏！<br>点击\"原力同在\"：开启/关闭引力<br>点击\"换个颜色\"：切换星球颜色主题<br>点击\"来点动静\"：开启/关闭音效<br>点击\"试下壁纸\"：切换背景壁纸",
+                section6Item3: "<b>🐰 旦妹彩蛋：</b>首页的小兔子头像可以点击哦！点多了会有惊喜~",
+                section6Item4: "<b>🚪 收集门：</b>左侧的门按钮会根据您完成的名画图包数量闪烁，点击进入收集页面！",
+                section7: "🏆 七、成就系统",
+                section7Item1: "<b>如何解锁：</b>点击左侧的金色成就按钮🏆查看成就列表。",
+                section7Item2: "<b>成就类型：</b><br>📈 进度成就：完成特定游戏行为解锁<br>⚡ 手速成就：限时内达成特定连击数<br>💎 收集成就：完成一定数量的名画拼图<br>🎨 特殊成就：触发彩蛋玩法解锁",
+                warning1: "⚠️ 温馨提示：成就数据存储在本地浏览器中，清除浏览器数据会导致成就丢失。建议定期保存您的成绩！",
+                section8: "🔧 八、实用小贴士",
+                section8Item1: "🖱️ <b>鼠标滚轮：</b>在拼图区域可以滚动缩放查看",
+                section8Item2: "📱 <b>分页导航：</b>右侧有6个小圆点，可以快速跳转到不同页面",
+                section8Item3: "🌍 <b>语言切换：</b>左下角有语言按钮，可以中英文切换",
+                section8Item4: "👶 <b>小孩模式：</b>\"小孩内桌\"按钮可以切换到小孩模式，适合带娃一起玩",
+                section8Item5: "⏸️ <b>暂停功能：</b>拼图过程中打开设置窗口会自动暂停计时",
+                ending: "🎊 祝您玩得愉快！旦妹的拼图游戏，拼图不只是拼图，更是一场冒险！🎊",
+                langBtn: "EN"
+            },
+            en: {
+                pageTitle: "🎮 Game Guide",
+                lastUpdated: "Last Updated: August 10, 2026",
+                intro: "Welcome to <b>Ella's Jigsaw Puzzle Game</b>! This is a \"Frankenstein's monster\" game combining puzzles, music, physics, and achievements. This guide will walk you through all the gameplay features, turning you from a \"newbie\" to a \"puzzle master\"! Ready? Let's go! 🚀",
+                section1: "📖 I. Basic Flow",
+                section1Item1: "<b>1. Register Nickname:</b> Enter a cool nickname (like \"Puzzle King\") - this is your name on the leaderboard!",
+                section1Item2: "<b>2. Choose Difficulty:</b><br>🥉 <b>Casual</b>: For beginners, take your time<br>🥈 <b>Normal</b>: Challenging but fair<br>🥇 <b>Hard</b>: Requires loading piano music, tests speed in music<br>👑 <b>Purgatory</b>: Legendary difficulty, only for the brave!",
+                section1Item3: "<b>3. Choose Image Pack:</b><br>Classic Trio: Just those three images, piece them with your eyes closed<br>World Masterpieces: 100 famous paintings await (needs loading)",
+                section1Item4: "<b>4. Start Game:</b> Click \"Start!\" and the challenge begins!",
+                section2: "🧩 II. Puzzle Gameplay",
+                section2Item1: "<b>Drag Pieces:</b> Hold left mouse button to drag puzzle pieces. When near the correct position, they auto-snap (magnetic!)",
+                section2Item2: "<b>Three Puzzle Modes:</b><br>Puzzle 1: Standard puzzle - just drag to the right spot<br>Puzzle 2: <b>Invisible puzzle</b> - pieces are hidden, then revealed, tests your eyes!<br>Puzzle 3: <b>Lens puzzle</b> - only see clearly through the magnifier range, more exciting!",
+                section2Item3: "<b>Complete Puzzle:</b> After all three puzzles are done, click the \"Confirm\" button to end the round.",
+                tip1: "💡 Tip: Puzzle pieces won't overlap even if placed wrong - they \"politely\" queue up. So try boldly, it's always right!",
+                section3: "⚡ III. Combo System",
+                section3Item1: "<b>What is Combo?</b> Complete piece merges continuously within a short time to trigger a Combo!",
+                section3Item2: "<b>Combo Effects:</b><br>Cool \"ComBo!\" animation text appears on screen<br>Timer and buttons in bottom-right flash to alert<br>Higher combos have unique sounds (5-combo, 10-combo... each has its own sound)",
+                section3Item3: "<b>Combo Levels:</b><br>5 Combo: Bronze, entry-level achievement<br>10 Combo: Silver, getting started<br>20 Combo: Gold, master style<br>35+ Combo: Blue-white glow, the coolest on stage!",
+                section4: "⏱️ IV. Timer & Ranking",
+                section4Item1: "<b>Timer:</b> Floating window in bottom-right shows real-time usage, precise to milliseconds.",
+                section4Item2: "<b>Save Score:</b> Click \"Confirm\" after completing all puzzles to save your score.",
+                section4Item3: "<b>Leaderboard:</b><br>📊 Personal Best: Your all-time best records<br>🌐 Global Best: TOP records from all players",
+                section4Item4: "<b>Restart:</b> Click the \"Restart\" button to play again.",
+                section5: "🎵 V. Audio & Music",
+                section5Item1: "<b>BGM:</b> Background music \"Yoshigemia\" by Kevin Villecco, relaxing and stress-relieving.",
+                section5Item2: "<b>Sound Effects:</b><br>Combo sounds: Different tones for different combo counts<br>Piano music: Exclusive on Hard difficulty, enjoy while puzzling",
+                section5Item3: "<b>Volume Control:</b> Click the ⚙️ options button on the left to adjust BGM and SFX volumes separately.",
+                section5Item4: "<b>Mute Mode:</b> Check \"No beeps\" to disable combo beeps (music is not affected).",
+                section6: "🧪 VI. Easter Egg Gameplay",
+                section6Item1: "<b>💧 Water Tank:</b> Play with water interactions on the results page! Click \"Start\" to begin, adjust volume as needed.",
+                section6Item2: "<b>🎱 Interstellar Billiards:</b> There's a billiards game below the water tank!<br>Click \"Force On\": Toggle gravity on/off<br>Click \"Change Color\": Switch planet color themes<br>Click \"Some Noise\": Toggle sound effects<br>Click \"Try Wallpaper\": Switch background wallpapers",
+                section6Item3: "<b>🐰 Danmei Easter Egg:</b> The bunny avatar on the homepage is clickable! Click enough times for a surprise~",
+                section6Item4: "<b>🚪 Collection Door:</b> The door button on the left flashes based on how many masterpieces you've completed. Click to enter the collection page!",
+                section7: "🏆 VII. Achievement System",
+                section7Item1: "<b>How to Unlock:</b> Click the golden achievement button 🏆 on the left to view the achievement list.",
+                section7Item2: "<b>Achievement Types:</b><br>📈 Progress: Unlocked by completing specific game actions<br>⚡ Speed: Reach specific combo counts within time limits<br>💎 Collection: Complete a certain number of masterpiece puzzles<br>🎨 Special: Triggered by easter egg gameplay",
+                warning1: "⚠️ Note: Achievement data is stored in your browser locally. Clearing browser data will cause achievements to be lost. Save your scores regularly!",
+                section8: "🔧 VIII. Useful Tips",
+                section8Item1: "🖱️ <b>Mouse Wheel:</b> Scroll in puzzle area to zoom in/out",
+                section8Item2: "📱 <b>Page Navigation:</b> Six dots on the right to quickly jump between pages",
+                section8Item3: "🌍 <b>Language Toggle:</b> Language button at bottom-left for Chinese/English switching",
+                section8Item4: "👶 <b>Kid Mode:</b> \"Kid Mode\" button for kid-friendly mode, great for playing with children",
+                section8Item5: "⏸️ <b>Pause Function:</b> Opening settings during play automatically pauses the timer",
+                ending: "🎊 Have fun! Danmei's puzzle game - puzzling is not just puzzling, it's an adventure! 🎊",
+                langBtn: "中文"
+            }
+        };
+
+        function updateLanguage() {
+            document.getElementById('pageTitle').innerHTML = translations[currentLang].pageTitle;
+            document.getElementById('lastUpdated').textContent = translations[currentLang].lastUpdated;
+            document.getElementById('intro').innerHTML = translations[currentLang].intro;
+            document.getElementById('section1').textContent = translations[currentLang].section1;
+            document.getElementById('section1Item1').innerHTML = translations[currentLang].section1Item1;
+            document.getElementById('section1Item2').innerHTML = translations[currentLang].section1Item2;
+            document.getElementById('section1Item3').innerHTML = translations[currentLang].section1Item3;
+            document.getElementById('section1Item4').innerHTML = translations[currentLang].section1Item4;
+            document.getElementById('section2').textContent = translations[currentLang].section2;
+            document.getElementById('section2Item1').innerHTML = translations[currentLang].section2Item1;
+            document.getElementById('section2Item2').innerHTML = translations[currentLang].section2Item2;
+            document.getElementById('section2Item3').innerHTML = translations[currentLang].section2Item3;
+            document.getElementById('tip1').innerHTML = translations[currentLang].tip1;
+            document.getElementById('section3').textContent = translations[currentLang].section3;
+            document.getElementById('section3Item1').innerHTML = translations[currentLang].section3Item1;
+            document.getElementById('section3Item2').innerHTML = translations[currentLang].section3Item2;
+            document.getElementById('section3Item3').innerHTML = translations[currentLang].section3Item3;
+            document.getElementById('section4').textContent = translations[currentLang].section4;
+            document.getElementById('section4Item1').innerHTML = translations[currentLang].section4Item1;
+            document.getElementById('section4Item2').innerHTML = translations[currentLang].section4Item2;
+            document.getElementById('section4Item3').innerHTML = translations[currentLang].section4Item3;
+            document.getElementById('section4Item4').innerHTML = translations[currentLang].section4Item4;
+            document.getElementById('section5').textContent = translations[currentLang].section5;
+            document.getElementById('section5Item1').innerHTML = translations[currentLang].section5Item1;
+            document.getElementById('section5Item2').innerHTML = translations[currentLang].section5Item2;
+            document.getElementById('section5Item3').innerHTML = translations[currentLang].section5Item3;
+            document.getElementById('section5Item4').innerHTML = translations[currentLang].section5Item4;
+            document.getElementById('section6').textContent = translations[currentLang].section6;
+            document.getElementById('section6Item1').innerHTML = translations[currentLang].section6Item1;
+            document.getElementById('section6Item2').innerHTML = translations[currentLang].section6Item2;
+            document.getElementById('section6Item3').innerHTML = translations[currentLang].section6Item3;
+            document.getElementById('section6Item4').innerHTML = translations[currentLang].section6Item4;
+            document.getElementById('section7').textContent = translations[currentLang].section7;
+            document.getElementById('section7Item1').innerHTML = translations[currentLang].section7Item1;
+            document.getElementById('section7Item2').innerHTML = translations[currentLang].section7Item2;
+            document.getElementById('warning1').innerHTML = translations[currentLang].warning1;
+            document.getElementById('section8').textContent = translations[currentLang].section8;
+            document.getElementById('section8Item1').innerHTML = translations[currentLang].section8Item1;
+            document.getElementById('section8Item2').innerHTML = translations[currentLang].section8Item2;
+            document.getElementById('section8Item3').innerHTML = translations[currentLang].section8Item3;
+            document.getElementById('section8Item4').innerHTML = translations[currentLang].section8Item4;
+            document.getElementById('section8Item5').innerHTML = translations[currentLang].section8Item5;
+            document.getElementById('ending').innerHTML = translations[currentLang].ending;
+        }
+
+        // Language button event
+        document.getElementById('floatingLangBtn').addEventListener('click', function() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            updateLanguage();
+        });
+    </script>
+</body>
+</html>
