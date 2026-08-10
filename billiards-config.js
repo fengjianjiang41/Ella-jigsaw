@@ -82,6 +82,7 @@ const BILLIARDS_CONFIG = {
       bun: "images/bun_white.png",     // 拖拽球图片
       earth: "images/earth.png",       // 大球图片
       moon: "images/moon.png",         // 小球图片
+      satellite: "images/satellite.png",  // 卫星球图片
     },
     wallpapers: [
       "images/wp1.jpg",
@@ -99,14 +100,14 @@ const BILLIARDS_CONFIG = {
     pocketMargin: 0.006,        // 点位距边缘的距离
     pocketRadius: 0.012,        // 点位半径
     pocketSideOffset: 0.004,    // 侧边点位偏移量
-    pocketTriggerRadius: 0.01, // 球被口袋吸入的触发半径
+    pocketTriggerRadius: 0.05, // 球被口袋吸入的触发半径
     
     // 球桌布局
     triangleStartX: 0.65,       // 三角形起始位置（占宽度比例）
     triangleStartY: 0.5,        // 三角形中心Y位置（占高度比例）
     ballSpacingRatio: 2.1,      // 球间距与半径的比例
     targetBallRadiusRatio: 0.85, // 目标球半径与主球半径的比例
-    triangleRows: 5,            // 三角形行数（5行=15球）
+    triangleRows: 1,            // 三角形行数（5行=15球）
     
     // 主球位置
     cueBallX: 0.25,             // 主球X位置（占宽度比例）
@@ -198,7 +199,7 @@ const BILLIARDS_CONFIG = {
 
   // ========== 虚拟球杆配置 ==========
   cueStick: {
-    idleSpeedThreshold: 0.2,    // cueball 速度低于此值可击打
+    idleSpeedThreshold: 0.5,    // cueball 速度低于此值可击打
     stickLength: 0.28,          // 球杆固定长度（sim 坐标）
     maxChargeDistance: 0.8,    // 最大蓄力距离
     chargeSpeed: 0.8,          // 蓄力速度（每秒增加的距离）
@@ -213,6 +214,22 @@ const BILLIARDS_CONFIG = {
   // ========== 空间网格配置 ==========
   spatialGrid: {
     cellSize: 0.05,             // 网格单元大小
+  },
+
+  // ========== 对决环节配置 ==========
+  duel: {
+    // 月球初始属性
+    moonRadiusRatio: 0.8,       // 月球初始半径与 cueball 半径的比例
+    moonDensity: 0.4,           // 月球密度（用于计算质量）
+    moonInitialVel: { x: 0, y: 0 },  // 月球初始速度
+    
+    // 月球大小变化参数
+    growthRate: 0.001,          // 每秒自然增长速率
+    collisionGrowth: 1.01,       // 与 cueball 碰撞时的增长倍数
+    wallShrink: 0.9,            // 撞墙时的缩小倍数
+    
+    // 保护机制
+    ejectProtection: 2.0,       // 生成后的保护时间（秒）
   },
 };
 
