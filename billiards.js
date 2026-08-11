@@ -706,14 +706,25 @@ function onBallEnterPocket(ballIdx, pocketIdx, planet) {
         }
     }
 
-    // 切换壁纸为星球图片
-    const planetImg = config.starBilliards.planetImagePath + planet.name + ".png";
-    loadPlanetWallpaper(planetImg);
+    // 对决环节强制使用地球物理和壁纸（无论进入哪个口袋）
+    if (physicsScene.duelState.active) {
+        const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
+        if (earthPlanet) {
+            applyPlanetPhysics(earthPlanet);
+            const earthImg = config.starBilliards.planetImagePath + earthPlanet.name + ".png";
+            loadPlanetWallpaper(earthImg);
+        }
+        console.log(`对决环节：球进入 ${planet.nameCN} 口袋，但物理强制保持地球模式`);
+    } else {
+        // 切换壁纸为星球图片
+        const planetImg = config.starBilliards.planetImagePath + planet.name + ".png";
+        loadPlanetWallpaper(planetImg);
 
-    // 切换物理模式
-    applyPlanetPhysics(planet);
+        // 切换物理模式
+        applyPlanetPhysics(planet);
 
-    console.log(`球进入 ${planet.nameCN} 口袋！物理模式已切换`);
+        console.log(`球进入 ${planet.nameCN} 口袋！物理模式已切换`);
+    }
 }
 
 // 应用星球物理参数
@@ -1360,6 +1371,14 @@ function startDuelPhase() {
     // 立即标记为激活，防止重复触发
     physicsScene.duelState.active = true;
     
+    // 对决环节强制使用地球物理（包括cueball与月球，全场都是地球模式）
+    const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
+    if (earthPlanet) {
+        applyPlanetPhysics(earthPlanet);
+        const earthImg = config.starBilliards.planetImagePath + earthPlanet.name + ".png";
+        loadPlanetWallpaper(earthImg);
+    }
+
     const { triangleStartX, triangleStartY } = config.starBilliards;
     const duel = config.duel;
     
