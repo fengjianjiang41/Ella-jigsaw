@@ -1394,12 +1394,22 @@ function drawGravity() {
         (function drawStarWarsCrawl() {
             const cc = state.crawlCanvas;
             const vpX = canvas2.width / 2;
-            const focal = 800;        // 焦距
-            const angle = -87 * Math.PI / 180; // -85°
+            const focal = 800;
+            const angle = -60 * Math.PI / 180; // -60° 适中透视
             const cosA = Math.cos(angle);
             const sinA = Math.sin(angle);
-            const step = 1;            // 扫描线步长（越小越精细）
-            const maxHalfW = canvas2.width * 0.05; // 底部最大半宽
+            const step = 1;
+
+            // 预计算底部的 maxScale（最远点），用于归一化
+            const bottomDy = canvas2.height - vpY;
+            const bottomWY = bottomDy * focal / (cosA * focal - bottomDy * sinA);
+            const bottomZ = bottomWY * sinA;
+            const maxScale = focal / (focal + bottomZ);
+
+            // 底部 scale=1.0 → srcH=1px → 清晰
+            // maxHalfW 配合 scale=1.0 时的底部全宽
+            const maxHalfW = canvas2.width * 0.5;
+
 
                         for (let sY = canvas2.height; sY >= vpY; sY -= step) {
                 const dy = sY - vpY;
@@ -1407,9 +1417,11 @@ function drawGravity() {
                 const wY = dy * focal / (cosA * focal - dy * sinA);
                 if (wY < 0) continue;
 
-                // 透视 scale
+                // 透视 scale（归一化：底部=1.0，顶部缩小）
                 const z = wY * sinA;
-                const scale = focal / (focal + z);
+                const rawScale = focal / (focal + z);
+                const scale = rawScale / maxScale;
+
 
                 // 离屏 canvas 上对应的源 Y（带滚动循环）
                 let srcY = wY - state.crawlOffset;
