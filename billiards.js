@@ -626,6 +626,22 @@ function checkPocketCollisions() {
         }
     }
 
+    // ========== 新增：月球进入口袋 -> 胜利（必须在移除球之前检测）==========
+    for (let i = 0; i < balls.length; i++) {
+        if (!balls[i].isMoon) continue;
+        if (balls[i].ejectProtection > 0) continue;
+        for (let j = 0; j < pockets.length; j++) {
+            const pocket = pockets[j];
+            const dx = balls[i].pos.x - pocket.x;
+            const dy = balls[i].pos.y - pocket.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < pocket.triggerR) {
+                triggerVictory();
+                return;
+            }
+        }
+    }
+
     // 移除已进球的球（从后往前，避免索引变化）
     if (ballsToRemove.size > 0) {
         const indices = [...ballsToRemove].sort((a, b) => b - a);
@@ -638,6 +654,7 @@ function checkPocketCollisions() {
             updateSpatialGrid();
         }
     }
+
 
     // 检测是否进入对决环节
     if (physicsScene.starBilliardsMode && !physicsScene.duelState.active && !physicsScene.duelState.victory) {
@@ -652,25 +669,6 @@ function checkPocketCollisions() {
         if (smallBallCount === 0) {
             console.log("=== 进入对决环节 ===");
             startDuelPhase();
-        }
-    }
-
-
-    // 月球进入口袋 -> 胜利
-    for (let i = 0; i < balls.length; i++) {
-        if (!balls[i].isMoon) continue;
-        if (balls[i].ejectProtection > 0) continue;
-
-        for (let j = 0; j < pockets.length; j++) {
-            const pocket = pockets[j];
-            const dx = balls[i].pos.x - pocket.x;
-            const dy = balls[i].pos.y - pocket.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < pocket.triggerR) {
-                triggerVictory();
-                return;
-            }
         }
     }
 }
@@ -1342,12 +1340,12 @@ function drawGravity() {
             c.restore();
         }
 
-        // 绘制 earth 球（胜利后添加）
-        if (physicsScene.duelState.victoryTimer > 2.0) {
-            const earthBall = physicsScene.balls.find(b => b.isEarth);
+        // 绘制 earth 球（胜利后添加）——去掉延迟，立即显示
+        {
+            let earthBall = physicsScene.balls.find(b => b.isEarth);
             if (!earthBall) {
                 const earthRadius = config.canvas.simMinWidth * config.balls.radiusRatios[2];
-                const earthBall = new Ball(
+                earthBall = new Ball(
                     earthRadius,
                     earthRadius * earthRadius * 0.5,
                     earthRadius * earthRadius * 0.2,
@@ -1360,9 +1358,20 @@ function drawGravity() {
                 physicsScene.balls.push(earthBall);
                 updateSpatialGrid();
             }
+            // 显式绘制地球球（胜利画面 return 了，不会走正常绘制流程）
+            if (earthImage.complete) {
+                c.save();
+                c.translate(cX(earthBall.pos), cY(earthBall.pos));
+                c.rotate(earthBall.ang);
+                const r = cScale2 * earthBall.radius;
+                c.drawImage(earthImage, -r, -r, r * 2, r * 2);
+                c.restore();
+            }
         }
         state.victoryTimer += physicsScene.dt;
         return;  // 不绘制其他内容
+
+
     }
 
 }
@@ -2264,7 +2273,8 @@ function triggerVictory() {
         0,
         0
     );
-    earthBall.isVictoryEarth = true;  // 标记为胜利后的地球
+        earthBall.isEarth = true;  // 标记为地球球（胜利后出现）
+
     
     physicsScene.balls.push(earthBall);
 
