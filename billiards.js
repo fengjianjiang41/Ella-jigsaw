@@ -608,7 +608,10 @@ function checkPocketCollisions() {
     for (let i = 0; i < balls.length; i++) {
         // 跳过 cue ball 和保护中的球
         if (i === dragIdx) continue;
+        // 胜利后：不检测球进袋（取消所有口袋触发机制）
+        if (physicsScene.duelState.victory) continue;
         if (balls[i].ejectProtection > 0) continue;
+
 
         const ball = balls[i];
         for (let j = 0; j < pockets.length; j++) {
@@ -675,10 +678,20 @@ function checkPocketCollisions() {
 
 // 球进入口袋时触发
 function onBallEnterPocket(ballIdx, pocketIdx, planet) {
+    // 胜利后：取消所有口袋触发机制，保持地球物理
+    if (physicsScene.duelState.victory) {
+        const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
+        if (earthPlanet) {
+            applyPlanetPhysics(earthPlanet);
+        }
+        return;
+    }
+
     const pocket = physicsScene.pockets[pocketIdx];
     const ball = physicsScene.balls[ballIdx];
 
     // 记录进球历史（所有模式都记录，用于土星吐球）
+
     if (ball && ballIdx !== 0) {  // 不记录cueball
         physicsScene.saturnPocketedBalls.push({
             ball: {
@@ -1300,35 +1313,110 @@ function drawGravity() {
     // 胜利状态：绘制弹跳的胜利文字
     if (physicsScene.duelState.victory) {
         const state = physicsScene.duelState;
-        // 更新文字位置
-        state.victoryPos.x += state.victoryPos.vx * physicsScene.dt;
-        state.victoryPos.y += state.victoryPos.vy * physicsScene.dt;
+        // ===== 星球大战式 3D 透视滚动文字 =====
+        // 初始化离屏 Canvas（把文字当作一张图片）
+        if (state.crawlCanvas === undefined) {
+            const cc = document.createElement('canvas');
+            cc.width = 1400;
+            cc.height = 2000;
+            const ccx = cc.getContext('2d');
+            ccx.fillStyle = '#000';
+            ccx.fillRect(0, 0, cc.width, cc.height);
 
-        // 边界反弹
-        if (state.victoryPos.x < 50 || state.victoryPos.x > canvas2.width - 50) {
-            state.victoryPos.vx *= -1;
-            state.victoryPos.x = Math.max(50, Math.min(canvas2.width - 50, state.victoryPos.x));
+            const lines = [
+                "EPISODE IX",
+                "",
+                "THE RISE OF SKYWALKER",
+                "",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "HEARD A MYSTERIOUS BROADCAST,",
+                "A THREAT OF REVENGE, IN THE",
+                "SINISTER VOICE OF THE LATE",
+                "EMPEROR PALPATINE.",
+                "",
+                "GENERAL LEIA ORGANA",
+            ];
+            const lh = 40;
+            ccx.fillStyle = '#FFE81F';
+            ccx.strokeStyle = '#663300';
+            ccx.lineWidth = 3;
+            ccx.textAlign = 'center';
+            ccx.textBaseline = 'middle';
+            ccx.font = 'bold 40px sans-serif';
+            lines.forEach((line, i) => {
+                const y = i * lh + lh / 2 + 600;
+                ccx.fillText(line, cc.width / 2, y);
+                ccx.strokeText(line, cc.width / 2, y);
+            });
+            state.crawlCanvas = cc;
+            state.crawlOffset = 0;
         }
-        if (state.victoryPos.y < 30 || state.victoryPos.y > canvas2.height - 30) {
-            state.victoryPos.vy *= -1;
-            state.victoryPos.y = Math.max(30, Math.min(canvas2.height - 30, state.victoryPos.y));
-        }
+        state.crawlOffset -= 30 * physicsScene.dt;
+        const cc = state.crawlCanvas;
+        const vpY = canvas2.height * 0.1;
+        if (state.crawlOffset > cc.height) state.crawlOffset = 0;
+
+
 
         // 清除壁纸背景
         c.fillStyle = "#1a0a2e";
         c.fillRect(0, 0, canvas2.width, canvas2.height);
 
-        // 绘制胜利文字
-        c.save();
-        c.font = "bold 72px sans-serif";
-        c.fillStyle = "#ffd700";
-        c.strokeStyle = "#ff6b6b";
-        c.lineWidth = 4;
-        c.textAlign = "center";
-        c.textBaseline = "middle";
-        c.strokeText("胜利！", state.victoryPos.x, state.victoryPos.y);
-        c.fillText("胜利！", state.victoryPos.x, state.victoryPos.y);
-        c.restore();
+        // 绘制白色口袋（胜利后所有口袋变白）
+        {
+            const pocketRadius = config.starBilliards.pocketRadius;
+            for (var pocket of physicsScene.pockets) {
+                var px = cX(new Vector2(pocket.x, 0));
+                var py = cY(new Vector2(0, pocket.y));
+                var pr = cScale2 * pocketRadius;
+                c.fillStyle = "#ffffff";
+                c.strokeStyle = "#cccccc";
+                c.lineWidth = 2;
+                c.beginPath();
+                c.arc(px, py, pr, 0, 2 * Math.PI);
+                c.fill();
+                c.stroke();
+            }
+        }
+
+        // 绘制星球大战式 3D 透视滚动文字
+        // 算法：把文字图片绕 X 轴转 60°，用 scanline 做透视投影
+        // 对屏幕上每一行 Y，反推纸面上的世界坐标，计算透视 scale，从离屏 canvas 取样
+        (function drawStarWarsCrawl() {
+            const cc = state.crawlCanvas;
+            const vpX = canvas2.width / 2;
+            const focal = 800;        // 焦距
+            const angle = -87 * Math.PI / 180; // -85°
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+            const step = 1;            // 扫描线步长（越小越精细）
+            const maxHalfW = canvas2.width * 0.05; // 底部最大半宽
+
+            for (let sY = canvas2.height; sY >= vpY; sY -= step) {
+                const dy = sY - vpY;
+                // 反推纸面上的世界 Y 坐标
+                const wY = dy * focal / (cosA * focal - dy * sinA);
+                if (wY < 0) continue;
+
+                // 透视 scale
+                const z = wY * sinA;
+                const scale = focal / (focal + z);
+
+                // 离屏 canvas 上对应的源 Y（带滚动循环）
+                let srcY = wY - state.crawlOffset;
+                srcY = ((srcY % cc.height) + cc.height) % cc.height;
+
+                // 目标绘制宽度（梯形）
+                const dstHalfW = maxHalfW * scale;
+                const srcH = step / scale;
+
+                // 从离屏 canvas 取样，缩放到主 canvas
+                c.drawImage(cc,
+                    0, srcY, cc.width, srcH,
+                    vpX - dstHalfW, sY, dstHalfW * 2, step);
+            }
+        })();
+
 
         // 绘制 cueball
         const cueBall = physicsScene.balls[0];
@@ -1368,10 +1456,11 @@ function drawGravity() {
                 c.restore();
             }
         }
+        // 绘制球杆和瞄准圆圈（胜利画面背景清除了之前的绘制，需要重画）
+        drawCueStick();
+
         state.victoryTimer += physicsScene.dt;
         return;  // 不绘制其他内容
-
-
     }
 
 }
