@@ -1317,8 +1317,8 @@ function drawGravity() {
         // 初始化离屏 Canvas（把文字当作一张图片）
         if (state.crawlCanvas === undefined) {
             const cc = document.createElement('canvas');
-            cc.width = 1400;
-            cc.height = 2000;
+            cc.width = 2800;
+            cc.height = 4000;
             const ccx = cc.getContext('2d');
             ccx.fillStyle = '#000';
             ccx.fillRect(0, 0, cc.width, cc.height);
@@ -1329,29 +1329,38 @@ function drawGravity() {
                 "THE RISE OF SKYWALKER",
                 "",
                 "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "HEARD A MYSTERIOUS BROADCAST,",
-                "A THREAT OF REVENGE, IN THE",
-                "SINISTER VOICE OF THE LATE",
-                "EMPEROR PALPATINE.",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
                 "",
-                "GENERAL LEIA ORGANA",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
             ];
-            const lh = 40;
+            const lh = 80;
             ccx.fillStyle = '#FFE81F';
             ccx.strokeStyle = '#663300';
-            ccx.lineWidth = 3;
+            ccx.lineWidth = 0;
             ccx.textAlign = 'center';
             ccx.textBaseline = 'middle';
-            ccx.font = 'bold 40px sans-serif';
+            ccx.font = 'bold 80px sans-serif';
+            ccx.save();
+            ccx.scale(1, 0.4);
             lines.forEach((line, i) => {
-                const y = i * lh + lh / 2 + 600;
+                const y = i * lh + lh / 2 + 1600;
                 ccx.fillText(line, cc.width / 2, y);
                 ccx.strokeText(line, cc.width / 2, y);
             });
             state.crawlCanvas = cc;
             state.crawlOffset = 0;
         }
-        state.crawlOffset -= 30 * physicsScene.dt;
+        state.crawlOffset -= 5 * physicsScene.dt;
         const cc = state.crawlCanvas;
         const vpY = canvas2.height * 0.1;
         if (state.crawlOffset > cc.height) state.crawlOffset = 0;
@@ -1392,7 +1401,7 @@ function drawGravity() {
             const step = 1;            // 扫描线步长（越小越精细）
             const maxHalfW = canvas2.width * 0.05; // 底部最大半宽
 
-            for (let sY = canvas2.height; sY >= vpY; sY -= step) {
+                        for (let sY = canvas2.height; sY >= vpY; sY -= step) {
                 const dy = sY - vpY;
                 // 反推纸面上的世界 Y 坐标
                 const wY = dy * focal / (cosA * focal - dy * sinA);
@@ -1468,7 +1477,7 @@ function drawGravity() {
 function startDuelPhase() {
     // 立即标记为激活，防止重复触发
     physicsScene.duelState.active = true;
-    
+
     // 对决环节强制使用地球物理（包括cueball与月球，全场都是地球模式）
     const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
     if (earthPlanet) {
@@ -1479,15 +1488,15 @@ function startDuelPhase() {
 
     const { triangleStartX, triangleStartY } = config.starBilliards;
     const duel = config.duel;
-    
+
     // 使用 cueball 半径作为月球初始半径（稍小一点）
     const cueRadius = config.canvas.simMinWidth * config.balls.radiusRatios[0];
     const moonRadius = cueRadius * duel.moonRadiusRatio;  // 月球初始为 cueball 的 80%
-    
+
     // 月球从三角形球阵位置生成
     const spawnX = simWidth2 * triangleStartX;
     const spawnY = simHeight2 * triangleStartY;
-    
+
     // 创建月球球
     const moonBall = new Ball(
         moonRadius,
@@ -1512,7 +1521,7 @@ function startDuelPhase() {
         initSpatialGrid();
         updateSpatialGrid();
     }
-    
+
     console.log("月球已生成！半径:", moonRadius, "位置:", spawnX.toFixed(3), spawnY.toFixed(3));
 }
 
@@ -1646,7 +1655,7 @@ function handleBallCollision(ball1, ball2, restitution) {
         ball1.vel.x = momentumX / ball1.mass;
         ball1.vel.y = momentumY / ball1.mass;
         ball1.omega = angularMomentum / ball1.inertia;
-        
+
         // 碰撞增长后重新分离，避免视觉重叠
         const newMinDist = ball1.radius + ball2.radius;
         const dir = new Vector2();
@@ -1670,7 +1679,7 @@ function handleBallCollision(ball1, ball2, restitution) {
         ball2.vel.x = momentumX / ball2.mass;
         ball2.vel.y = momentumY / ball2.mass;
         ball2.omega = angularMomentum / ball2.inertia;
-        
+
         // 碰撞增长后重新分离，避免视觉重叠
         const newMinDist = ball1.radius + ball2.radius;
         const dir = new Vector2();
@@ -1930,15 +1939,15 @@ function simulateGravity() {
             // 对决阶段：只有少量球，使用朴素碰撞检测
             for (let i = 0; i < balls.length; i++) {
                 const ball1 = balls[i];
-                
+
                 // 墙壁碰撞
                 handleWallCollision(ball1, physicsScene.worldSize, restitution);
-                
+
                 // 球-球碰撞（朴素检测）
                 for (let j = i + 1; j < balls.length; j++) {
                     // 跳过拖拽球的碰撞
                     if (mouseDown2 && (i === dragIdx || j === dragIdx)) continue;
-                    
+
                     handleBallCollision(ball1, balls[j], restitution);
                 }
             }
@@ -1946,25 +1955,25 @@ function simulateGravity() {
             // 正常模式：使用空间网格进行碰撞检测
             updateSpatialGrid();
             const processed = new Set();
-            
+
             for (let i = 0; i < balls.length; i++) {
                 const ball1 = balls[i];
-                
+
                 // 墙壁碰撞
                 handleWallCollision(ball1, physicsScene.worldSize, restitution);
-                
+
                 // 球-球碰撞（仅检查邻近球）
                 const neighbors = getNeighborBallIndices(i);
                 for (let j = 0; j < neighbors.length; j++) {
                     const idx2 = neighbors[j];
                     const pairKey = i < idx2 ? i + '_' + idx2 : idx2 + '_' + i;
-                    
+
                     if (processed.has(pairKey)) continue;
                     processed.add(pairKey);
-                    
+
                     // 跳过拖拽球的碰撞
                     if (mouseDown2 && (i === dragIdx || idx2 === dragIdx)) continue;
-                    
+
                     handleBallCollision(ball1, balls[idx2], restitution);
                 }
             }
@@ -2332,7 +2341,7 @@ function triggerVictory() {
         vy: 80 + Math.random() * 80
     };
 
-        // 移除除了cueball之外的所有球
+    // 移除除了cueball之外的所有球
     physicsScene.balls = [physicsScene.balls[0]];
 
     // 将所有口袋变成白色
@@ -2352,7 +2361,7 @@ function triggerVictory() {
     const earthRadius = cueBall.radius;  // 地球和 cueball 同样大小
     const earthMass = Math.PI * earthRadius * earthRadius * 0.5;
     const earthInertia = earthMass * earthRadius * earthRadius / 2.0;
-    
+
     const earthBall = new Ball(
         earthRadius,
         earthMass,
@@ -2362,9 +2371,9 @@ function triggerVictory() {
         0,
         0
     );
-        earthBall.isEarth = true;  // 标记为地球球（胜利后出现）
+    earthBall.isEarth = true;  // 标记为地球球（胜利后出现）
 
-    
+
     physicsScene.balls.push(earthBall);
 
     // 清理壁纸动画
