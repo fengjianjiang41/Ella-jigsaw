@@ -1320,28 +1320,26 @@ function drawGravity() {
             cc.width = 2800;
             cc.height = 4000;
             const ccx = cc.getContext('2d');
-            ccx.fillStyle = '#000';
-            ccx.fillRect(0, 0, cc.width, cc.height);
+            // ccx.fillStyle = '#000';
+            // ccx.fillRect(0, 0, cc.width, cc.height);
 
             const lines = [
                 "EPISODE IX",
                 "",
                 "THE RISE OF SKYWALKER",
                 "",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahha",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhhhhhhhhhhhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
             ];
             const lh = 80;
             ccx.fillStyle = '#FFE81F';
@@ -1353,7 +1351,7 @@ function drawGravity() {
             ccx.save();
             ccx.scale(1, 0.4);
             lines.forEach((line, i) => {
-                const y = i * lh + lh / 2 + 1600;
+                const y = i * lh + lh / 2 + 800;
                 ccx.fillText(line, cc.width / 2, y);
                 ccx.strokeText(line, cc.width / 2, y);
             });
@@ -1367,11 +1365,82 @@ function drawGravity() {
 
 
 
-        // 清除壁纸背景
-        c.fillStyle = "#1a0a2e";
-        c.fillRect(0, 0, canvas2.width, canvas2.height);
+               // 绘制随机星空背景（仅首次生成，后续复用）
+        if (state.starFieldCanvas === undefined) {
+            const sf = document.createElement('canvas');
+            sf.width = canvas2.width;
+            sf.height = canvas2.height;
+            const sfc = sf.getContext('2d');
+            // 深空底色
+            sfc.fillStyle = '#020208ff';
+            sfc.fillRect(0, 0, sf.width, sf.height);
+            // 随机生成 200~400 个白色光点
+            const starCount = 200 + Math.floor(Math.random() * 200);
+            for (let i = 0; i < starCount; i++) {
+                const sx = Math.random() * sf.width;
+                const sy = Math.random() * sf.height;
+                const brightness = 0.3 + Math.random() * 0.7;
+                const radius = Math.random() * 0.5 + 0.1;
+                sfc.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+                sfc.beginPath();
+                sfc.arc(sx, sy, radius, 0, Math.PI * 2);
+                sfc.fill();
+            }
+            state.starFieldCanvas = sf;
+        }
+        c.drawImage(state.starFieldCanvas, 0, 0);
 
-        // 绘制白色口袋（胜利后所有口袋变白）
+        // 绘制星球大战式 3D 透视滚动文字（梯形文字层）
+                (function drawStarWarsCrawl() {
+            const cc = state.crawlCanvas;
+            const vpX = canvas2.width / 2;
+            const focal = 800;
+            const angle = -60 * Math.PI / 180;
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+            const step = 1;
+
+            const bottomDy = canvas2.height - vpY;
+            const bottomWY = bottomDy * focal / (cosA * focal - bottomDy * sinA);
+            const bottomZ = bottomWY * sinA;
+            const maxScale = focal / (focal + bottomZ);
+
+            const maxHalfW = canvas2.width * 0.35;
+
+            c.save();
+            for (let sY = canvas2.height; sY >= vpY; sY -= step) {
+                const dy = sY - vpY;
+                const wY = dy * focal / (cosA * focal - dy * sinA);
+                if (wY < 0) continue;
+
+                // 越靠近消失点（窄边）透明度越高，逐渐消失
+                // fadeStart: 开始淡出的位置（距离消失点的像素数）
+                // fadeRange: 淡出过渡范围
+                const fadeStart = bottomDy * 0.2;
+                const fadeRange = bottomDy * 0.2;
+                const fadeDist = dy - fadeStart;
+                const alpha = Math.max(0, Math.min(1, fadeDist / fadeRange));
+                c.globalAlpha = alpha;
+
+                const z = wY * sinA;
+                const rawScale = focal / (focal + z);
+                const scale = rawScale / maxScale;
+
+                let srcY = wY - state.crawlOffset;
+                srcY = ((srcY % cc.height) + cc.height) % cc.height;
+
+                const dstHalfW = maxHalfW * scale;
+                const srcH = step / scale;
+
+                c.drawImage(cc,
+                    0, srcY, cc.width, srcH,
+                    vpX - dstHalfW, sY, dstHalfW * 2, step);
+            }
+            c.restore();
+        })();
+
+
+        // 绘制白色口袋（在梯形文字之上）
         {
             const pocketRadius = config.starBilliards.pocketRadius;
             for (var pocket of physicsScene.pockets) {
@@ -1387,57 +1456,6 @@ function drawGravity() {
                 c.stroke();
             }
         }
-
-        // 绘制星球大战式 3D 透视滚动文字
-        // 算法：把文字图片绕 X 轴转 60°，用 scanline 做透视投影
-        // 对屏幕上每一行 Y，反推纸面上的世界坐标，计算透视 scale，从离屏 canvas 取样
-        (function drawStarWarsCrawl() {
-            const cc = state.crawlCanvas;
-            const vpX = canvas2.width / 2;
-            const focal = 800;
-            const angle = -60 * Math.PI / 180; // -60° 适中透视
-            const cosA = Math.cos(angle);
-            const sinA = Math.sin(angle);
-            const step = 1;
-
-            // 预计算底部的 maxScale（最远点），用于归一化
-            const bottomDy = canvas2.height - vpY;
-            const bottomWY = bottomDy * focal / (cosA * focal - bottomDy * sinA);
-            const bottomZ = bottomWY * sinA;
-            const maxScale = focal / (focal + bottomZ);
-
-            // 底部 scale=1.0 → srcH=1px → 清晰
-            // maxHalfW 配合 scale=1.0 时的底部全宽
-            const maxHalfW = canvas2.width * 0.5;
-
-
-                        for (let sY = canvas2.height; sY >= vpY; sY -= step) {
-                const dy = sY - vpY;
-                // 反推纸面上的世界 Y 坐标
-                const wY = dy * focal / (cosA * focal - dy * sinA);
-                if (wY < 0) continue;
-
-                // 透视 scale（归一化：底部=1.0，顶部缩小）
-                const z = wY * sinA;
-                const rawScale = focal / (focal + z);
-                const scale = rawScale / maxScale;
-
-
-                // 离屏 canvas 上对应的源 Y（带滚动循环）
-                let srcY = wY - state.crawlOffset;
-                srcY = ((srcY % cc.height) + cc.height) % cc.height;
-
-                // 目标绘制宽度（梯形）
-                const dstHalfW = maxHalfW * scale;
-                const srcH = step / scale;
-
-                // 从离屏 canvas 取样，缩放到主 canvas
-                c.drawImage(cc,
-                    0, srcY, cc.width, srcH,
-                    vpX - dstHalfW, sY, dstHalfW * 2, step);
-            }
-        })();
-
 
         // 绘制 cueball
         const cueBall = physicsScene.balls[0];
@@ -1506,8 +1524,8 @@ function startDuelPhase() {
     const moonRadius = cueRadius * duel.moonRadiusRatio;  // 月球初始为 cueball 的 80%
 
     // 月球从三角形球阵位置生成
-    const spawnX = simWidth2 * triangleStartX;
-    const spawnY = simHeight2 * triangleStartY;
+    const spawnX = simWidth2 * triangleStartX + 1/3 * simWidth2;
+    const spawnY = simHeight2 * triangleStartY + 1/3 * simHeight2;
 
     // 创建月球球
     const moonBall = new Ball(
