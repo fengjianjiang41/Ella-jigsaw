@@ -107,7 +107,7 @@ const BILLIARDS_CONFIG = {
     triangleStartY: 0.5,        // 三角形中心Y位置（占高度比例）
     ballSpacingRatio: 2.1,      // 球间距与半径的比例
     targetBallRadiusRatio: 0.85, // 目标球半径与主球半径的比例
-    triangleRows: 1,            // 三角形行数（5行=15球）
+    triangleRows: 5,            // 三角形行数（5行=15球）
     
     // 主球位置
     cueBallX: 0.25,             // 主球X位置（占宽度比例）

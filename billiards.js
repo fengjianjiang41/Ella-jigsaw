@@ -11,6 +11,23 @@ const config = window.BILLIARDS_CONFIG;
 var canvas2 = document.getElementById("myCanvas2");
 var c = canvas2.getContext("2d");
 
+// Progress bar (DOM element outside main canvas)
+var progressBarContainer = document.getElementById("progressBarContainer");
+var progressBarCanvas = document.getElementById("progressBarCanvas");
+var pbc = null;
+if (progressBarCanvas) {
+    // High-DPI support for progress bar canvas
+    var dpr = window.devicePixelRatio || 1;
+    var pbCssWidth = 600;
+    var pbCssHeight = 28;
+    progressBarCanvas.width = pbCssWidth * dpr;
+    progressBarCanvas.height = pbCssHeight * dpr;
+    progressBarCanvas.style.width = pbCssWidth + 'px';
+    progressBarCanvas.style.height = pbCssHeight + 'px';
+    pbc = progressBarCanvas.getContext("2d");
+    pbc.scale(dpr, dpr);
+}
+
 // Set canvas actual size to match CSS size
 canvas2.width = config.canvas.width;
 canvas2.height = config.canvas.height;
@@ -157,6 +174,22 @@ var physicsScene = {
     saturnPocketedBalls: [],  // [{ball, pocketIdx, vel, omega}]
     // 土星：吐球历史（已吐出的球位置）
     saturnEjectedBalls: new Set(),
+    // 星球进度条
+    planetProgressBar: {
+        active: false,
+        totalPlanets: 5,
+        captured: [],
+        inDuel: false,
+        moonRadius: 0,
+    },
+    // 虚拟球杆系统星球进度条（粉红色条，显示已捕获的小星体）
+    planetProgressBar: {
+        active: false,
+        totalPlanets: 5,
+        captured: [],
+        inDuel: false,
+        moonRadius: 0,
+    },
     // 虚拟球杆系统
     cueStick: {
         active: false,           // 球杆是否显示
@@ -423,6 +456,12 @@ function setupSceneGravity() {
         // Reset saturn state
         physicsScene.saturnPocketedBalls = [];
         physicsScene.saturnEjectedBalls.clear();
+        // Reset progress bar
+        if (physicsScene.planetProgressBar) {
+            physicsScene.planetProgressBar.captured = [];
+            physicsScene.planetProgressBar.inDuel = false;
+            physicsScene.planetProgressBar.moonRadius = 0;
+        }
         // Re-setup everything from scratch
         setupPockets();
         setupStarBalls();
@@ -568,6 +607,11 @@ function toggleStarBilliards() {
         // Reset saturn state
         physicsScene.saturnPocketedBalls = [];
         physicsScene.saturnEjectedBalls.clear();
+        // Reset progress bar (hide on exit)
+        if (progressBarContainer) {
+            progressBarContainer.style.display = 'none';
+        }
+        physicsScene.planetProgressBar = { active: false, totalPlanets: 5, captured: [], inDuel: false, moonRadius: 0 };
 
         // Update button text
         button.textContent = window.getTranslatedText
@@ -600,6 +644,10 @@ function toggleStarBilliards() {
 
         // Reset victory state
         physicsScene.duelState.victory = false;
+        // 隐藏星球进度条
+        if (physicsScene.planetProgressBar) {
+            physicsScene.planetProgressBar.active = false;
+        }
         // 解锁按钮
         gravityBtn.disabled = false;
         gravityBtn.style.opacity = "1";
@@ -640,6 +688,21 @@ function setupPockets() {
         planet: planets[i],
         active: false,
     }));
+
+    // 初始化星球进度条
+    const nonEarthPlanets = config.starBilliards.planets.filter(p => p.name !== "earth");
+    physicsScene.planetProgressBar = {
+        active: true,
+        totalPlanets: nonEarthPlanets.length,
+        captured: [],
+        inDuel: false,
+        moonRadius: 0,
+    };
+    
+    // Show the progress bar container
+    if (progressBarContainer) {
+        progressBarContainer.style.display = 'block';
+    }
 
     // 默认地球口袋激活，并加载地球壁纸和物理
     const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
@@ -829,6 +892,18 @@ function onBallEnterPocket(ballIdx, pocketIdx, planet) {
             omega: ball.omega,
             pocketIdx: pocketIdx,
         });
+
+        // 添加卫星图到进度条（非地球、非月球的小星体）
+        if (!ball.isMoon && planet && planet.name !== "earth" && physicsScene.planetProgressBar) {
+            const dx = pocket.x - ball.pos.x;
+            const dy = pocket.y - ball.pos.y;
+            const angle = Math.atan2(dy, dx);
+            physicsScene.planetProgressBar.captured.push({
+                planetName: planet.name,
+                angle: angle,
+                image: satelliteImage,  // 使用 satellite.png
+            });
+        }
     }
 
     // 设置口袋为激活状态
@@ -945,6 +1020,11 @@ function setupStarBalls() {
 
     // 初始化空间网格
     initSpatialGrid();
+
+    // 更新进度条的总槽位数量为实际目标球数（不含cueball）
+    if (physicsScene.planetProgressBar && physicsScene.planetProgressBar.active) {
+        physicsScene.planetProgressBar.totalPlanets = physicsScene.balls.length - 1;
+    }
 
     mouseDown2 = false;
 }
@@ -1443,6 +1523,8 @@ function drawGravity() {
     drawVenusEquilibriumCircles();
     // 绘制木星闪烁效果
     drawJupiterFlash();
+    // 绘制星球进度条
+    drawPlanetProgressBar();
     // 绘制虚拟球杆
     drawCueStick();
 
@@ -1658,6 +1740,15 @@ function drawGravity() {
 function startDuelPhase() {
     // 立即标记为激活，防止重复触发
     physicsScene.duelState.active = true;
+    // 进度条切换到对决模式
+    if (physicsScene.planetProgressBar) {
+        physicsScene.planetProgressBar.inDuel = true;
+    }
+
+    // 进度条切换到对决模式（颜色渐变）
+    if (physicsScene.planetProgressBar) {
+        physicsScene.planetProgressBar.inDuel = true;
+    }
 
     // Play moon spell BGM (loop)
     if (!moonSpellBgm) {
@@ -1755,6 +1846,12 @@ function updateMoonBall(dt) {
     }
         // Laugh timer: every 3~6 seconds play laugh.mp3
     laughTimer += dt;
+
+    // 更新进度条月球半径（用于颜色渐变）
+    if (physicsScene.planetProgressBar) {
+        physicsScene.planetProgressBar.moonRadius = moonBall.radius;
+    }
+
     if (laughTimer >= laughNextInterval) {
         laughTimer = 0;
         laughNextInterval = 3 + Math.random() * 3;
@@ -2379,6 +2476,11 @@ function applySaturnBallEjector(dt) {
     if (targetBallCount < TARGET_COUNT && history.length > 0) {
         const pocketed = history.shift();  // 取出最早的进球
 
+        // 进度条：移除最早捕获的小星体
+        if (physicsScene.planetProgressBar && physicsScene.planetProgressBar.captured.length > 0) {
+            physicsScene.planetProgressBar.captured.shift();
+        }
+
         // 从口袋位置喷出，动量反转
         const ball = new Ball(
             pocketed.ball.radius,
@@ -2428,6 +2530,90 @@ function drawVenusEquilibriumCircles() {
         c.arc(cx, cy, r, 0, Math.PI * 2);
         c.stroke();
     }
+}
+
+// 绘制星球进度条（粉红色条 + 小星体PNG）
+function drawPlanetProgressBar() {
+    const pb = physicsScene.planetProgressBar;
+    if (!pb || !pb.active || !physicsScene.starBilliardsMode) return;
+    if (!pbc || !progressBarCanvas) return;
+
+    const W = progressBarCanvas.clientWidth;
+    const H = progressBarCanvas.clientHeight;
+
+    // 清除进度条画布（使用CSS坐标）
+    pbc.save();
+    pbc.setTransform(1, 0, 0, 1, 0, 0);
+    pbc.clearRect(0, 0, progressBarCanvas.width, progressBarCanvas.height);
+    pbc.restore();
+
+    const total = Math.max(1, pb.totalPlanets || 1);
+    const captured = pb.captured;
+    const barHeight = 2;
+    const slotWidth = 24;
+    const barWidth = total * slotWidth + (total - 1) * 3;
+    const barX = (W - barWidth) / 2;
+    const barY = H / 2 - 2;
+
+    // 计算颜色（决斗模式下根据月球半径从粉红渐变到红色）
+    let barColor;
+    if (pb.inDuel) {
+        const maxR = canvas2.height / 2;
+        const ratio = Math.min(pb.moonRadius * cScale2 / maxR, 1.0);
+        const pinkR = 255, pinkG = 105, pinkB = 180;
+        const redR = 255, redG = 0, redB = 0;
+        const r = Math.round(pinkR + (redR - pinkR) * ratio);
+        const g = Math.round(pinkG + (redG - pinkG) * ratio);
+        const b = Math.round(pinkB + (redB - pinkB) * ratio);
+        barColor = `rgb(${r},${g},${b})`;
+    } else {
+        barColor = '#FF69B4';
+    }
+
+    // 绘制粉红色条
+    pbc.save();
+    pbc.fillStyle = barColor;
+    pbc.shadowColor = barColor;
+    pbc.shadowBlur = 6;
+    const barRadius = barHeight / 2;
+    pbc.beginPath();
+    pbc.moveTo(barX + barRadius, barY);
+    pbc.lineTo(barX + barWidth - barRadius, barY);
+    pbc.arc(barX + barWidth - barRadius, barY + barRadius, barRadius, -Math.PI / 2, Math.PI / 2);
+    pbc.lineTo(barX + barRadius, barY + barHeight);
+    pbc.arc(barX + barRadius, barY + barRadius, barRadius, Math.PI / 2, -Math.PI / 2);
+    pbc.closePath();
+    pbc.fill();
+    pbc.shadowBlur = 0;
+
+    // 绘制已捕获的卫星PNG（关于中心对称，使用satellite.png）
+    const n = captured.length;
+    const startSlot = Math.floor((total - n) / 2);
+    const pngSize = 16;
+
+    for (let i = 0; i < n; i++) {
+        const slot = startSlot + i;
+        const cx = barX + slot * (slotWidth + 4) + slotWidth / 2;
+        const cy = barY + barHeight / 2;
+        const entry = captured[i];
+
+        pbc.save();
+        pbc.translate(cx, cy);
+        pbc.rotate(entry.angle);
+
+        if (entry.image && entry.image.complete) {
+            pbc.drawImage(entry.image, -pngSize / 2, -pngSize / 2, pngSize, pngSize);
+        } else {
+            // 后备：画一个白色圆
+            pbc.fillStyle = '#FFFFFF';
+            pbc.beginPath();
+            pbc.arc(0, 0, pngSize / 2, 0, Math.PI * 2);
+            pbc.fill();
+        }
+        pbc.restore();
+    }
+
+    pbc.restore();
 }
 
 // 绘制木星闪烁效果
