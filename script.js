@@ -4600,6 +4600,189 @@ var scene = {
   ],
 };
 
+// ===== Force Effect Visual State =====
+var forceEffectCanvas = null;
+var forceEffectCtx = null;
+var forceShrinkCircles = [];
+var forceExpandCircles = [];
+var lastShrinkSpawnTime = 0;
+var forceMousePixelX = 0;
+var forceMousePixelY = 0;
+var forceMouseActive = false;
+
+function initForceEffectOverlay() {
+  if (forceEffectCanvas) return;
+  forceEffectCanvas = document.createElement('canvas');
+  forceEffectCanvas.id = 'forceEffectOverlay';
+  forceEffectCanvas.style.position = 'absolute';
+  forceEffectCanvas.style.pointerEvents = 'none';
+  forceEffectCanvas.style.zIndex = '5';
+  forceEffectCanvas.style.display = 'none';
+  // 覆盖全局 canvas 样式中的黑色边框
+  forceEffectCanvas.style.border = 'none';
+  forceEffectCanvas.style.width = canvas1.width + 'px';
+  forceEffectCanvas.style.height = canvas1.height + 'px';
+  var parent = canvas1.parentElement;
+  var parentPos = window.getComputedStyle(parent).position;
+  if (parentPos === 'static') parent.style.position = 'relative';
+  parent.appendChild(forceEffectCanvas);
+  forceEffectCtx = forceEffectCanvas.getContext('2d');
+  updateForceEffectOverlayPosition();
+}
+
+
+function updateForceEffectOverlayPosition() {
+  if (!forceEffectCanvas) return;
+  forceEffectCanvas.style.left = canvas1.offsetLeft + 'px';
+  forceEffectCanvas.style.top = canvas1.offsetTop + 'px';
+  forceEffectCanvas.style.width = canvas1.offsetWidth + 'px';
+  forceEffectCanvas.style.height = canvas1.offsetHeight + 'px';
+  forceEffectCanvas.width = canvas1.width;
+  forceEffectCanvas.height = canvas1.height;
+}
+
+function showForceEffectOverlay() {
+  initForceEffectOverlay();
+  if (forceEffectCanvas) {
+    updateForceEffectOverlayPosition();
+    forceEffectCanvas.style.display = 'block';
+  }
+}
+
+function hideForceEffectOverlay() {
+  if (forceEffectCanvas) {
+    forceEffectCanvas.style.display = 'none';
+  }
+  forceShrinkCircles = [];
+  forceExpandCircles = [];
+}
+
+
+function drawForceEffects() {
+  if (!forceEffectCtx) return;
+  var ctx = forceEffectCtx;
+  var now = performance.now();
+  ctx.clearRect(0, 0, forceEffectCanvas.width, forceEffectCanvas.height);
+
+  // --- Shrinking circles (mouse held, spawned every 1 second) ---
+  for (var i = forceShrinkCircles.length - 1; i >= 0; i--) {
+    var c = forceShrinkCircles[i];
+    var elapsed = now - c.startTime;
+    var progress = elapsed / c.duration;
+    if (progress >= 1) { forceShrinkCircles.splice(i, 1); continue; }
+
+    // Center follows mouse
+    c.centerX = forceMousePixelX;
+    c.centerY = forceMousePixelY;
+
+    // Radius shrinks from start to end
+    c.currentRadius = c.startRadius + (c.endRadius - c.startRadius) * progress;
+
+    // Line width: thin (1px) to thick (18px)
+    var lineWidth = 1 + progress * 17;
+
+    // Draw ring: opacity decreases from outside to inside
+    // Outer edge transparent, inner edge opaque
+    var innerR = Math.max(1, c.currentRadius - lineWidth);
+    var grad = ctx.createRadialGradient(
+      c.centerX, c.centerY, innerR,
+      c.centerX, c.centerY, c.currentRadius
+    );
+    grad.addColorStop(0.0, 'rgba(255, 105, 180, 0.95)');
+    grad.addColorStop(0.7, 'rgba(255, 105, 180, 0.4)');
+    grad.addColorStop(1.0, 'rgba(255, 105, 180, 0.0)');
+
+    ctx.beginPath();
+    ctx.arc(c.centerX, c.centerY, c.currentRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+  }
+
+  // --- Expanding circles (mouse released) ---
+  for (var i = forceExpandCircles.length - 1; i >= 0; i--) {
+    var c2 = forceExpandCircles[i];
+    var elapsed2 = now - c2.startTime;
+    var progress2 = elapsed2 / c2.duration;
+    if (progress2 >= 1) { forceExpandCircles.splice(i, 1); continue; }
+
+    c2.currentRadius = c2.startRadius + (c2.maxRadius - c2.startRadius) * progress2;
+
+    // Fade out as it expands
+    var alpha = Math.pow(1 - progress2, 1.5);
+
+    // Gradient ring: bright at inner, fading outward
+    var grad2 = ctx.createRadialGradient(
+      c2.centerX, c2.centerY, Math.max(1, c2.currentRadius - 12),
+      c2.centerX, c2.centerY, c2.currentRadius
+    );
+    grad2.addColorStop(0.0, 'rgba(255, 182, 193, ' + alpha + ')');
+    grad2.addColorStop(0.5, 'rgba(255, 105, 180, ' + alpha * 0.6 + ')');
+    grad2.addColorStop(1.0, 'rgba(255, 20, 147, 0.0)');
+
+    ctx.beginPath();
+    ctx.arc(c2.centerX, c2.centerY, c2.currentRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = grad2;
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Inner glow ring
+    ctx.beginPath();
+    ctx.arc(c2.centerX, c2.centerY, c2.currentRadius * 0.92, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha * 0.3 + ')';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+var forceInAudio = new Audio('audio/water/forcein.mp3');
+var forceOutAudio = new Audio('audio/water/forceout.mp3');
+forceInAudio.preload = 'auto';
+forceOutAudio.preload = 'auto';
+
+function playForceInSound() {
+  try {
+    forceInAudio.currentTime = 0;
+    forceInAudio.volume = tankVolume * 2.0;
+    forceInAudio.play().catch(function(){});
+  } catch(e) {}
+}
+
+function playForceOutSound() {
+  try {
+    forceOutAudio.currentTime = 0;
+    forceOutAudio.volume = tankVolume * 2.0;
+    forceOutAudio.play().catch(function(){});
+  } catch(e) {}
+}
+
+function spawnShrinkCircle() {
+  forceShrinkCircles.push({
+    centerX: forceMousePixelX,
+    centerY: forceMousePixelY,
+    startRadius: 220,
+    endRadius: 8,
+    duration: 1000,
+    startTime: performance.now(),
+    currentRadius: 220
+  });
+  playForceInSound();
+}
+
+function spawnExpandCircle() {
+  forceExpandCircles.push({
+    centerX: forceMousePixelX,
+    centerY: forceMousePixelY,
+    startRadius: 15,
+    maxRadius: 520,
+    duration: 900,
+    startTime: performance.now(),
+    currentRadius: 15
+  });
+  playForceOutSound();
+}
+
+
 function setupSceneTank() {
   var res = 100;
   var tankHeight = 1.0 * simHeight;
@@ -5166,6 +5349,7 @@ function startDrag(x, y) {
   let mx = x - bounds.left - canvas1.clientLeft;
   let my = y - bounds.top - canvas1.clientTop;
   mouseDown = true;
+  canvas1.style.cursor = 'grabbing';
   scene.obstacleX = mx / cScaleX;
   scene.obstacleY = (canvas1.height - my) / cScaleY; // Flip Y for WebGL
   scene.obstacleVx = 0.0;
@@ -5193,6 +5377,7 @@ function drag(x, y) {
 
 function endDrag() {
   mouseDown = false;
+  canvas1.style.cursor = 'grab';
 }
 
 // Water obstacle collision tracking
@@ -5375,7 +5560,13 @@ function playSpraySound(sprayIntensity) {
 
 canvas1.addEventListener("mousedown", (event) => startDrag(event.x, event.y));
 canvas1.addEventListener("mouseup", (event) => endDrag());
-canvas1.addEventListener("mousemove", (event) => drag(event.x, event.y));
+canvas1.addEventListener("mouseleave", (event) => { if (mouseDown) endDrag(); });
+canvas1.addEventListener("mousemove", (event) => {
+  if (!scene.forceMode && !mouseDown) {
+    canvas1.style.cursor = 'grab';
+  }
+  drag(event.x, event.y);
+});
 canvas1.addEventListener("touchstart", (event) =>
   startDrag(event.touches[0].clientX, event.touches[0].clientY),
 );
@@ -5498,7 +5689,16 @@ function setBgmVolume(volume) {
   if (bgmAudio) {
     bgmAudio.volume = globalBgmVolume;
   }
+  // Sync victory BGM
+  if (typeof victoryBgm !== 'undefined' && victoryBgm) {
+    victoryBgm.volume = globalBgmVolume;
+  }
+  // Sync moon spell BGM
+  if (typeof moonSpellBgm !== 'undefined' && moonSpellBgm) {
+    moonSpellBgm.volume = globalBgmVolume;
+  }
 }
+
 
 // Floating Music Button Functionality
 document.addEventListener("DOMContentLoaded", function () {
@@ -6324,7 +6524,7 @@ document.addEventListener("DOMContentLoaded", function () {
     来张壁纸: "add wallpaper",
     不要壁纸: "remove wallpaper",
 
-        来张壁纸: "add wallpaper",
+    来张壁纸: "add wallpaper",
     不要壁纸: "remove wallpaper",
 
     // Star billiards button
@@ -6732,6 +6932,11 @@ const sprayAudioPool = {
 
 function toggleForce() {
   scene.forceMode = !scene.forceMode;
+  if (scene.forceMode) {
+    showForceEffectOverlay();
+  } else {
+    hideForceEffectOverlay();
+  }
   var button = document.querySelector('button[onclick="toggleForce()"]');
   if (button) {
     button.textContent = scene.forceMode
@@ -6764,7 +6969,6 @@ function toggleColor() {
   }
 }
 
-// Handle mouse events for force mode
 function handleTankMouseDown(e) {
   if (!scene.forceMode) return;
 
@@ -6775,7 +6979,19 @@ function handleTankMouseDown(e) {
   scene.mouseX = mx / cScaleX;
   scene.mouseY = (canvas1.height - my) / cScaleY;
   scene.mouseDown = true;
+
+  // Store pixel coordinates for force effects
+  forceMousePixelX = mx;
+  forceMousePixelY = my;
+  forceMouseActive = true;
+
+  // Spawn first shrinking circle immediately
+  initForceEffectOverlay();
+  showForceEffectOverlay();
+  spawnShrinkCircle();
+  lastShrinkSpawnTime = performance.now();
 }
+
 
 function handleTankMouseMove(e) {
   if (!scene.forceMode || !scene.mouseDown) return;
@@ -6786,7 +7002,12 @@ function handleTankMouseMove(e) {
 
   scene.mouseX = mx / cScaleX;
   scene.mouseY = (canvas1.height - my) / cScaleY;
+
+  // Update pixel coordinates for force effects (center follows mouse)
+  forceMousePixelX = mx;
+  forceMousePixelY = my;
 }
+
 
 function applyExplosionForce() {
   if (!scene.forceMode) return;
@@ -6852,22 +7073,55 @@ function handleTankMouseUp(e) {
   // Apply explosion force when mouse is released
   applyExplosionForce();
   scene.mouseDown = false;
+
+  // Spawn expanding circle from mouse position
+  if (forceMouseActive) {
+    spawnExpandCircle();
+    forceMouseActive = false;
+  }
 }
+
 
 function updateTank() {
   simulateTank();
   drawTank();
+
+  // Spawn shrinking circles every 1 second while mouse is held
+  if (scene.forceMode && scene.mouseDown && forceMouseActive) {
+    var now = performance.now();
+    if (now - lastShrinkSpawnTime >= 1000) {
+      spawnShrinkCircle();
+      lastShrinkSpawnTime = now;
+    }
+  }
+
+  // Draw force effects (circles) on overlay canvas
+  drawForceEffects();
+
   requestAnimationFrame(updateTank);
 }
+
 
 // Add mouse event listeners for force mode
 canvas1.addEventListener("mousedown", handleTankMouseDown);
 canvas1.addEventListener("mousemove", handleTankMouseMove);
 canvas1.addEventListener("mouseup", handleTankMouseUp);
-canvas1.addEventListener("mouseleave", handleTankMouseUp);
+canvas1.addEventListener("mouseleave", function(e) {
+  if (!scene.forceMode) return;
+  scene.mouseDown = false;
+  forceMouseActive = false;
+});
 
 setupSceneTank();
+initForceEffectOverlay();
 updateTank();
+
+window.addEventListener('resize', function () {
+  if (scene.forceMode) {
+    updateForceEffectOverlayPosition();
+  }
+});
+
 
 // Tank volume slider event listener
 const tankVolumeSlider = document.getElementById("tankVolumeSlider");

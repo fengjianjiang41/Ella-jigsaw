@@ -210,6 +210,14 @@ function triggerWallpaperBounce(wallNormal, impactForce) {
 // Global sound enable state
 let soundEnabled = config.sound.enabled;
 
+// Victory Earth mode background music
+let victoryBgm = null;
+
+// Moon duel phase background music
+let moonSpellBgm = null;
+
+
+
 // Audio pool for ball-wall collision sounds
 const ballWallAudioPool = {
     audioObjects: [],
@@ -313,7 +321,7 @@ function playBallWallSound(normalMomentum) {
         const ballwallAudio = ballWallAudioPool.getAudio();
         ballwallAudio.currentTime = 0;
         const volume = Math.min(Math.pow(Math.abs(normalMomentum), 2), 1);
-        ballwallAudio.volume = config.sound.ballWallFinalAdjustment * volume;
+        ballwallAudio.volume = config.sound.ballWallFinalAdjustment * volume * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
         ballwallAudio.play().catch((e) => console.log("Audio play failed:", e));
     }
 }
@@ -328,7 +336,7 @@ function playBallBallSound(normalMomentum) {
 
         const ballballAudio = ballBallAudioPool.getAudio();
         ballballAudio.currentTime = 0;
-        ballballAudio.volume = volume;
+        ballballAudio.volume = volume * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
         ballballAudio.play().catch((e) => console.log("Audio play failed:", e));
     }
 }
@@ -343,18 +351,84 @@ function playBallGlassSound(normalVel) {
 
     const ballglassAudio = ballGlassAudioPool.getAudio(soundFile);
     ballglassAudio.currentTime = 0;
-    ballglassAudio.volume = volume;
+    ballglassAudio.volume = volume * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
     const pitchRandom = pitchRandomMin + Math.random() * (pitchRandomMax - pitchRandomMin);
     ballglassAudio.pitch = pitchRandom * ballglassAudio.pitch;
     ballglassAudio.playbackRate = pitchRandom;
     ballglassAudio.play().catch((e) => console.log("Audio play failed:", e));
 }
 
+// 月球对决音效播放
+let laughTimer = 0;
+let laughNextInterval = 3 + Math.random() * 3; // 3~6 秒后首次播放
+
+function playLaughSound(moonRadius) {
+    if (!soundEnabled) return;
+    const maxRadius = canvas2.height / 2;
+    const moonRadiusPx = moonRadius * cScale2;
+    const ratio = Math.min(moonRadiusPx / maxRadius, 1.0);
+    const volume = Math.min(ratio * ratio, 1.0) * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
+    const laughAudio = new Audio('audio/laugh.mp3');
+    laughAudio.volume = volume;
+    laughAudio.play().catch(e => console.log('Laugh play blocked:', e));
+}
+
+function playSmallCrySound() {
+    if (!soundEnabled) return;
+    const idx = Math.floor(Math.random() * 3) + 1;
+    const cryAudio = new Audio('audio/smallcry' + idx + '.mp3');
+    cryAudio.volume = 0.7 * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
+    cryAudio.play().catch(e => console.log('Small cry play blocked:', e));
+}
+
+function playBigCrySound() {
+    if (!soundEnabled) return;
+    const cryAudio = new Audio('audio/bigcry.mp3');
+    cryAudio.volume = 0.8 * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
+    cryAudio.play().catch(e => console.log('Big cry play blocked:', e));
+}
+
 function setupSceneGravity() {
     if (physicsScene.starBilliardsMode) {
+        // Full reset of star billiards progress (for reset button)
+        if (victoryBgm) {
+            victoryBgm.pause();
+            victoryBgm.currentTime = 0;
+        }
+                // Stop moon spell BGM
+        if (moonSpellBgm) {
+            moonSpellBgm.pause();
+            moonSpellBgm.currentTime = 0;
+        }
+
+        const ds = physicsScene.duelState;
+        ds.victory = false;
+        ds.active = false;
+        ds.moonBallIdx = -1;
+        ds.victoryTimer = 0;
+        ds.crawlCanvas = undefined;
+                laughTimer = 0;
+        laughNextInterval = 3 + Math.random() * 3;
+
+        // Reset pockets
+        for (let i = 0; i < physicsScene.pockets.length; i++) {
+            physicsScene.pockets[i].active = false;
+            physicsScene.pockets[i].isWhite = false;
+            physicsScene.pockets[i].planet = null;
+        }
+        // Reset physics state
+        physicsScene.currentPlanet = null;
+        physicsScene.planetMode = "normal";
+        config.planetPhysics.currentPlanet = null;
+        // Reset saturn state
+        physicsScene.saturnPocketedBalls = [];
+        physicsScene.saturnEjectedBalls.clear();
+        // Re-setup everything from scratch
+        setupPockets();
         setupStarBalls();
         return;
     }
+
 
     physicsScene.balls = [];
     const numBalls = config.balls.count;
@@ -459,29 +533,73 @@ function toggleStarBilliards() {
     var billiardsBtn = document.getElementById("billiardsBtn");
 
     if (physicsScene.starBilliardsMode) {
-        // 进入星际台球模式
+        // 进入星际台球模式 —— 完全重置进度以支持从头开始
+        // Stop victory BGM
+        if (victoryBgm) {
+            victoryBgm.pause();
+            victoryBgm.currentTime = 0;
+        }
+                // Stop moon spell BGM
+        if (moonSpellBgm) {
+            moonSpellBgm.pause();
+            moonSpellBgm.currentTime = 0;
+        }
+
+        // Reset duel state (moon battle + victory)
+        const ds = physicsScene.duelState;
+        ds.victory = false;
+        ds.active = false;
+        ds.moonBallIdx = -1;
+        ds.victoryTimer = 0;
+        ds.crawlCanvas = undefined;
+        laughTimer = 0;
+        laughNextInterval = 3 + Math.random() * 3;
+
+        // Reset pockets (remove white, planet assignments)
+        for (let i = 0; i < physicsScene.pockets.length; i++) {
+            physicsScene.pockets[i].active = false;
+            physicsScene.pockets[i].isWhite = false;
+            physicsScene.pockets[i].planet = null;
+        }
+        // Reset physics state
+        physicsScene.currentPlanet = null;
+        physicsScene.planetMode = "normal";
+        config.planetPhysics.currentPlanet = null;
+        // Reset saturn state
+        physicsScene.saturnPocketedBalls = [];
+        physicsScene.saturnEjectedBalls.clear();
+
+        // Update button text
         button.textContent = window.getTranslatedText
             ? window.getTranslatedText("退出星际")
             : "退出星际";
-        // 锁住取消重力和试下壁纸按钮
+        // Lock gravity and billiards buttons
         gravityBtn.disabled = true;
         gravityBtn.style.opacity = "0.5";
         gravityBtn.style.cursor = "not-allowed";
         billiardsBtn.disabled = true;
         billiardsBtn.style.opacity = "0.5";
         billiardsBtn.style.cursor = "not-allowed";
-        // 清空土星吐球历史
-        physicsScene.saturnPocketedBalls = [];
-        physicsScene.saturnEjectedBalls.clear();
-        // 设置6个点位
+        // Set up fresh pockets + balls
         setupPockets();
-        // 移除地球球（索引0），只保留月球和拖拽球
         setupStarBalls();
     } else {
         // 退出星际台球模式
         button.textContent = window.getTranslatedText
             ? window.getTranslatedText("星际台球")
             : "星际台球";
+        // Stop victory BGM if playing
+        if (victoryBgm) {
+            victoryBgm.pause();
+            victoryBgm.currentTime = 0;
+        }
+                if (moonSpellBgm) {
+            moonSpellBgm.pause();
+            moonSpellBgm.currentTime = 0;
+        }
+
+        // Reset victory state
+        physicsScene.duelState.victory = false;
         // 解锁按钮
         gravityBtn.disabled = false;
         gravityBtn.style.opacity = "1";
@@ -492,6 +610,7 @@ function toggleStarBilliards() {
         // 恢复原始球
         setupSceneGravity();
     }
+
 }
 
 // 设置6个点位（4个角 + 2个长边中间），随机分配星球
@@ -643,6 +762,7 @@ function checkPocketCollisions() {
             const dy = balls[i].pos.y - pocket.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < pocket.triggerR) {
+                playBigCrySound();
                 triggerVictory();
                 return;
             }
@@ -959,13 +1079,13 @@ function releaseCueStick() {
         // 播放 cue 音效
         const cueAudio = cueAudioPool.getAudio();
         cueAudio.currentTime = 0;
-        cueAudio.volume = 0.8;
+        cueAudio.volume = volume * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0) * 0.8;
         cueAudio.play().catch((e) => console.log("Cue audio play failed:", e));
 
         // 播放 ballball 音效
         const ballballAudio = ballBallAudioPool.getAudio();
         ballballAudio.currentTime = 0;
-        ballballAudio.volume = volume;
+        ballballAudio.volume = volume * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
         ballballAudio.play().catch((e) => console.log("Ballball audio play failed:", e));
     }
 
@@ -1006,6 +1126,7 @@ canvas2.addEventListener("mousedown", (event) => {
         ball.pos.y = simPos.y;
         ball.vel.set(new Vector2(0, 0));
         mouseDown2 = true;
+        canvas2.style.cursor = 'grabbing';
     } else {
         // 星际模式：球杆系统
         const simPos = toSimCoords(event.clientX, event.clientY);
@@ -1016,8 +1137,16 @@ canvas2.addEventListener("mousedown", (event) => {
 canvas2.addEventListener("mouseup", (event) => {
     if (!physicsScene.starBilliardsMode) {
         mouseDown2 = false;
+        canvas2.style.cursor = 'grab';
     } else {
         releaseCueStick();
+    }
+});
+
+canvas2.addEventListener("mouseleave", (event) => {
+    if (!physicsScene.starBilliardsMode && mouseDown2) {
+        mouseDown2 = false;
+        canvas2.style.cursor = 'grab';
     }
 });
 
@@ -1027,6 +1156,9 @@ canvas2.addEventListener("mousemove", (event) => {
 
     if (!physicsScene.starBilliardsMode) {
         // 普通模式拖拽
+        if (!mouseDown2) {
+            canvas2.style.cursor = 'grab';
+        }
         if (mouseDown2) {
             const ball = physicsScene.balls[getDraggableBallIndex()];
             ball.vel.x = (simPos.x - ball.pos.x) / physicsScene.dt;
@@ -1527,6 +1659,23 @@ function startDuelPhase() {
     // 立即标记为激活，防止重复触发
     physicsScene.duelState.active = true;
 
+    // Play moon spell BGM (loop)
+    if (!moonSpellBgm) {
+        moonSpellBgm = new Audio('audio/moonspell.mp3');
+        moonSpellBgm.loop = true;
+        moonSpellBgm.volume = typeof globalBgmVolume !== 'undefined' ? globalBgmVolume : 0.8;
+    }
+    moonSpellBgm.currentTime = 0;
+    const playPromise = moonSpellBgm.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(err => console.log('Moon spell play blocked:', err));
+    }
+
+    // 初始化笑声定时器
+    laughTimer = 0;
+    laughNextInterval = 3 + Math.random() * 3;
+
+
     // 对决环节强制使用地球物理（包括cueball与月球，全场都是地球模式）
     const earthPlanet = config.starBilliards.planets.find(p => p.name === "earth");
     if (earthPlanet) {
@@ -1604,6 +1753,14 @@ function updateMoonBall(dt) {
     if (moonBall.inertia > 0) {
         moonBall.omega = angularMomentum / moonBall.inertia;
     }
+        // Laugh timer: every 3~6 seconds play laugh.mp3
+    laughTimer += dt;
+    if (laughTimer >= laughNextInterval) {
+        laughTimer = 0;
+        laughNextInterval = 3 + Math.random() * 3;
+        playLaughSound(moonBall.radius);
+    }
+
 }
 
 
@@ -1912,6 +2069,9 @@ function handleWallCollision(ball, worldSize, restitution) {
         ball.vel.x = momentumX / ball.mass;
         ball.vel.y = momentumY / ball.mass;
         ball.omega = angularMomentum / ball.inertia;
+        // Play small cry sound on wall hit
+        playSmallCrySound();
+
     }
 
 }
@@ -2379,10 +2539,29 @@ function drawCueStick() {
 }
 
 function triggerVictory() {
+        // Stop moon spell BGM
+    if (moonSpellBgm) {
+        moonSpellBgm.pause();
+        moonSpellBgm.currentTime = 0;
+    }
+
     const state = physicsScene.duelState;
     state.victory = true;
     state.victoryLang = (typeof currentLang !== 'undefined' && currentLang === 'en') ? 'en' : 'zh';
     state.active = false;
+
+    // Play victory Earth mode BGM
+    if (!victoryBgm) {
+        victoryBgm = new Audio('audio/song.mp3');
+        victoryBgm.loop = true;
+        victoryBgm.volume = typeof globalBgmVolume !== 'undefined' ? globalBgmVolume : 0.8;
+    }
+    victoryBgm.currentTime = 0;
+    const playPromise = victoryBgm.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(err => console.log('Victory BGM play blocked:', err));
+    }
+
     state.victoryTimer = 0;
     state.victoryPos = {
         x: canvas2.width / 2,
