@@ -6266,8 +6266,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Achievements window
     { selector: ".achieve-title", zh: "成就列表", en: "Achievements" },
-    { selector: ".achieve-header-btns .reset-achieve-btn", zh: "重置所有成就", en: "Reset All" }
+    { selector: ".achieve-header-btns .reset-achieve-btn", zh: "重置所有成就", en: "Reset All" },
+
+    // Options window (settings panel)
+    { selector: "#optionsWindow .options-title", zh: "设置", en: "Settings" },
+    { selector: 'label[for="bgmVolumeSlider"]', zh: "BGM 音量", en: "BGM Volume" },
+    { selector: 'label[for="sfxVolumeSlider"]', zh: "音效音量", en: "SFX Volume" },
+    { selector: "#noBeepsLabel", zh: "别哔哔", en: "No Beeps" },
+
+    // Star billiards & guide buttons
+    { selector: "#starBilliardsBtn", zh: "星际台球", en: "Star Billiards" },
+    { selector: "#guideBtn", zh: "游戏指引", en: "Game Guide" },
+    { selector: "#optionsHintBubble .options-hint-text", zh: "游戏指引在这里！", en: "Game guide here!" },
+    { selector: "#floatingOptionsBtn", zh: "选项", en: "Options", attr: "title" },
+    { selector: "#floatingDoorBtn", zh: "收集门", en: "Collection Portal", attr: "title" },
+    { selector: "#floatingAchieveBtn", zh: "成就列表", en: "Achievements", attr: "title" },
+    { selector: "#resetAchieveBtn", zh: "重置所有成就", en: "Reset All Achievements", attr: "title" },
   ];
+
 
   // Dynamic text translations (used in functions)
   const dynamicTexts = {
@@ -6307,6 +6323,13 @@ document.addEventListener("DOMContentLoaded", function () {
     安静一下: "mute sound",
     来张壁纸: "add wallpaper",
     不要壁纸: "remove wallpaper",
+
+        来张壁纸: "add wallpaper",
+    不要壁纸: "remove wallpaper",
+
+    // Star billiards button
+    星际台球: "Star Billiards",
+    退出星际: "Exit Star Mode",
   };
 
   // Function to toggle language
@@ -6315,13 +6338,16 @@ document.addEventListener("DOMContentLoaded", function () {
       // Switch to English
       currentLang = "en";
       langBtn.textContent = "中文";
+      localStorage.setItem("preferredLang", "en");
       translatePage(currentLang);
     } else {
       // Switch to Chinese
       currentLang = "zh";
       langBtn.textContent = "EN";
+      localStorage.setItem("preferredLang", "zh");
       translatePage(currentLang);
     }
+
     // Update loading text when language changes
     const loadingElement = document.querySelector("#loadingBar div:first-child");
     if (loadingElement && loadingElement.style.display !== "none") {
@@ -6364,6 +6390,15 @@ document.addEventListener("DOMContentLoaded", function () {
       if (typeof window.renderAchievements === "function") {
         window.renderAchievements();
       }
+    }
+
+    // Update star billiards button text
+    const starBtn = document.getElementById("starBilliardsBtn");
+    if (starBtn && typeof physicsScene !== 'undefined') {
+      const inStarMode = physicsScene.starBilliardsMode;
+      starBtn.textContent = inStarMode
+        ? (window.getTranslatedText ? window.getTranslatedText("退出星际") : "退出星际")
+        : (window.getTranslatedText ? window.getTranslatedText("星际台球") : "星际台球");
     }
 
     // Note: Language preference is not saved to localStorage
@@ -6430,8 +6465,17 @@ document.addEventListener("DOMContentLoaded", function () {
     document.documentElement.lang = targetLang;
   }
 
-  // Initialize language: default is Chinese
-  langBtn.textContent = "EN";
+  // Initialize language: follow saved preference, default Chinese
+  const savedLang = localStorage.getItem("preferredLang");
+  if (savedLang === "en") {
+    currentLang = "en";
+    langBtn.textContent = "中文";
+    translatePage("en");
+  } else {
+    currentLang = "zh";
+    langBtn.textContent = "EN";
+  }
+
 
   // Add click event listener
   if (langBtn) {

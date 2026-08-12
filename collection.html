@@ -493,7 +493,7 @@
     </div>
 
     <script>
-        let currentLang = "zh";
+        let currentLang = localStorage.getItem("preferredLang") === "en" ? "en" : "zh";
         let currentSortMode = "default"; // default, speed, combo
 
         // Translations
@@ -647,6 +647,9 @@
             updateSortButtonText();
             updateCollectionGrid();
         }
+
+        // Apply saved language on load
+        updateLanguage();
 
         // Language button event
         document.getElementById('floatingLangBtn').addEventListener('click', function() {

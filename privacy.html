@@ -163,7 +163,7 @@
     </div>
 
     <script>
-        let currentLang = "zh";
+        let currentLang = localStorage.getItem("preferredLang") === "en" ? "en" : "zh";
 
         // Translations
         const translations = {
@@ -281,11 +281,16 @@
 
         }
 
+        // Apply saved language on load
+        updateLanguage();
+
         // Language button event
         document.getElementById('floatingLangBtn').addEventListener('click', function() {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem("preferredLang", currentLang);
             updateLanguage();
         });
+
     </script>
 </body>
 </html>

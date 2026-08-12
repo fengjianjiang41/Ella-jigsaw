@@ -298,7 +298,7 @@
     </div>
 
     <script>
-        let currentLang = "zh";
+        let currentLang = localStorage.getItem("preferredLang") === "en" ? "en" : "zh";
 
         const translations = {
             zh: {
@@ -377,7 +377,7 @@
                 section5Item4: "<b>Mute Mode:</b> Check \"No beeps\" to disable combo beeps (music is not affected).",
                 section6: "🧪 VI. Easter Egg Gameplay",
                 section6Item1: "<b>💧 Water Tank:</b> Play with water interactions on the results page! Click \"Start\" to begin, adjust volume as needed.",
-                section6Item2: "<b>🎱 Interstellar Billiards:</b> There's a billiards game below the water tank!<br>Click \"Force On\": Toggle gravity on/off<br>Click \"Change Color\": Switch planet color themes<br>Click \"Some Noise\": Toggle sound effects<br>Click \"Try Wallpaper\": Switch background wallpapers",
+                section6Item2: "<b>🎱 Interstellar Billiards:</b> There's a billiards game below the water tank!<br>Click \"Force\": Toggle gravity on/off<br>Click \"Change Color\": Switch planet color themes<br>Click \"Make Sound\": Toggle sound effects<br>Click \"Try Wallpaper\": Switch background wallpapers",
                 section6Item3: "<b>🐰 Danmei Easter Egg:</b> The bunny avatar on the homepage is clickable! Click enough times for a surprise~",
                 section6Item4: "<b>🚪 Collection Door:</b> The door button on the left flashes based on how many masterpieces you've completed. Click to enter the collection page!",
                 section7: "🏆 VII. Achievement System",
@@ -441,11 +441,16 @@
             document.getElementById('ending').innerHTML = translations[currentLang].ending;
         }
 
+        // Apply saved language on load
+        updateLanguage();
+
         // Language button event
         document.getElementById('floatingLangBtn').addEventListener('click', function() {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem("preferredLang", currentLang);
             updateLanguage();
         });
+
     </script>
 </body>
 </html>

@@ -460,7 +460,9 @@ function toggleStarBilliards() {
 
     if (physicsScene.starBilliardsMode) {
         // 进入星际台球模式
-        button.textContent = "退出星际";
+        button.textContent = window.getTranslatedText
+            ? window.getTranslatedText("退出星际")
+            : "退出星际";
         // 锁住取消重力和试下壁纸按钮
         gravityBtn.disabled = true;
         gravityBtn.style.opacity = "0.5";
@@ -477,7 +479,9 @@ function toggleStarBilliards() {
         setupStarBalls();
     } else {
         // 退出星际台球模式
-        button.textContent = "星际台球";
+        button.textContent = window.getTranslatedText
+            ? window.getTranslatedText("星际台球")
+            : "星际台球";
         // 解锁按钮
         gravityBtn.disabled = false;
         gravityBtn.style.opacity = "1";
@@ -1318,29 +1322,44 @@ function drawGravity() {
         if (state.crawlCanvas === undefined) {
             const cc = document.createElement('canvas');
             cc.width = 2800;
-            cc.height = 4000;
+            cc.height = 10000;
             const ccx = cc.getContext('2d');
             // ccx.fillStyle = '#000';
             // ccx.fillRect(0, 0, cc.width, cc.height);
 
-            const lines = [
-                "EPISODE IX",
+            const zhLines = [
+                "星际台球（后记）",
                 "",
-                "THE RISE OF SKYWALKER",
+                "星历2387年，人类制造了无数人造卫星，卫星残骸在宇宙中聚集形成黑色诅咒",
+                "水金火木土五颗行星，连同地球，全部被诅咒吞噬 化作六个黑暗的黑洞",
                 "",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhhhhhhhhhhhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
+                "你是星际最后的希望，唯一的台球手，将泛滥的人造卫星",
+                "一一击向六个黑洞，用纯粹的撞击之力，瓦解诅咒的根源",
+                "",
+                "当最后一颗卫星入洞，黑洞将逆转为白洞",
+                "此时月球BOSS降临，阻挡地球的回归",
+                "击败月之暗影，才能重启时光之门，让蓝色星球，重新回到太阳系的怀抱",
             ];
+            const enLines = [
+                "Star Billiards (Epilogue)",
+                "",
+                "Star Year 2387: Mankind forged countless satellites",
+                "Their debris coalesced into a dark cosmic curse",
+                "Mercury, Venus, Mars, Jupiter, Saturn — and Earth",
+                "All devoured by the curse, become six black holes",
+                "",
+                "You are the galaxy's last hope — the lone billiard master",
+                "Send each satellite crashing into the six dark holes",
+                "Pure impact alone can shatter the curse's root",
+                "",
+                "When the last satellite sinks in, black holes flip to white",
+                "Then the Moon Boss descends, blocking Earth's return",
+                "Defeat the lunar shadow to reopen the gate of time",
+                "And bring the blue planet home to the Sun once more",
+            ];
+            const lines = (state.victoryLang === 'en') ? enLines : zhLines;
+
+
             const lh = 80;
             ccx.fillStyle = '#FFE81F';
             ccx.strokeStyle = '#663300';
@@ -1349,9 +1368,9 @@ function drawGravity() {
             ccx.textBaseline = 'middle';
             ccx.font = 'bold 80px sans-serif';
             ccx.save();
-            ccx.scale(1, 0.4);
+            ccx.scale(1, 0.2);
             lines.forEach((line, i) => {
-                const y = i * lh + lh / 2 + 800;
+                const y = i * lh + lh / 2 + 3200;
                 ccx.fillText(line, cc.width / 2, y);
                 ccx.strokeText(line, cc.width / 2, y);
             });
@@ -1360,7 +1379,7 @@ function drawGravity() {
         }
         state.crawlOffset -= 5 * physicsScene.dt;
         const cc = state.crawlCanvas;
-        const vpY = canvas2.height * 0.1;
+        const vpY = canvas2.height * 0;
         if (state.crawlOffset > cc.height) state.crawlOffset = 0;
 
 
@@ -1395,7 +1414,7 @@ function drawGravity() {
             const cc = state.crawlCanvas;
             const vpX = canvas2.width / 2;
             const focal = 800;
-            const angle = -60 * Math.PI / 180;
+            const angle = -80 * Math.PI / 180;
             const cosA = Math.cos(angle);
             const sinA = Math.sin(angle);
             const step = 1;
@@ -1405,7 +1424,7 @@ function drawGravity() {
             const bottomZ = bottomWY * sinA;
             const maxScale = focal / (focal + bottomZ);
 
-            const maxHalfW = canvas2.width * 0.35;
+            const maxHalfW = canvas2.width * 0.5;
 
             c.save();
             for (let sY = canvas2.height; sY >= vpY; sY -= step) {
@@ -1416,8 +1435,8 @@ function drawGravity() {
                 // 越靠近消失点（窄边）透明度越高，逐渐消失
                 // fadeStart: 开始淡出的位置（距离消失点的像素数）
                 // fadeRange: 淡出过渡范围
-                const fadeStart = bottomDy * 0.2;
-                const fadeRange = bottomDy * 0.2;
+                const fadeStart = bottomDy * 0.1;
+                const fadeRange = bottomDy * 0.1;
                 const fadeDist = dy - fadeStart;
                 const alpha = Math.max(0, Math.min(1, fadeDist / fadeRange));
                 c.globalAlpha = alpha;
@@ -2362,6 +2381,7 @@ function drawCueStick() {
 function triggerVictory() {
     const state = physicsScene.duelState;
     state.victory = true;
+    state.victoryLang = (typeof currentLang !== 'undefined' && currentLang === 'en') ? 'en' : 'zh';
     state.active = false;
     state.victoryTimer = 0;
     state.victoryPos = {
