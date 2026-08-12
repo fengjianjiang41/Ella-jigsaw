@@ -1112,6 +1112,9 @@ earthImage.src = config.images.balls.earth;
 var moonImage = new Image();
 moonImage.src = config.images.balls.moon;
 
+var captionImage = new Image();
+captionImage.src = 'images/caption.png';
+
 function drawGravity() {
     // Clear canvas
     c.clearRect(0, 0, canvas2.width, canvas2.height);
@@ -1315,53 +1318,70 @@ function drawGravity() {
         const state = physicsScene.duelState;
         // ===== 星球大战式 3D 透视滚动文字 =====
         // 初始化离屏 Canvas（把文字当作一张图片）
-        if (state.crawlCanvas === undefined) {
+        if (state.crawlCanvas === undefined && captionImage.complete) {
             const cc = document.createElement('canvas');
-            cc.width = 2800;
-            cc.height = 4000;
+            cc.width = captionImage.width;
+            cc.height = captionImage.height * 3; // 重复3次实现无缝滚动
             const ccx = cc.getContext('2d');
-            // ccx.fillStyle = '#000';
-            // ccx.fillRect(0, 0, cc.width, cc.height);
-
-            const lines = [
-                "EPISODE IX",
-                "",
-                "THE RISE OF SKYWALKER",
-                "",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhhhhhhhhhhhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知道吗你知",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-                "THE DEAD SPEAK! THE GALAXY HASafgahafahhahhhhh",
-            ];
-            const lh = 80;
-            ccx.fillStyle = '#FFE81F';
-            ccx.strokeStyle = '#663300';
-            ccx.lineWidth = 0;
-            ccx.textAlign = 'center';
-            ccx.textBaseline = 'middle';
-            ccx.font = 'bold 80px sans-serif';
-            ccx.save();
-            ccx.scale(1, 0.4);
-            lines.forEach((line, i) => {
-                const y = i * lh + lh / 2 + 800;
-                ccx.fillText(line, cc.width / 2, y);
-                ccx.strokeText(line, cc.width / 2, y);
-            });
+            // 将 caption.png 垂直平铺 3 次
+            for (let i = 0; i < 3; i++) {
+                ccx.drawImage(captionImage, 0, i * captionImage.height);
+            }
             state.crawlCanvas = cc;
             state.crawlOffset = 0;
         }
-        state.crawlOffset -= 5 * physicsScene.dt;
+        // 如果 caption.png 还没加载好，跳过本帧
+        if (!state.crawlCanvas) {
+            // 直接画星空，不画文字
+            if (state.starFieldCanvas === undefined) {
+                const sf = document.createElement('canvas');
+                sf.width = canvas2.width;
+                sf.height = canvas2.height;
+                const sfc = sf.getContext('2d');
+                sfc.fillStyle = '#020208ff';
+                sfc.fillRect(0, 0, sf.width, sf.height);
+                const starCount = 200 + Math.floor(Math.random() * 200);
+                for (let i = 0; i < starCount; i++) {
+                    const sx = Math.random() * sf.width;
+                    const sy = Math.random() * sf.height;
+                    const brightness = 0.3 + Math.random() * 0.7;
+                    const radius = Math.random() * 0.5 + 0.1;
+                    sfc.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+                    sfc.beginPath();
+                    sfc.arc(sx, sy, radius, 0, Math.PI * 2);
+                    sfc.fill();
+                }
+                state.starFieldCanvas = sf;
+            }
+            c.drawImage(state.starFieldCanvas, 0, 0);
+            // 绘制白色口袋
+            {
+                const pocketRadius = config.starBilliards.pocketRadius;
+                for (var pocket of physicsScene.pockets) {
+                    var px = cX(new Vector2(pocket.x, 0));
+                    var py = cY(new Vector2(0, pocket.y));
+                    var pr = cScale2 * pocketRadius;
+                    c.fillStyle = "#ffffff";
+                    c.strokeStyle = "#cccccc";
+                    c.lineWidth = 2;
+                    c.beginPath();
+                    c.arc(px, py, pr, 0, 2 * Math.PI);
+                    c.fill();
+                    c.stroke();
+                }
+            }
+            // 绘制 cueball 和 earth ball（同后面的代码）
+            // ... (复制后面 cueball 和 earth 的绘制代码到此)
+            state.victoryTimer += physicsScene.dt;
+            return;
+        }
+        // 滚动：往消失点方向（向上）移动
+        state.crawlOffset -= 30 * physicsScene.dt;
         const cc = state.crawlCanvas;
-        const vpY = canvas2.height * 0.1;
-        if (state.crawlOffset > cc.height) state.crawlOffset = 0;
+        const vpY = canvas2.height * 0;
+        if (state.crawlOffset > captionImage.height * 3) state.crawlOffset -= captionImage.height;
+        if (state.crawlOffset < 0) state.crawlOffset += captionImage.height;
+
 
 
 
@@ -1390,54 +1410,51 @@ function drawGravity() {
         }
         c.drawImage(state.starFieldCanvas, 0, 0);
 
-        // 绘制星球大战式 3D 透视滚动文字（梯形文字层）
-                (function drawStarWarsCrawl() {
+        (function drawStarWarsCrawl() {
             const cc = state.crawlCanvas;
             const vpX = canvas2.width / 2;
             const focal = 800;
-            const angle = -60 * Math.PI / 180;
+            const angle = -87 * Math.PI / 180; // 87° 陡峭倾斜
             const cosA = Math.cos(angle);
             const sinA = Math.sin(angle);
             const step = 1;
-
+            
+            // 预计算底部 maxScale（最远点），用于归一化
             const bottomDy = canvas2.height - vpY;
             const bottomWY = bottomDy * focal / (cosA * focal - bottomDy * sinA);
             const bottomZ = bottomWY * sinA;
             const maxScale = focal / (focal + bottomZ);
-
-            const maxHalfW = canvas2.width * 0.35;
-
+            
+            // 底部宽度：caption.png 自然宽度
+            const maxHalfW = captionImage.width / 4.5;
+            
             c.save();
             for (let sY = canvas2.height; sY >= vpY; sY -= step) {
                 const dy = sY - vpY;
                 const wY = dy * focal / (cosA * focal - dy * sinA);
                 if (wY < 0) continue;
 
-                // 越靠近消失点（窄边）透明度越高，逐渐消失
-                // fadeStart: 开始淡出的位置（距离消失点的像素数）
-                // fadeRange: 淡出过渡范围
-                const fadeStart = bottomDy * 0.2;
-                const fadeRange = bottomDy * 0.2;
-                const fadeDist = dy - fadeStart;
-                const alpha = Math.max(0, Math.min(1, fadeDist / fadeRange));
-                c.globalAlpha = alpha;
-
+                // 透视 scale（归一化：底部=1.0，顶部缩小）
                 const z = wY * sinA;
                 const rawScale = focal / (focal + z);
                 const scale = rawScale / maxScale;
 
+                // 源图 Y 坐标（带滚动循环）
                 let srcY = wY - state.crawlOffset;
                 srcY = ((srcY % cc.height) + cc.height) % cc.height;
 
+                // 目标绘制宽度（梯形）
                 const dstHalfW = maxHalfW * scale;
                 const srcH = step / scale;
 
+                // 从离屏 canvas 取样，缩放到主 canvas
                 c.drawImage(cc,
                     0, srcY, cc.width, srcH,
                     vpX - dstHalfW, sY, dstHalfW * 2, step);
             }
             c.restore();
         })();
+
 
 
         // 绘制白色口袋（在梯形文字之上）
