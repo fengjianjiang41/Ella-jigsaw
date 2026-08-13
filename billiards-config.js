@@ -184,6 +184,30 @@ const BILLIARDS_CONFIG = {
       },
     ],
     planetImagePath: "images/billiards/",
+    // 月球对决 GIF 特效
+    moonEffects: {
+      mock: {
+        image: "images/billiards/mock.gif",
+        radiusThreshold: 0.25,   // 月球半径超过此值时触发（canvas2.height 比例）
+        interval: 0.8,           // 每隔多少秒放一个
+        lifetime: 0.8,           // 每个 mock.gif 播放时长（秒）
+        offsetFromMoon: 1.5,    // 距月球中心的偏移倍数（沿月球→cueball方向）
+      },
+      splash: {
+        image: "images/billiards/splash.gif",
+        lifetime: 0.6,           // 播放时长（秒）
+        size: 1.0,               // 尺寸倍数（相对于月球半径）
+      },
+      hit: {
+        image: "images/billiards/hit.gif",
+        radiusThreshold: 0.3,    // 月球半径超过此值时触发
+        interval: 3.0,           // 每隔3秒释放
+        lifetime: 1.5,           // gif 最长存活时间（秒）
+        speed: 0.35,             // gif 飞行速度（sim 坐标/秒）
+        triggerDistance: 0.04,   // 距离 cueball 多近时触发冲力（sim 坐标）
+        impulseStrength: 0.6,    // 给予 cueball 的冲力强度
+      },
+    },
   },
 
   // ========== 星球物理模式 ==========
@@ -209,6 +233,8 @@ const BILLIARDS_CONFIG = {
     ringColor: "#ffffff",       // 白圆圈颜色
     stickColor: "#ffffff",      // 球杆颜色
     stickWidth: 0.005,          // 球杆宽度（sim 坐标）
+    brakeDeceleration: 3.0,    // 刹车减速率（线性减速，单位/秒）
+    brakeRingColor: "#ff4444", // 刹车时圆圈颜色（红色提示）
   },
 
   // ========== 空间网格配置 ==========

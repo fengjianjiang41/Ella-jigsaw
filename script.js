@@ -5747,6 +5747,10 @@ function setBgmVolume(volume) {
   if (typeof moonSpellBgm !== 'undefined' && moonSpellBgm) {
     moonSpellBgm.volume = globalBgmVolume;
   }
+  // Sync catch BGM
+  if (typeof catchBgm !== 'undefined' && catchBgm) {
+    catchBgm.volume = globalBgmVolume;
+  }
 }
 
 
