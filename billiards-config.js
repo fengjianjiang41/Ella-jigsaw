@@ -100,7 +100,7 @@ const BILLIARDS_CONFIG = {
     pocketMargin: 0.006,        // 点位距边缘的距离
     pocketRadius: 0.012,        // 点位半径
     pocketSideOffset: 0.004,    // 侧边点位偏移量
-    pocketTriggerRadius: 0.05, // 球被口袋吸入的触发半径
+    pocketTriggerRadius: 0.01, // 球被口袋吸入的触发半径
     
     // 球桌布局
     triangleStartX: 0.65,       // 三角形起始位置（占宽度比例）

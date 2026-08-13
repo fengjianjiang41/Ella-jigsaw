@@ -687,6 +687,8 @@ function setupPockets() {
         triggerR: config.starBilliards.pocketTriggerRadius,
         planet: planets[i],
         active: false,
+        ripples: [],       // 涟漪动画 [{radius, alpha, speed}]
+        rippleTimer: 0,    // 涟漪生成计时
     }));
 
     // 初始化星球进度条
@@ -783,6 +785,61 @@ function getNeighborBallIndices(ballIdx) {
         }
     }
     return result;
+}
+
+// 根据游戏阶段动态更新口袋触发半径和涟漪动画
+function updatePocketTriggersAndRipples(dt) {
+    if (!physicsScene.starBilliardsMode) return;
+
+    const { pockets, planetProgressBar, duelState } = physicsScene;
+    const isSmallBodyPhase = planetProgressBar && planetProgressBar.active && !duelState.active && !duelState.victory;
+    const isDuelPhase = duelState.active && !duelState.victory;
+    const showRipples = isSmallBodyPhase || isDuelPhase;
+
+    // 小星体阶段：每捕获一个小星体，非土星口袋triggerR增加0.001，上限0.025
+    let capturedCount = 0;
+    if (isSmallBodyPhase && planetProgressBar) {
+        capturedCount = planetProgressBar.captured.length;
+    }
+    const dynamicR = Math.min(0.01 + capturedCount * 0.001, 0.025);
+
+    for (let i = 0; i < pockets.length; i++) {
+        const pocket = pockets[i];
+        const isSaturn = pocket.planet && pocket.planet.name === "saturn";
+
+        // 更新triggerR
+        if (isSaturn || !isSmallBodyPhase) {
+            pocket.triggerR = config.starBilliards.pocketTriggerRadius; // 0.01
+        } else {
+            pocket.triggerR = dynamicR;
+        }
+
+        // 涟漪动画：每0.5秒生成一个，从triggerR半径收缩到0
+        if (showRipples) {
+            pocket.rippleTimer += dt;
+            if (pocket.rippleTimer >= 0.5) {
+                pocket.rippleTimer -= 0.5;
+                pocket.ripples.push({
+                    radius: pocket.triggerR,  // 起始半径为当前triggerR
+                    alpha: 1.0,
+                    speed: pocket.triggerR * 4,  // 0.5秒内收缩到0
+                });
+            }
+            // 更新现有涟漪
+            for (let r = pocket.ripples.length - 1; r >= 0; r--) {
+                const rip = pocket.ripples[r];
+                rip.radius -= rip.speed * dt;
+                rip.alpha -= 2 * dt;  // 1秒内淡出
+                if (rip.alpha <= 0 || rip.radius <= 0) {
+                    pocket.ripples.splice(r, 1);
+                }
+            }
+        } else {
+            // 非显示阶段：清空涟漪
+            pocket.ripples = [];
+            pocket.rippleTimer = 0;
+        }
+    }
 }
 
 // 检测球与口袋碰撞
@@ -1439,9 +1496,16 @@ function drawGravity() {
             var py = cY(new Vector2(0, pocket.y));
             var pr = cScale2 * pocketRadius;
 
+            // 计算口袋颜色（优先星球颜色，用于涟漪）
+            var pocketColor = "#1a1a1a";
+            if (pocket.isWhite) {
+                pocketColor = "#ffffff";
+            } else if (pocket.planet) {
+                pocketColor = pocket.planet.color;
+            }
+
             // 激活的口袋显示星球颜色，未激活的显示黑色
             if (pocket.isWhite) {
-                // 胜利后所有口袋显示白色
                 c.fillStyle = "#ffffff";
                 c.strokeStyle = "#cccccc";
             } else if (pocket.active && pocket.planet) {
@@ -1456,6 +1520,22 @@ function drawGravity() {
             c.arc(px, py, pr, 0, 2 * Math.PI);
             c.fill();
             c.stroke();
+
+            // 绘制涟漪动画（小星体环节和月球对决环节）
+            if (pocket.ripples && pocket.ripples.length > 0) {
+                c.save();
+                for (var r = 0; r < pocket.ripples.length; r++) {
+                    var rip = pocket.ripples[r];
+                    var ripR = cScale2 * Math.max(0, rip.radius);
+                    c.globalAlpha = Math.max(0, rip.alpha);
+                    c.strokeStyle = pocketColor;
+                    c.lineWidth = 2;
+                    c.beginPath();
+                    c.arc(px, py, ripR, 0, 2 * Math.PI);
+                    c.stroke();
+                }
+                c.restore();
+            }
         }
     }
 
@@ -2304,6 +2384,9 @@ function simulateGravity() {
 
         // 检测口袋碰撞
         checkPocketCollisions();
+
+        // 动态更新口袋触发半径和涟漪动画
+        updatePocketTriggersAndRipples(dt);
 
         // 应用星球特殊物理
         applyPlanetSpecialPhysics(dt, dragIdx);
