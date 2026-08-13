@@ -202,7 +202,7 @@ const BILLIARDS_CONFIG = {
         image: "images/billiards/hit.gif",
         radiusThreshold: 0.3,    // 月球半径超过此值时触发
         interval: 3.0,           // 每隔3秒释放
-        lifetime: 1.5,           // gif 最长存活时间（秒）
+        lifetime: 1.5,           // gif 基础存活时间（秒），实际正比于月球半径 1.5~5.0s
         speed: 0.35,             // gif 飞行速度（sim 坐标/秒）
         triggerDistance: 0.04,   // 距离 cueball 多近时触发冲力（sim 坐标）
         impulseStrength: 0.6,    // 给予 cueball 的冲力强度

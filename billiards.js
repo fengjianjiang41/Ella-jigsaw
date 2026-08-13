@@ -459,6 +459,8 @@ function setupSceneGravity() {
         ds.moonBallIdx = -1;
         ds.victoryTimer = 0;
         ds.crawlCanvas = undefined;
+        // 清理月球特效 DOM
+        _cleanupEffectsDom();
         // 重置 GIF 特效状态
         ds.effects = {
             mockTimer: 0,
@@ -668,6 +670,8 @@ function toggleStarBilliards() {
         billiardsBtn.disabled = true;
         billiardsBtn.style.opacity = "0.5";
         billiardsBtn.style.cursor = "not-allowed";
+        // 在星际台球按钮左侧添加帮助图标
+        _createHelpIcon();
         // Set up fresh pockets + balls
         setupPockets();
         setupStarBalls();
@@ -696,6 +700,9 @@ function toggleStarBilliards() {
         if (physicsScene.planetProgressBar) {
             physicsScene.planetProgressBar.active = false;
         }
+        if (progressBarContainer) {
+            progressBarContainer.style.display = 'none';
+        }
         // 解锁按钮
         gravityBtn.disabled = false;
         gravityBtn.style.opacity = "1";
@@ -705,6 +712,8 @@ function toggleStarBilliards() {
         billiardsBtn.style.cursor = "pointer";
         // 恢复原始球
         setupSceneGravity();
+        // 移除帮助图标
+        _removeHelpIcon();
     }
 
 }
@@ -861,7 +870,7 @@ function updatePocketTriggersAndRipples(dt) {
     if (isSmallBodyPhase && planetProgressBar) {
         capturedCount = planetProgressBar.captured.length;
     }
-    const dynamicR = Math.min(0.02 + capturedCount * 0.001, 0.035);
+    const dynamicR = Math.min(0.015 + capturedCount * 0.001, 0.03);
 
     for (let i = 0; i < pockets.length; i++) {
         const pocket = pockets[i];
@@ -1501,6 +1510,14 @@ splashGif.src = config.starBilliards.moonEffects.splash.image;
 var hitGif = new Image();
 hitGif.src = config.starBilliards.moonEffects.hit.image;
 
+// 帮助图片（悬停问号图标时显示）
+var helpCnImg = new Image();
+helpCnImg.src = "images/billiards/helpcn.png";
+var helpEnImg = new Image();
+helpEnImg.src = "images/billiards/helpen.png";
+var helpIconEl = null;       // 帮助图标 DOM 元素
+var helpOverlayEl = null;    // 帮助图片 overlay DOM 元素
+
 function drawGravity() {
     // Clear canvas
     c.clearRect(0, 0, canvas2.width, canvas2.height);
@@ -2000,8 +2017,8 @@ function startDuelPhase() {
     const moonRadius = cueRadius * duel.moonRadiusRatio;  // 月球初始为 cueball 的 80%
 
     // 月球从三角形球阵位置生成
-    const spawnX = simWidth2 * triangleStartX + 1/3 * simWidth2;
-    const spawnY = simHeight2 * triangleStartY + 1/3 * simHeight2;
+    const spawnX = simWidth2 * triangleStartX;
+    const spawnY = simHeight2 * triangleStartY;
 
     // 创建月球球
     const moonBall = new Ball(
@@ -2094,9 +2111,19 @@ function updateMoonBall(dt) {
         }
     }
 
-    // 更新 hit（飞行中的 gif）
+    // 更新 hit（飞行中的 gif）—— 每时每刻方向指向 cueball
     for (let i = effects.hitList.length - 1; i >= 0; i--) {
         const hit = effects.hitList[i];
+        // 实时更新方向：指向当前 cueball 位置
+        if (cueBall) {
+            const dx = cueBall.pos.x - hit.pos.x;
+            const dy = cueBall.pos.y - hit.pos.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0.0001) {
+                hit.dir.x = dx / dist;
+                hit.dir.y = dy / dist;
+            }
+        }
         // 沿方向移动
         hit.pos.x += hit.dir.x * cfg.hit.speed * dt;
         hit.pos.y += hit.dir.y * cfg.hit.speed * dt;
@@ -2106,7 +2133,7 @@ function updateMoonBall(dt) {
             const dy = cueBall.pos.y - hit.pos.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < cfg.hit.triggerDistance + cueBall.radius) {
-                // 给予 cueball 冲力
+                // 给予 cueball 冲力（使用当前最新方向）
                 const impulse = cfg.hit.impulseStrength;
                 cueBall.vel.x += hit.dir.x * impulse;
                 cueBall.vel.y += hit.dir.y * impulse;
@@ -2114,8 +2141,8 @@ function updateMoonBall(dt) {
                 continue;
             }
         }
-        // 超时移除
-        if (now - hit.birthTime > cfg.hit.lifetime) {
+        // 超时移除（使用每个 hit 自带的 lifetime）
+        if (now - hit.birthTime > hit.lifetime) {
             effects.hitList.splice(i, 1);
         }
     }
@@ -2131,12 +2158,12 @@ function updateMoonBall(dt) {
             const dy = cueBall.pos.y - moonBall.pos.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist > 0.0001) {
-                const offset = moonBall.radius * cfg.mock.offsetFromMoon;
+                const offset = moonBall.radius * cfg.mock.offsetFromMoon * 0.4;  // 更靠近月球中心
                 const pos = {
                     x: moonBall.pos.x + (dx / dist) * offset,
                     y: moonBall.pos.y + (dy / dist) * offset,
                 };
-                effects.mockList.push({ pos, birthTime: now, lifetime: cfg.mock.lifetime });
+                effects.mockList.push({ pos, birthTime: now, lifetime: cfg.mock.lifetime, offsetFromMoon: cfg.mock.offsetFromMoon * 0.4 });
             }
         }
     } else {
@@ -2153,11 +2180,14 @@ function updateMoonBall(dt) {
             const dy = cueBall.pos.y - moonBall.pos.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist > 0.0001) {
+                // 寿命正比于月球半径：1.5s（阈值）→ 5.0s（最大）
+                const ratio = Math.min((moonBall.radius - hitThresholdSim) / (maxRadius - hitThresholdSim), 1.0);
+                const lifetime = 1.5 + (5.0 - 1.5) * ratio;
                 effects.hitList.push({
                     pos: { x: moonBall.pos.x, y: moonBall.pos.y },
                     dir: { x: dx / dist, y: dy / dist },
                     birthTime: now,
-                    lifetime: cfg.hit.lifetime,
+                    lifetime: lifetime,
                     speed: cfg.hit.speed,
                 });
             }
@@ -2531,20 +2561,16 @@ function simulateGravity() {
             const ball = balls[i];
             ball.simulate(dt, gravity);
 
-            // 刹车机制：cueball 速度过快时按住鼠标左键进行线性减速
+            // 刹车机制：cueball 速度过快时按住鼠标左键进行线性减速，直到完全停止
             if (i === 0 && physicsScene.cueStick.braking) {
                 const curSpeed = ball.vel.length();
-                if (curSpeed > config.cueStick.idleSpeedThreshold) {
-                    const decelAmount = config.cueStick.brakeDeceleration * dt;
-                    if (decelAmount >= curSpeed) {
-                        ball.vel.set(new Vector2(0, 0));
-                    } else {
-                        ball.vel.x -= (ball.vel.x / curSpeed) * decelAmount;
-                        ball.vel.y -= (ball.vel.y / curSpeed) * decelAmount;
-                    }
+                const decelAmount = config.cueStick.brakeDeceleration * dt;
+                if (decelAmount >= curSpeed) {
+                    ball.vel.set(new Vector2(0, 0));
+                    physicsScene.cueStick.braking = false;  // 已停止，自动结束刹车
                 } else {
-                    // 速度已降到阈值以下，自动结束刹车
-                    physicsScene.cueStick.braking = false;
+                    ball.vel.x -= (ball.vel.x / curSpeed) * decelAmount;
+                    ball.vel.y -= (ball.vel.y / curSpeed) * decelAmount;
                 }
             }
 
@@ -3103,71 +3129,162 @@ function drawCueStick() {
 }
 
 // 绘制月球对决 GIF 特效（Canvas 方式，GIF 自然播放动画）
+// ====== DOM 覆盖层（用于动画 GIF 特效）======
+var _moonEffectsOverlay = null;
+var _effectDomCache = {};  // {key: imgElement}
+
+function _ensureOverlay() {
+    if (!_moonEffectsOverlay) {
+        _moonEffectsOverlay = document.createElement('div');
+        _moonEffectsOverlay.style.position = 'absolute';
+        _moonEffectsOverlay.style.pointerEvents = 'none';
+        _moonEffectsOverlay.style.overflow = 'hidden';
+        _moonEffectsOverlay.style.zIndex = '100';
+        _moonEffectsOverlay.style.left = canvas2.offsetLeft + 'px';
+        _moonEffectsOverlay.style.top = canvas2.offsetTop + 'px';
+        _moonEffectsOverlay.style.width = canvas2.width + 'px';
+        _moonEffectsOverlay.style.height = canvas2.height + 'px';
+        const parent = canvas2.offsetParent || canvas2.parentElement;
+        if (parent) parent.appendChild(_moonEffectsOverlay);
+    }
+}
+
+function _cleanupEffectsDom() {
+    for (const key in _effectDomCache) {
+        _effectDomCache[key].remove();
+        delete _effectDomCache[key];
+    }
+}  // end of _cleanupEffectsDom
+
+// 计算 mock.gif 当前位置（随月球移动，始终在月球→cueball 方向偏移处）
+function _computeMockPos(moonBall, cueBall, offsetFromMoon) {
+    if (!cueBall || !moonBall) return { x: moonBall ? moonBall.pos.x : 0, y: moonBall ? moonBall.pos.y : 0 };
+    const dx = cueBall.pos.x - moonBall.pos.x;
+    const dy = cueBall.pos.y - moonBall.pos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 0.0001) return { x: moonBall.pos.x, y: moonBall.pos.y };
+    const offset = moonBall.radius * (offsetFromMoon || 0.6);
+    return {
+        x: moonBall.pos.x + (dx / dist) * offset,
+        y: moonBall.pos.y + (dy / dist) * offset,
+    };
+}
+
+// ====== 绘制月球对决 GIF 特效 ======
 function drawMoonEffects() {
-    if (!physicsScene.duelState || !physicsScene.duelState.active) return;
+    if (!physicsScene.duelState || !physicsScene.duelState.active) { _cleanupEffectsDom(); return; }
     const effects = physicsScene.duelState.effects;
-    if (!effects) return;
+    if (!effects) { _cleanupEffectsDom(); return; }
 
-    const cfg = config.starBilliards.moonEffects;
+    const moonBall = physicsScene.balls[physicsScene.duelState.moonBallIdx];
+    if (!moonBall) { _cleanupEffectsDom(); return; }
+    const cueBall = physicsScene.balls[0];  // 用于 mock 位置计算
+    const refSize = cScale2 * moonBall.radius * 1.2;  // 月球像素直径（随月球增长）
     const now = performance.now() / 1000;
-    const cueBall = physicsScene.balls[0];
-    if (!cueBall) return;
-    // 用 cueball 的像素直径作为统一参考，避免月球增长导致尺寸失控
-    const refSize = cScale2 * cueBall.radius * 2;
 
-    // ===== mock.gif =====
-    if (mockGif.complete && effects.mockList.length > 0) {
-        c.save();
-        for (const mock of effects.mockList) {
-            c.drawImage(mockGif,
-                cX(mock.pos) - refSize / 2,
-                cY(mock.pos) - refSize / 2,
-                refSize, refSize);
+    _ensureOverlay();
+    const overlay = _moonEffectsOverlay;
+    const activeKeys = new Set();
+
+    // ===== mock.gif ===== （位置随月球移动）
+    for (let i = 0; i < effects.mockList.length; i++) {
+        const m = effects.mockList[i];
+        const key = 'm_' + i + '_' + m.birthTime.toFixed(3);
+        activeKeys.add(key);
+        let el = _effectDomCache[key];
+        if (!el) {
+            el = document.createElement('img');
+            el.src = mockGif.src;
+            el.style.position = 'absolute';
+            el.style.transformOrigin = 'center center';
+            overlay.appendChild(el);
+            _effectDomCache[key] = el;
         }
-        c.restore();
+        const age = now - m.birthTime;
+        const t = Math.min(age / m.lifetime, 1.0);
+        const alpha = 1.0 - t;
+        const scale = 1.0 + t * 0.3;
+        const size = refSize * scale;
+        // 位置实时跟随月球：从保存的相对偏移重新计算
+        const curPos = _computeMockPos(moonBall, cueBall, m.offsetFromMoon);
+        el.style.left = (cX(curPos) - size / 2) + 'px';
+        el.style.top = (cY(curPos) - size / 2) + 'px';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.opacity = alpha.toString();
     }
 
     // ===== splash.gif =====
-    // splash.gif 默认朝下(底边法向)。旋转到目标法向: atan2(ny, nx) - PI/2
-    if (splashGif.complete && effects.splashList.length > 0) {
-        for (const splash of effects.splashList) {
-            const age = now - splash.birthTime;
-            const t = Math.min(age / splash.lifetime, 1.0);
-            const alpha = 1.0 - t;
-            const size = refSize * splash.size;
-            const cx = cX(splash.pos);
-            const cy = cY(splash.pos);
-            const angle = Math.atan2(splash.normal.y, -splash.normal.x) - Math.PI / 2;
-            c.save();
-            c.globalAlpha = alpha;
-            c.translate(cx, cy);
-            c.rotate(angle);
-            c.drawImage(splashGif, -size / 2, -size / 2, size, size);
-            c.restore();
+    for (let i = 0; i < effects.splashList.length; i++) {
+        const s = effects.splashList[i];
+        const key = 's_' + i + '_' + s.birthTime.toFixed(3);
+        activeKeys.add(key);
+        let el = _effectDomCache[key];
+        if (!el) {
+            el = document.createElement('img');
+            el.src = splashGif.src;
+            el.style.position = 'absolute';
+            el.style.transformOrigin = 'center center';
+            overlay.appendChild(el);
+            _effectDomCache[key] = el;
         }
+        const age = now - s.birthTime;
+        const t = Math.min(age / s.lifetime, 1.0);
+        const alpha = 1.0 - t;
+        const size = refSize * s.size;
+        const cx = cX(s.pos);
+        const cy = cY(s.pos);
+        const angle = Math.atan2(s.normal.y, -s.normal.x) * 180 / Math.PI - 90;
+        el.style.left = (cx - size / 2) + 'px';
+        el.style.top = (cy - size / 2) + 'px';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.transform = 'rotate(' + angle + 'deg)';
+        el.style.opacity = alpha.toString();
     }
 
     // ===== hit.gif =====
-    if (hitGif.complete && effects.hitList.length > 0) {
-        for (const hit of effects.hitList) {
-            const age = now - hit.birthTime;
-            const t = Math.min(age / hit.lifetime, 1.0);
-            const alpha = 1.0 - t * 0.5;
-            const size = refSize * 0.8;
-            const cx = cX(hit.pos);
-            const cy = cY(hit.pos);
-            const angle = Math.atan2(hit.dir.y, hit.dir.x);
-            c.save();
-            c.globalAlpha = alpha;
-            c.translate(cx, cy);
-            c.rotate(angle);
-            c.drawImage(hitGif, -size / 2, -size / 2, size, size);
-            c.restore();
+    for (let i = 0; i < effects.hitList.length; i++) {
+        const h = effects.hitList[i];
+        const key = 'h_' + i + '_' + h.birthTime.toFixed(3);
+        activeKeys.add(key);
+        let el = _effectDomCache[key];
+        if (!el) {
+            el = document.createElement('img');
+            el.src = hitGif.src;
+            el.style.position = 'absolute';
+            el.style.transformOrigin = 'center center';
+            overlay.appendChild(el);
+            _effectDomCache[key] = el;
+        }
+        const age = now - h.birthTime;
+        const t = Math.min(age / h.lifetime, 1.0);
+        const alpha = 1.0 - t;
+        const size = refSize * 0.4 * (1.0 + t * 0.2);  // hit.gif 尺寸减半
+        const cx = cX(h.pos);
+        const cy = cY(h.pos);
+        const angle = Math.atan2(h.dir.y, h.dir.x) * 180 / Math.PI;
+        el.style.left = (cx - size / 2) + 'px';
+        el.style.top = (cy - size / 2) + 'px';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.transform = 'rotate(' + angle + 'deg)';
+        el.style.opacity = alpha.toString();
+    }
+
+    // 清理已过期的 DOM 元素
+    for (const key in _effectDomCache) {
+        if (!activeKeys.has(key)) {
+            _effectDomCache[key].remove();
+            delete _effectDomCache[key];
         }
     }
 }
 
 function triggerVictory() {
+    // 清理月球特效 DOM
+    _cleanupEffectsDom();
+
     // Stop moon spell BGM
     if (moonSpellBgm) {
         moonSpellBgm.pause();
@@ -3255,6 +3372,73 @@ function triggerVictory() {
         initSpatialGrid();
         updateSpatialGrid();
     }
+}  // end of toggleStarBilliards()
+
+
+// ========== 帮助图标（星际台球模式下显示） ==========
+function _createHelpIcon() {
+    // 移除已存在的图标
+    _removeHelpIcon();
+
+    const btn = document.getElementById('starBilliardsBtn');
+    if (!btn) return;
+
+    // 创建问号图标
+    const icon = document.createElement('div');
+    icon.id = 'starBilliardsHelpIcon';
+    icon.textContent = '?';
+    icon.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;' +
+        'width:32px;height:32px;border-radius:50%;' +
+        'background:rgba(255,255,255,0.9);color:#ff69b4;font-weight:bold;font-size:18px;' +
+        'cursor:default;user-select:none;' +
+        'border:2px solid #ffb3c2;box-shadow:0 2px 8px rgba(0,0,0,0.15);' +
+        'vertical-align:middle;margin-right:8px;';
+
+    // 在按钮左侧插入
+    btn.parentNode.insertBefore(icon, btn);
+    helpIconEl = icon;
+
+    // 创建 overlay（用于显示帮助图片）
+    const overlay = document.createElement('div');
+    overlay.id = 'starBilliardsHelpOverlay';
+    overlay.style.cssText = 'display:none;position:absolute;z-index:9999;' +
+        'pointer-events:none;';
+    overlay.innerHTML = '<img id="starBilliardsHelpImg" style="max-width:400px;max-height:300px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);" />';
+    document.body.appendChild(overlay);
+    helpOverlayEl = overlay;
+
+    // 悬停显示帮助图片
+    icon.addEventListener('mouseenter', function () {
+        const img = document.getElementById('starBilliardsHelpImg');
+        if (!img) return;
+        const lang = (typeof currentLang !== 'undefined') ? currentLang : 'zh';
+        img.src = (lang === 'en') ? helpEnImg.src : helpCnImg.src;
+        overlay.style.display = 'block';
+        // 定位到 canvas 背景中心
+        const canvas = document.getElementById('myCanvas2');
+        if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const overlayRect = overlay.getBoundingClientRect();
+            const top = rect.top + window.scrollY + (rect.height - overlayRect.height) / 2;
+            const left = rect.left + window.scrollX + (rect.width - overlayRect.width) / 2;
+            overlay.style.top = Math.max(10, top) + 'px';
+            overlay.style.left = Math.max(10, left) + 'px';
+        }
+    });
+    icon.addEventListener('mouseleave', function () {
+        overlay.style.display = 'none';
+    });
+}
+
+function _removeHelpIcon() {
+    if (helpIconEl && helpIconEl.parentNode) {
+        helpIconEl.parentNode.removeChild(helpIconEl);
+    }
+    helpIconEl = null;
+    if (helpOverlayEl && helpOverlayEl.parentNode) {
+        helpOverlayEl.parentNode.removeChild(helpOverlayEl);
+    }
+    helpOverlayEl = null;
 }
 
 
