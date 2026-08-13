@@ -1174,6 +1174,22 @@ function releaseCueStick() {
     stick.charging = false;
     stick.chargeAmount = 0;
 
+    // 触发进度条上所有小星体的衰减震荡
+    const pb = physicsScene.planetProgressBar;
+    if (pb && pb.captured.length > 0) {
+        const now = performance.now();
+        for (let i = 0; i < pb.captured.length; i++) {
+            const entry = pb.captured[i];
+            // 每个星体独立的震荡参数
+            entry.oscStart = now;
+            entry.oscDecay = 0.015 + Math.random() * 0.025;  // 衰减率 0.015~0.04
+            entry.oscFreq = 0.015 + Math.random() * 0.02;     // 频率 0.015~0.03
+            entry.oscAmp = 3 + Math.random() * 4;            // 初始振幅 3~7 像素
+            entry.oscPhaseX = Math.random() * Math.PI * 2;   // X轴相位
+            entry.oscPhaseY = Math.random() * Math.PI * 2;   // Y轴相位
+        }
+    }
+
     console.log(`击打！速度: ${speed.toFixed(3)}`);
 }
 
@@ -2586,10 +2602,11 @@ function drawPlanetProgressBar() {
     pbc.fill();
     pbc.shadowBlur = 0;
 
-    // 绘制已捕获的卫星PNG（关于中心对称，使用satellite.png）
+    // 绘制已捕获的卫星PNG（关于中心对称，使用satellite.png）+ 衰减震荡
     const n = captured.length;
     const startSlot = Math.floor((total - n) / 2);
     const pngSize = 16;
+    const now = performance.now();
 
     for (let i = 0; i < n; i++) {
         const slot = startSlot + i;
@@ -2597,8 +2614,19 @@ function drawPlanetProgressBar() {
         const cy = barY + barHeight / 2;
         const entry = captured[i];
 
+        // 计算衰减震荡偏移
+        let oscDx = 0, oscDy = 0;
+        if (entry.oscStart !== undefined) {
+            const t = now - entry.oscStart;
+            const envelope = Math.exp(-t * entry.oscDecay);
+            if (envelope > 0.01) {
+                oscDx = entry.oscAmp * envelope * Math.sin(t * entry.oscFreq + entry.oscPhaseX);
+                oscDy = entry.oscAmp * envelope * Math.cos(t * entry.oscFreq + entry.oscPhaseY);
+            }
+        }
+
         pbc.save();
-        pbc.translate(cx, cy);
+        pbc.translate(cx + oscDx, cy + oscDy);
         pbc.rotate(entry.angle);
 
         if (entry.image && entry.image.complete) {

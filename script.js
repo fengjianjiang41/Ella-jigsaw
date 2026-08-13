@@ -1740,8 +1740,26 @@ class Piece {
     } else {
       this.alpha = 1;
     }
+    // Decay oscillation properties (triggered by boundary hits)
+    this.oscStart = 0;
+    this.oscDecay = 0;
+    this.oscFreq = 0;
+    this.oscAmp = 0;
+    this.oscPhaseX = 0;
+    this.oscPhaseY = 0;
   }
   draw(ctx) {
+    // Calculate oscillation offset (disabled in kid mode)
+    let oscDx = 0, oscDy = 0;
+    const inKidMode = window.isKidMode && window.isKidMode();
+    if (!inKidMode && this.oscStart > 0) {
+      const t = performance.now() - this.oscStart;
+      const envelope = Math.exp(-t * this.oscDecay);
+      if (envelope > 0.01) {
+        oscDx = this.oscAmp * envelope * Math.sin(t * this.oscFreq + this.oscPhaseX);
+        oscDy = this.oscAmp * envelope * Math.cos(t * this.oscFreq + this.oscPhaseY);
+      }
+    }
     ctx.globalAlpha = this.alpha;
     ctx.drawImage(
       this.img,
@@ -1749,8 +1767,8 @@ class Piece {
       this.sy,
       pieceXSize,
       pieceYSize,
-      this.x - (pieceXSize * (this.size - 1)) / 2,
-      this.y - (pieceYSize * (this.size - 1)) / 2,
+      this.x + oscDx - (pieceXSize * (this.size - 1)) / 2,
+      this.y + oscDy - (pieceYSize * (this.size - 1)) / 2,
       pieceXSize * this.size,
       pieceYSize * this.size,
     );
@@ -1998,6 +2016,38 @@ function animatePuzzle(idx) {
 
   // Handle boundary highlight and sound
   if (boundaryHit) {
+    const inKidMode = window.isKidMode && window.isKidMode();
+    const now = performance.now();
+    const boundaryMargin = pieceXSize * 0.6; // threshold: ~半块碎片大小
+    for (const p of pieces) {
+      if (p.dragging) continue;
+      if (inKidMode) {
+        // 小孩模式：立即清除所有震荡状态
+        p.oscStart = 0;
+        p.oscAmp = 0;
+        continue;
+      }
+      // Skip if already oscillating (don't keep resetting)
+      if (p.oscStart > 0 && now - p.oscStart < 300) continue;
+      // Check if this piece is NOT near any boundary
+      const nearLeft = p.x < boundaryMargin;
+      const nearRight = p.x > 2 * canvasXSize - pieceXSize - boundaryMargin;
+      const nearTop = p.y < boundaryMargin;
+      const nearBottom = p.y > 2 * canvasYSize - pieceYSize - boundaryMargin;
+      if (!nearLeft && !nearRight && !nearTop && !nearBottom) {
+        // 按难度缩放震荡参数：难度越高，震荡越剧烈
+        const diffAmp = 0.5 + currentDifficulty * 0.4;   // 幅度系数
+        const diffFreq = 0.7 + currentDifficulty * 0.2;   // 频率系数
+        const diffDecay = 0.8 + currentDifficulty * 0.3; // 衰减系数
+        p.oscStart = now;
+        p.oscDecay = (0.006 + Math.random() * 0.008) * diffDecay;
+        p.oscFreq = (0.012 + Math.random() * 0.02) * diffFreq;
+        p.oscAmp = (12 + Math.random() * 14) * diffAmp;
+        p.oscPhaseX = Math.random() * Math.PI * 2;
+        p.oscPhaseY = Math.random() * Math.PI * 2;
+      }
+    }
+
     // Check if this puzzle's page is currently active
     const expectedPageId = "page" + (3 + idx);
     if (currentActivePage === expectedPageId) {
@@ -6704,6 +6754,9 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", function () {
   const kidBtn = document.getElementById("floatingKidBtn");
   let isKidMode = false;
+
+  // 暴露到 window，使所有 window.isKidMode() 调用生效
+  window.isKidMode = function() { return isKidMode; };
 
   // Function to toggle kid mode
   function toggleKidMode() {
