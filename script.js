@@ -4794,16 +4794,16 @@ function playForceInSound() {
   try {
     forceInAudio.currentTime = 0;
     forceInAudio.volume = tankVolume * 2.0;
-    forceInAudio.play().catch(function(){});
-  } catch(e) {}
+    forceInAudio.play().catch(function () { });
+  } catch (e) { }
 }
 
 function playForceOutSound() {
   try {
     forceOutAudio.currentTime = 0;
     forceOutAudio.volume = tankVolume * 2.0;
-    forceOutAudio.play().catch(function(){});
-  } catch(e) {}
+    forceOutAudio.play().catch(function () { });
+  } catch (e) { }
 }
 
 function spawnShrinkCircle() {
@@ -5849,6 +5849,126 @@ document.addEventListener("DOMContentLoaded", function () {
   // Add click event listener
   if (musicBtn) {
     musicBtn.addEventListener("click", toggleMusic);
+
+    // Hover preview: show puzzle image on mouseenter, hide on mouseleave
+    const previewOverlay = document.getElementById("hoverPreviewOverlay");
+    const previewImage = document.getElementById("hoverPreviewImage");
+
+    // Map active page to canvas index and image path
+    function getCurrentPuzzleImage() {
+      const pageToCanvasIndex = {
+        "page3": 0,
+        "page4": 1,
+        "page5": 2
+      };
+
+      // Get current active page
+      const activeBtn = document.querySelector('.page-btn.active');
+      const currentPageId = activeBtn ? activeBtn.dataset.page : currentActivePage;
+
+      // For puzzle pages, show corresponding puzzle image
+      if (pageToCanvasIndex[currentPageId] !== undefined) {
+        const canvasIdx = pageToCanvasIndex[currentPageId];
+        return imagePaths[canvasIdx] || null;
+      }
+
+      // For non-puzzle pages (home, register, results), show the first puzzle image
+      return null;
+    }
+
+    function drawPuzzleGrid(img, overlay) {
+      const canvas = document.getElementById("hoverPreviewCanvas");
+      if (!canvas || !img) return;
+
+      // 关键：用图片的 clientWidth/clientHeight（实际渲染尺寸）
+      const w = img.clientWidth;
+      const h = img.clientHeight;
+
+      if (w === 0 || h === 0) return;
+
+      // Canvas 像素尺寸 = CSS 尺寸 * 设备像素比（高清屏）
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      canvas.style.left = "0px";
+      canvas.style.top = "0px";
+
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr); // 缩放以匹配高清屏
+      ctx.clearRect(0, 0, w, h);
+
+      const gridSize = difficultySettings[currentDifficulty].gridSize;
+
+      // Colors: page3=black, page4=pink, page5=white
+      const pageColors = {
+        "page3": "#000000",
+        "page4": "#ff8fab",
+        "page5": "#ffffff"
+      };
+
+      const activeBtn = document.querySelector('.page-btn.active');
+      const currentPageId = activeBtn ? activeBtn.dataset.page : currentActivePage;
+      const color = pageColors[currentPageId] || "#000000";
+
+      // Set line style
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 6]);
+
+      // Draw vertical divider lines (gridSize-1 条)
+      for (let i = 1; i < gridSize; i++) {
+        const x = (w / gridSize) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+
+      // Draw horizontal divider lines (gridSize-1 条)
+      for (let i = 1; i < gridSize; i++) {
+        const y = (h / gridSize) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+    }
+
+
+
+
+
+    musicBtn.addEventListener("mouseenter", function () {
+      const imageSrc = getCurrentPuzzleImage();
+      if (imageSrc && previewImage && previewOverlay) {
+        previewImage.src = imageSrc;
+        previewOverlay.classList.add("visible");
+
+        // Draw grid lines after image loads
+        previewImage.onload = function () {
+          drawPuzzleGrid(previewImage, previewOverlay);
+        };
+        // If already loaded, draw immediately
+        if (previewImage.complete) {
+          drawPuzzleGrid(previewImage, previewOverlay);
+        }
+      }
+    });
+
+    musicBtn.addEventListener("mouseleave", function () {
+      if (previewOverlay) {
+        previewOverlay.classList.remove("visible");
+        // Clear canvas
+        const canvas = document.getElementById("hoverPreviewCanvas");
+        if (canvas) {
+          const ctx = canvas.getContext("2d");
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+    });
+
   }
   // Add click event listeners to all other buttons (except page buttons)
   const buttons = document.querySelectorAll("button");
@@ -6332,7 +6452,7 @@ document.addEventListener("DOMContentLoaded", function () {
   achieveBtn?.addEventListener("click", openAchieveWindow);
   closeAchieveBtn?.addEventListener("click", closeAchieveWindow);
   achieveOverlay?.addEventListener("click", closeAchieveWindow);
-  document.getElementById("shopBtn")?.addEventListener("click", function() {
+  document.getElementById("shopBtn")?.addEventListener("click", function () {
     window.open("shop.html", "_blank");
   });
 
@@ -6783,7 +6903,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let isKidMode = false;
 
   // 暴露到 window，使所有 window.isKidMode() 调用生效
-  window.isKidMode = function() { return isKidMode; };
+  window.isKidMode = function () { return isKidMode; };
 
   // Function to toggle kid mode
   function toggleKidMode() {
@@ -7186,7 +7306,7 @@ function updateTank() {
 canvas1.addEventListener("mousedown", handleTankMouseDown);
 canvas1.addEventListener("mousemove", handleTankMouseMove);
 canvas1.addEventListener("mouseup", handleTankMouseUp);
-canvas1.addEventListener("mouseleave", function(e) {
+canvas1.addEventListener("mouseleave", function (e) {
   if (!scene.forceMode) return;
   scene.mouseDown = false;
   forceMouseActive = false;
