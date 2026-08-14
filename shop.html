@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>商店 / Shop</title>
+    <style>
+        @font-face {
+            font-family: 'CustomFont';
+            src: url('font/font.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            font-family: 'CustomFont', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe4e1 100%);
+            min-height: 100vh;
+        }
+
+        .top-left-logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 999;
+        }
+
+        .top-left-logo img {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .top-left-logo .logo-text {
+            font-size: 14px;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        h1 {
+            text-align: center;
+            color: #000000;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .shop-banner {
+            display: block;
+            margin: 0 auto 30px;
+            width: 900px;
+            height: auto;
+        }
+
+        .shop-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 20px;
+        }
+
+        /* Floating Language Button */
+        .floating-lang-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999;
+        }
+
+        .floating-lang-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'CustomFont', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .floating-lang-btn:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+        }
+
+        /* Back Button */
+        .back-container {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 999;
+        }
+
+        .back-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffb3c2 0%, #ff8fab 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'CustomFont', Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffffff;
+            transition: transform 0.3s ease, background 0.3s ease;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #ff8fab 0%, #ff6b8a 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="top-left-logo">
+        <img src="images/logo1.png" alt="Logo">
+        <span class="logo-text">©移山中Movening</span>
+    </div>
+
+    <h1 id="pageTitle">商店</h1>
+    <img src="images/shop.png" alt="Shop" class="shop-banner">
+
+    <div class="shop-content" id="shopContent">
+        <!-- 商店内容区域（暂时留空） -->
+    </div>
+
+    <!-- Floating Back Button -->
+    <div class="back-container">
+        <button id="backBtn" class="back-btn">返回</button>
+    </div>
+
+    <!-- Floating Language Switch Button -->
+    <div class="floating-lang-container">
+        <button id="floatingLangBtn" class="floating-lang-btn">EN</button>
+    </div>
+
+    <script>
+        let currentLang = localStorage.getItem("preferredLang") === "en" ? "en" : "zh";
+
+        const translations = {
+            zh: {
+                pageTitle: "商店",
+                langBtn: "EN",
+                backBtn: "返回"
+            },
+            en: {
+                pageTitle: "Shop",
+                langBtn: "中文",
+                backBtn: "Back"
+            }
+        };
+
+        function updateLanguage() {
+            document.getElementById('pageTitle').textContent = translations[currentLang].pageTitle;
+            document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
+            document.getElementById('backBtn').textContent = translations[currentLang].backBtn;
+        }
+
+        updateLanguage();
+
+        document.getElementById('floatingLangBtn').addEventListener('click', function() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem("preferredLang", currentLang);
+            updateLanguage();
+        });
+
+        document.getElementById('backBtn').addEventListener('click', function() {
+            window.location.href = "index.html";
+        });
+    </script>
+</body>
+</html>

@@ -6031,7 +6031,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const achieveWindow = document.getElementById("achieveWindow");
   const achieveOverlay = document.getElementById("achieveOverlay");
   const closeAchieveBtn = document.getElementById("closeAchieveBtn");
-  const resetAchieveBtn = document.getElementById("resetAchieveBtn");
   const achieveGrid = document.getElementById("achieveGrid");
 
   // Achievements list (40 achievements) total count 286
@@ -6146,6 +6145,13 @@ document.addEventListener("DOMContentLoaded", function () {
           }
           startAchieveAnimation(allItems, currentIndex, allItems.length);
         });
+      } else {
+        // Locked achievement: play block sound on click
+        item.addEventListener("click", () => {
+          const blockAudio = new Audio("audio/block.mp3");
+          blockAudio.currentTime = 0;
+          playAudioWithVolume(blockAudio, 0.5);
+        });
       }
 
       achieveGrid.appendChild(item);
@@ -6258,7 +6264,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const target = current + targetSum;
 
     function step() {
-      if (current >= target) return;
+      if (current >= target) {
+        updateAchieveBadge();
+        return;
+      }
       current++;
       headerBunCount.textContent = current;
       headerBunCount.classList.add("pulse");
@@ -6270,6 +6279,34 @@ document.addEventListener("DOMContentLoaded", function () {
       setTimeout(step, 100);
     }
     step();
+  }
+
+  // Update the red badge on the achievement button showing uncollected count
+  function updateAchieveBadge() {
+    const badge = document.getElementById("achieveBadge");
+    if (!badge) return;
+
+    // Calculate total initial count for all unlocked achievements
+    let totalInitial = 0;
+    for (const id of unlockedAchievements) {
+      const idx = id - 1;
+      if (idx >= 0 && idx < originalCounts.length) {
+        totalInitial += originalCounts[idx];
+      }
+    }
+
+    // Get header bun count (already collected)
+    const headerBunCountEl = document.getElementById("headerBunCount");
+    const collected = headerBunCountEl ? parseInt(headerBunCountEl.textContent) || 0 : 0;
+
+    const remaining = totalInitial - collected;
+
+    if (remaining <= 0) {
+      badge.classList.add("badge-hidden");
+    } else {
+      badge.classList.remove("badge-hidden");
+      badge.textContent = remaining > 99 ? "99+" : remaining;
+    }
   }
 
   // Open achievements window
@@ -6291,32 +6328,13 @@ document.addEventListener("DOMContentLoaded", function () {
     achieveBtn.style.pointerEvents = "auto";
   }
 
-  // Reset all achievements to locked state
-  function resetAllAchievements() {
-    unlockedAchievements = [];
-    saveUnlockedAchievements(unlockedAchievements);
-    // Clear play dates
-    localStorage.removeItem("jigsaw_play_dates");
-    // Reset the achievementsUnlocked boolean array as well
-    for (let i = 0; i < achievementsUnlocked.length; i++) {
-      achievementsUnlocked[i] = false;
-    }
-    // Restore achievement counts to original values
-    achievements.forEach((a, i) => { a.count = originalCounts[i]; });
-    // Reset header bun counter to 0
-    const headerBunCount = document.getElementById("headerBunCount");
-    if (headerBunCount) headerBunCount.textContent = "0";
-    // Refresh the display if window is open
-    if (achieveWindow.style.display === "block") {
-      renderAchievements();
-    }
-  }
-
   // Event listeners
   achieveBtn?.addEventListener("click", openAchieveWindow);
   closeAchieveBtn?.addEventListener("click", closeAchieveWindow);
   achieveOverlay?.addEventListener("click", closeAchieveWindow);
-  resetAchieveBtn?.addEventListener("click", resetAllAchievements);
+  document.getElementById("shopBtn")?.addEventListener("click", function() {
+    window.open("shop.html", "_blank");
+  });
 
   // Function to unlock an achievement
   window.unlockAchievement = function (achievementId) {
@@ -6347,6 +6365,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (achieveWindow.style.display === "block") {
         renderAchievements();
       }
+      // Update the red badge
+      updateAchieveBadge();
     }
   };
 
@@ -6363,6 +6383,9 @@ document.addEventListener("DOMContentLoaded", function () {
   if (achieveTitleEl) {
     achieveTitleEl.textContent = currentLang === "en" ? "Achievements" : "成就列表";
   }
+
+  // Initial badge update
+  updateAchieveBadge();
 });
 
 // Helper function to play audio with SFX volume
@@ -6535,7 +6558,7 @@ document.addEventListener("DOMContentLoaded", function () {
     { selector: "#floatingOptionsBtn", zh: "选项", en: "Options", attr: "title" },
     { selector: "#floatingDoorBtn", zh: "收集门", en: "Collection Portal", attr: "title" },
     { selector: "#floatingAchieveBtn", zh: "成就列表", en: "Achievements", attr: "title" },
-    { selector: "#resetAchieveBtn", zh: "重置所有成就", en: "Reset All Achievements", attr: "title" },
+
   ];
 
 
