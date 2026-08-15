@@ -244,6 +244,7 @@
         };
 
         function updateLanguage() {
+            document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
             document.getElementById('pageTitle').textContent = translations[currentLang].pageTitle;
             document.getElementById('lastUpdated').textContent = translations[currentLang].lastUpdated;
             document.getElementById('intro').textContent = translations[currentLang].intro;

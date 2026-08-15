@@ -396,6 +396,7 @@
         };
 
         function updateLanguage() {
+            document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
             document.getElementById('pageTitle').innerHTML = translations[currentLang].pageTitle;
             document.getElementById('lastUpdated').textContent = translations[currentLang].lastUpdated;
             document.getElementById('intro').innerHTML = translations[currentLang].intro;
