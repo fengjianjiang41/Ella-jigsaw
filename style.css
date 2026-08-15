@@ -338,6 +338,40 @@ button:hover:not(:disabled) {
     -o-border-radius: 50px;
 }
 
+/* Sticker 容器 - fixed全屏层，在page2激活时显示 */
+.sticker-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* 不影响点击 */
+    z-index: 998; /* 在most内容之上，浮动控件(999)之下 */
+    overflow: visible; /* 不裁剪 */
+    display: none; /* 默认隐藏 */
+}
+
+/* page2激活时显示sticker */
+body.page2-active .sticker-container {
+    display: block;
+}
+
+/* Sticker wrapper - 处理定位和旋转 */
+.sticker-item {
+    position: absolute;
+    pointer-events: none;
+    will-change: opacity;
+}
+
+/* Sticker img - 呼吸动画由JS驱动 */
+.sticker-item img {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform-origin: center center;
+}
+
+
 
 
 @keyframes buttonBounce {
@@ -505,6 +539,7 @@ canvas {
 
 /* 分页内容区域 */
 .page {
+    position: relative; /* ← 添加这行！为 sticker 容器提供定位上下文 */
     min-height: 100vh;
     /* 每个分页占满视口高度 */
     width: 100%;
@@ -512,6 +547,7 @@ canvas {
     transition: opacity 0.1s ease;
     scroll-margin-top: 0;
 }
+
 
 /* 平滑滚动到分页 */
 html {

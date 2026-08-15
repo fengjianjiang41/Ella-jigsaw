@@ -1604,6 +1604,191 @@ const songs = {
   ], // Movement 3 (Rondo Alla Turca)
 };
 
+// ========== Sticker 管理系统 ==========
+const StickerManager = {
+    container: null,
+    stickerImages: [], // 可用的sticker图片列表
+    activeStickers: [], // 当前活跃的sticker
+    spawnTimer: null,
+    isActive: false,
+    
+    // 初始化：加载可用的sticker图片
+    async init() {
+        this.container = document.getElementById('stickerContainer');
+        if (!this.container) return;
+        
+        // 动态探测可用的sticker图片
+        this.stickerImages = await this.loadStickerImages();
+        console.log(`[Sticker] 已加载 ${this.stickerImages.length} 张sticker图片`);
+    },
+    
+    // 加载sticker图片（尝试加载1-50.png）
+    async loadStickerImages() {
+        const images = [];
+        const maxIndex = 20; // 最多尝试50张
+        const testPromises = [];
+        
+        for (let i = 1; i <= maxIndex; i++) {
+            const path = `images/stickers/${i}.png`;
+            testPromises.push(
+                this.testImage(path).then(exists => {
+                    if (exists) images.push(path);
+                }).catch(() => {})
+            );
+        }
+        
+        await Promise.all(testPromises);
+        return images;
+    },
+    
+    // 测试图片是否存在
+    testImage(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(true);
+            img.onerror = () => reject(false);
+            img.src = src;
+        });
+    },
+    
+    // 启动sticker生成
+    start() {
+        if (this.isActive || this.stickerImages.length === 0) return;
+        this.isActive = true;
+        
+        // 关键：给body添加page2-active类来显示容器
+        document.body.classList.add('page2-active');
+        
+        // 等容器显示后再生成
+        setTimeout(() => {
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => this.spawnSticker(), i * 200);
+            }
+        }, 100);
+        
+        // 定时生成新sticker
+        const spawnInterval = 1333;
+        this.spawnTimer = setInterval(() => {
+            if (this.isActive) {
+                this.spawnSticker();
+            }
+        }, spawnInterval);
+    },
+    
+    // 停止sticker生成并清除所有
+    stop() {
+        this.isActive = false;
+        document.body.classList.remove('page2-active');
+        if (this.spawnTimer) {
+            clearInterval(this.spawnTimer);
+            this.spawnTimer = null;
+        }
+        // 清除所有活跃的sticker（取消动画帧 + 清理timer + 移除DOM）
+        this.activeStickers.forEach(s => {
+            if (s.rafId) cancelAnimationFrame(s.rafId);
+            s.timers.forEach(t => clearTimeout(t));
+            if (s.element?.parentNode) {
+                s.element.parentNode.removeChild(s.element);
+            }
+        });
+        this.activeStickers = [];
+    },
+    
+    // 生成单个sticker
+    spawnSticker() {
+        if (!this.container || this.stickerImages.length === 0) return;
+        
+        // 使用视口尺寸（容器是fixed全屏的）
+        const cw = window.innerWidth;
+        const ch = window.innerHeight;
+        
+        // 创建 wrapper（处理定位、旋转、透明度）
+        const wrapper = document.createElement('span');
+        wrapper.className = 'sticker-item';
+        wrapper.style.opacity = '0';
+        
+        // 随机大小：60px - 180px
+        const size = 60 + Math.random() * 120;
+        wrapper.style.width = size + 'px';
+        
+        // 随机位置
+        const x = Math.max(0, Math.random() * (cw - size));
+        const y = Math.max(0, Math.random() * (ch - size));
+        wrapper.style.left = x + 'px';
+        wrapper.style.top = y + 'px';
+        
+        // 随机旋转：-45度到45度
+        const rotation = Math.random() * 90 - 45;
+        wrapper.style.transform = `rotate(${rotation}deg)`;
+        
+        // 创建 img（处理呼吸动画）
+        const img = document.createElement('img');
+        const randomImage = this.stickerImages[Math.floor(Math.random() * this.stickerImages.length)];
+        img.src = randomImage;
+        
+        wrapper.appendChild(img);
+        this.container.appendChild(wrapper);
+        
+        // 动画参数
+        const fadeInDuration = 500 + Math.random() * 500;
+        const holdDuration = 2000 + Math.random() * 2000;
+        const fadeOutDuration = 500 + Math.random() * 500;
+        
+        const breathePeriod = 3000 + Math.random() * 1000;
+        const breatheAmplitude = 0.04 + Math.random() * 0.02;
+        const breathePhase = Math.random() * Math.PI * 2;
+        
+        const stickerObj = {
+            element: wrapper,
+            timers: [],
+            rafId: null,
+            startTime: performance.now()
+        };
+        this.activeStickers.push(stickerObj);
+        
+        const animate = (now) => {
+            const elapsed = now - stickerObj.startTime;
+            const phase = breathePhase + (elapsed / breathePeriod) * Math.PI * 2;
+            const s = Math.sin(phase);
+            img.style.transform = `scaleX(${1 + s * breatheAmplitude}) scaleY(${1 - s * breatheAmplitude})`;
+            stickerObj.rafId = requestAnimationFrame(animate);
+        };
+        stickerObj.rafId = requestAnimationFrame(animate);
+        
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                wrapper.style.transition = `opacity ${fadeInDuration}ms ease-in`;
+                wrapper.style.opacity = '1';
+            });
+        });
+        
+        const holdTimer = setTimeout(() => {
+            if (stickerObj.rafId) {
+                cancelAnimationFrame(stickerObj.rafId);
+                stickerObj.rafId = null;
+            }
+            wrapper.style.transition = `opacity ${fadeOutDuration}ms ease-out`;
+            wrapper.style.opacity = '0';
+            
+            const removeTimer = setTimeout(() => {
+                if (wrapper.parentNode) {
+                    wrapper.parentNode.removeChild(wrapper);
+                }
+                this.activeStickers = this.activeStickers.filter(s => s !== stickerObj);
+            }, fadeOutDuration);
+            stickerObj.timers.push(removeTimer);
+        }, fadeInDuration + holdDuration);
+        stickerObj.timers.push(holdTimer);
+    }
+
+};
+
+// 在DOMContentLoaded时初始化sticker
+document.addEventListener('DOMContentLoaded', function() {
+    StickerManager.init();
+});
+
+
 // Function to select a random song (never the same as previous)
 function selectRandomSong() {
   const songKeys = Object.keys(songs);
@@ -2973,6 +3158,12 @@ document.addEventListener("DOMContentLoaded", function () {
         this.classList.add("active");
         this.classList.add("has-been-active"); // 标记为已激活过
         currentActivePage = targetPageId; // Update current active page
+        // Sticker management for page2
+        if (targetPageId === 'page2') {
+            StickerManager.start();
+        } else {
+            StickerManager.stop();
+        }
       }
       // Handle page5 active state
       if (targetPageId === "page5" && !page5Active) {
@@ -3015,6 +3206,13 @@ document.addEventListener("DOMContentLoaded", function () {
       );
       currentPageId = activeBtn ? activeBtn.dataset.page : "page1";
       currentActivePage = currentPageId; // Update current active page
+
+      // Sticker management for page2
+      if (currentPageId === 'page2') {
+          StickerManager.start();
+      } else {
+          StickerManager.stop();
+      }
 
       // Check scroll position - hide when near top or bottom
       const isNearTop = pagesContainer.scrollTop < 100;
