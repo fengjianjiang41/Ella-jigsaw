@@ -55,6 +55,25 @@
             height: auto;
         }
 
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 0px;
+        }
+
+        .qr-code {
+            width: 150px;
+            height: auto;
+            margin-top: -20px;
+        }
+
+        .qr-text {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+
         .shop-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -138,6 +157,11 @@
     <h1 id="pageTitle">商店</h1>
     <img src="images/shop.png" alt="Shop" class="shop-banner">
 
+    <div class="qr-section">
+        <img src="images/qrcode.png" alt="QR Code" class="qr-code">
+        <p class="qr-text" id="qrText">扫码查看详情</p>
+    </div>
+
     <div class="shop-content" id="shopContent">
         <!-- 商店内容区域（暂时留空） -->
     </div>
@@ -159,12 +183,14 @@
             zh: {
                 pageTitle: "商店",
                 langBtn: "EN",
-                backBtn: "返回"
+                backBtn: "返回",
+                qrText: "扫码查看详情"
             },
             en: {
                 pageTitle: "Shop",
                 langBtn: "中文",
-                backBtn: "Back"
+                backBtn: "Back",
+                qrText: "Sorry, currently for Chinese users only"
             }
         };
 
@@ -172,6 +198,7 @@
             document.getElementById('pageTitle').textContent = translations[currentLang].pageTitle;
             document.getElementById('floatingLangBtn').textContent = translations[currentLang].langBtn;
             document.getElementById('backBtn').textContent = translations[currentLang].backBtn;
+            document.getElementById('qrText').textContent = translations[currentLang].qrText;
         }
 
         updateLanguage();

@@ -27,6 +27,19 @@ const coreAudioFiles = [
   "audio/autoopen.mp3",
   "audio/autoclose.mp3",
 
+  // ========== 台球游戏音效 ==========
+  "audio/brake.mp3",
+  "audio/boom.mp3",
+  "audio/cue.mp3",
+  "audio/catch.mp3",
+  "audio/moonspell.mp3",
+  "audio/song.mp3",
+  "audio/laugh.mp3",
+  "audio/smallcry1.mp3",
+  "audio/smallcry2.mp3",
+  "audio/smallcry3.mp3",
+  "audio/bigcry.mp3",
+
   // Combo audio files
   "audio/5.mp3",
   "audio/10.mp3",

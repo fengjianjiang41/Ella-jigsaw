@@ -100,14 +100,14 @@ const BILLIARDS_CONFIG = {
     pocketMargin: 0.006,        // 点位距边缘的距离
     pocketRadius: 0.012,        // 点位半径
     pocketSideOffset: 0.004,    // 侧边点位偏移量
-    pocketTriggerRadius: 0.01, // 球被口袋吸入的触发半径
+    pocketTriggerRadius: 0.015, // 球被口袋吸入的触发半径
     
     // 球桌布局
     triangleStartX: 0.65,       // 三角形起始位置（占宽度比例）
     triangleStartY: 0.5,        // 三角形中心Y位置（占高度比例）
     ballSpacingRatio: 2.1,      // 球间距与半径的比例
     targetBallRadiusRatio: 0.85, // 目标球半径与主球半径的比例
-    triangleRows: 0,            // 三角形行数（5行=15球）
+    triangleRows: 5,            // 三角形行数（5行=15球）
     
     // 主球位置
     cueBallX: 0.25,             // 主球X位置（占宽度比例）
@@ -207,6 +207,12 @@ const BILLIARDS_CONFIG = {
         triggerDistance: 0.04,   // 距离 cueball 多近时触发冲力（sim 坐标）
         impulseStrength: 0.6,    // 给予 cueball 的冲力强度
       },
+      boom: {
+        image: "images/billiards/boom.gif",
+        lifetime: 0.6,           // boom.gif 存活时间（秒）
+        sizeMin: 0.6,            // 随机缩小下限（相对 cueball 尺寸倍数）
+        sizeMax: 1.3,            // 随机放大上限
+      },
     },
   },
 
@@ -231,7 +237,7 @@ const BILLIARDS_CONFIG = {
     cueBallRadius: 0.0165,      // cueball 半径
     interactRadius: 1.5,       // 可交互半径（相对于 cueball）
     ringColor: "#ffffff",       // 白圆圈颜色
-    stickColor: "#ffffff",      // 球杆颜色
+    stickColor: "#ff8fab",      // 球杆颜色
     stickWidth: 0.005,          // 球杆宽度（sim 坐标）
     brakeDeceleration: 3.0,    // 刹车减速率（线性减速，单位/秒）
     brakeRingColor: "#ff4444", // 刹车时圆圈颜色（红色提示）

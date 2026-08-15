@@ -233,6 +233,7 @@ var physicsScene = {
             hitTimer: 0,           // hit 特效累计计时
             hitIntervalTimer: 0,  // hit 间隔计时器
             hitList: [],          // [{pos:{x,y}, dir:{x,y}, birthTime, lifetime, speed}]
+            boomList: [],         // [{pos:{x,y}, birthTime, lifetime, size, alpha}]
         },
     },
 
@@ -263,6 +264,25 @@ let moonSpellBgm = null;
 // Small body (catch) phase background music
 let catchBgm = null;
 
+// 刹车音效（预加载，循环播放）
+let brakeAudio = null;
+try {
+    brakeAudio = new Audio('audio/brake.mp3');
+    brakeAudio.loop = true;
+    brakeAudio.preload = 'auto';
+    brakeAudio.volume = 0.8 * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
+} catch (e) {
+    brakeAudio = null;
+}
+
+// 爆炸音效（预加载）
+let boomAudio = null;
+try {
+    boomAudio = new Audio('audio/boom.mp3');
+    boomAudio.preload = 'auto';
+} catch (e) {
+    boomAudio = null;
+}
 
 
 // Audio pool for ball-wall collision sounds
@@ -348,9 +368,13 @@ const ballGlassAudioPool = {
     },
 };
 
-// Toggle sound on/off
 function toggleSound() {
     soundEnabled = !soundEnabled;
+    // 同步刹车音效：关闭总开关时立即停止
+    if (!soundEnabled && brakeAudio) {
+        brakeAudio.pause();
+        brakeAudio.currentTime = 0;
+    }
     const button = document.querySelector('button[onclick="toggleSound()"]');
     if (button) {
         button.textContent = soundEnabled
@@ -362,6 +386,7 @@ function toggleSound() {
                 : "来点动静";
     }
 }
+
 
 function playBallWallSound(normalMomentum) {
     if (soundEnabled) {
@@ -440,6 +465,30 @@ function playBigCrySound() {
     cryAudio.play().catch(e => console.log('Big cry play blocked:', e));
 }
 
+// 统一管理刹车状态与音效
+function setBrakeState(active) {
+    const stick = physicsScene.cueStick;
+    if (active) {
+        if (!stick.braking) {
+            stick.braking = true;
+            if (soundEnabled && brakeAudio) {
+                brakeAudio.currentTime = 0;
+                brakeAudio.volume = 0.8 * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
+                brakeAudio.play().catch(e => console.log('Brake audio play blocked:', e));
+            }
+        }
+    } else {
+        if (stick.braking) {
+            stick.braking = false;
+            if (brakeAudio) {
+                brakeAudio.pause();
+                brakeAudio.currentTime = 0;
+            }
+        }
+    }
+}
+
+
 function setupSceneGravity() {
     if (physicsScene.starBilliardsMode) {
         // Full reset of star billiards progress (for reset button)
@@ -447,7 +496,7 @@ function setupSceneGravity() {
             victoryBgm.pause();
             victoryBgm.currentTime = 0;
         }
-                // Stop moon spell BGM
+        // Stop moon spell BGM
         if (moonSpellBgm) {
             moonSpellBgm.pause();
             moonSpellBgm.currentTime = 0;
@@ -470,8 +519,9 @@ function setupSceneGravity() {
             hitTimer: 0,
             hitIntervalTimer: 0,
             hitList: [],
+            boomList: [],
         };
-                laughTimer = 0;
+        laughTimer = 0;
         laughNextInterval = 3 + Math.random() * 3;
 
         // Reset pockets
@@ -636,6 +686,7 @@ function toggleStarBilliards() {
             hitTimer: 0,
             hitIntervalTimer: 0,
             hitList: [],
+            boomList: [],
         };
         laughTimer = 0;
         laughNextInterval = 3 + Math.random() * 3;
@@ -769,7 +820,7 @@ function setupPockets() {
     if (catchPromise !== undefined) {
         catchPromise.catch(err => console.log('Catch BGM play blocked:', err));
     }
-    
+
     // Show the progress bar container
     if (progressBarContainer) {
         progressBarContainer.style.display = 'block';
@@ -1325,7 +1376,7 @@ function cancelCueStick() {
     stick.active = false;
     stick.charging = false;
     stick.chargeAmount = 0;
-    stick.braking = false;
+    setBrakeState(false);
 }
 
 // 屏幕坐标转模拟坐标的辅助函数
@@ -1335,6 +1386,44 @@ function toSimCoords(clientX, clientY) {
     let my = clientY - bounds.top - canvas2.clientTop;
     return new Vector2(mx / cScale2, (canvas2.height - my) / cScale2);
 }
+
+// 星际台球模式下 document 级事件处理器（用于鼠标移出 canvas 后仍能持续蓄力/刹车）
+var starMoveHandler = null;
+var starUpHandler = null;
+
+function bindStarGlobalHandlers() {
+    if (starMoveHandler) return;
+    starMoveHandler = function (event) {
+        const simPos = toSimCoords(event.clientX, event.clientY);
+        lastMousePos = simPos.clone();
+        if (physicsScene.starBilliardsMode && (physicsScene.cueStick.charging || physicsScene.cueStick.braking)) {
+            updateCueStick(simPos);
+        }
+    };
+    starUpHandler = function (event) {
+        if (!physicsScene.starBilliardsMode) return;
+        if (physicsScene.cueStick.braking) {
+            setBrakeState(false);
+        } else {
+            releaseCueStick();
+        }
+        unbindStarGlobalHandlers();
+    };
+    document.addEventListener("mousemove", starMoveHandler);
+    document.addEventListener("mouseup", starUpHandler);
+}
+
+function unbindStarGlobalHandlers() {
+    if (starMoveHandler) {
+        document.removeEventListener("mousemove", starMoveHandler);
+        starMoveHandler = null;
+    }
+    if (starUpHandler) {
+        document.removeEventListener("mouseup", starUpHandler);
+        starUpHandler = null;
+    }
+}
+
 
 // 鼠标事件处理
 canvas2.addEventListener("mousedown", (event) => {
@@ -1356,12 +1445,14 @@ canvas2.addEventListener("mousedown", (event) => {
         const speed = getCueBallSpeed();
         if (speed >= config.cueStick.idleSpeedThreshold) {
             // 速度过快，进入刹车模式（线性减速）
-            physicsScene.cueStick.braking = true;
+            setBrakeState(true);
             physicsScene.cueStick.charging = false;
             physicsScene.cueStick.active = false;
         } else {
             startCueCharge(simPos);
         }
+        // 新增：注册 document 级事件监听，即使鼠标移出 canvas 也能持续响应
+        bindStarGlobalHandlers();
     }
 });
 
@@ -1372,7 +1463,7 @@ canvas2.addEventListener("mouseup", (event) => {
     } else {
         // 星际模式：释放球杆或停止刹车
         if (physicsScene.cueStick.braking) {
-            physicsScene.cueStick.braking = false;
+            setBrakeState(false);
         } else {
             releaseCueStick();
         }
@@ -1382,13 +1473,18 @@ canvas2.addEventListener("mouseup", (event) => {
 canvas2.addEventListener("mouseleave", (event) => {
     mouseInCanvas = false;
     if (physicsScene.starBilliardsMode) {
-        physicsScene.cueStick.braking = false;
-        cancelCueStick();
+        // 注意：不再在这里取消蓄力/刹车，而是通过 document 级 mousemove 持续跟踪，
+        // 真正超出最大蓄力范围时由 updateCueStick 内部逻辑取消。
+        if (!physicsScene.cueStick.charging && !physicsScene.cueStick.braking) {
+            setBrakeState(false);
+            cancelCueStick();
+        }
     } else if (mouseDown2) {
         mouseDown2 = false;
         canvas2.style.cursor = 'grab';
     }
 });
+
 
 canvas2.addEventListener("mousemove", (event) => {
     const simPos = toSimCoords(event.clientX, event.clientY);
@@ -1415,10 +1511,13 @@ canvas2.addEventListener("mousemove", (event) => {
 canvas2.addEventListener("mouseleave", () => {
     mouseInCanvas = false;
     if (physicsScene.starBilliardsMode) {
-        physicsScene.cueStick.braking = false;
-        cancelCueStick();
+        if (!physicsScene.cueStick.charging && !physicsScene.cueStick.braking) {
+            setBrakeState(false);
+            cancelCueStick();
+        }
     }
 });
+
 
 canvas2.addEventListener("mouseenter", () => {
     mouseInCanvas = true;
@@ -1442,7 +1541,7 @@ canvas2.addEventListener("touchstart", (event) => {
         const speed = getCueBallSpeed();
         if (speed >= config.cueStick.idleSpeedThreshold) {
             // 速度过快，进入刹车模式
-            physicsScene.cueStick.braking = true;
+            setBrakeState(true);
             physicsScene.cueStick.charging = false;
             physicsScene.cueStick.active = false;
         } else {
@@ -1458,7 +1557,7 @@ canvas2.addEventListener("touchend", (event) => {
     } else {
         // 星际模式：释放球杆或停止刹车
         if (physicsScene.cueStick.braking) {
-            physicsScene.cueStick.braking = false;
+            setBrakeState(false);
         } else {
             releaseCueStick();
         }
@@ -1509,6 +1608,8 @@ var splashGif = new Image();
 splashGif.src = config.starBilliards.moonEffects.splash.image;
 var hitGif = new Image();
 hitGif.src = config.starBilliards.moonEffects.hit.image;
+var boomGif = new Image();
+boomGif.src = config.starBilliards.moonEffects.boom.image;
 
 // 帮助图片（悬停问号图标时显示）
 var helpCnImg = new Image();
@@ -1814,7 +1915,7 @@ function drawGravity() {
 
 
 
-               // 绘制随机星空背景（仅首次生成，后续复用）
+        // 绘制随机星空背景（仅首次生成，后续复用）
         if (state.starFieldCanvas === undefined) {
             const sf = document.createElement('canvas');
             sf.width = canvas2.width;
@@ -1840,7 +1941,7 @@ function drawGravity() {
         c.drawImage(state.starFieldCanvas, 0, 0);
 
         // 绘制星球大战式 3D 透视滚动文字（梯形文字层）
-                (function drawStarWarsCrawl() {
+        (function drawStarWarsCrawl() {
             const cc = state.crawlCanvas;
             const vpX = canvas2.width / 2;
             const focal = 800;
@@ -1966,6 +2067,7 @@ function startDuelPhase() {
         hitTimer: 0,
         hitIntervalTimer: 0,
         hitList: [],
+        boomList: [],
     };
 
     // 停止小星体环节 BGM
@@ -2078,18 +2180,9 @@ function updateMoonBall(dt) {
     if (moonBall.inertia > 0) {
         moonBall.omega = angularMomentum / moonBall.inertia;
     }
-        // Laugh timer: every 3~6 seconds play laugh.mp3
-    laughTimer += dt;
-
     // 更新进度条月球半径（用于颜色渐变）
     if (physicsScene.planetProgressBar) {
         physicsScene.planetProgressBar.moonRadius = moonBall.radius;
-    }
-
-    if (laughTimer >= laughNextInterval) {
-        laughTimer = 0;
-        laughNextInterval = 3 + Math.random() * 3;
-        playLaughSound(moonBall.radius);
     }
 
     // ======= GIF 特效更新 =======
@@ -2110,6 +2203,13 @@ function updateMoonBall(dt) {
             effects.splashList.splice(i, 1);
         }
     }
+    if (effects.boomList) {
+        for (let i = effects.boomList.length - 1; i >= 0; i--) {
+            if (now - effects.boomList[i].birthTime > effects.boomList[i].lifetime) {
+                effects.boomList.splice(i, 1);
+            }
+        }
+    }
 
     // 更新 hit（飞行中的 gif）—— 每时每刻方向指向 cueball
     for (let i = effects.hitList.length - 1; i >= 0; i--) {
@@ -2128,19 +2228,40 @@ function updateMoonBall(dt) {
         hit.pos.x += hit.dir.x * cfg.hit.speed * dt;
         hit.pos.y += hit.dir.y * cfg.hit.speed * dt;
         // 检测是否碰到 cueball
+        // 检测是否碰到 cueball
         if (cueBall) {
             const dx = cueBall.pos.x - hit.pos.x;
             const dy = cueBall.pos.y - hit.pos.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < cfg.hit.triggerDistance + cueBall.radius) {
-                // 给予 cueball 冲力（使用当前最新方向）
+                // 给予 cueball 冲力
                 const impulse = cfg.hit.impulseStrength;
                 cueBall.vel.x += hit.dir.x * impulse;
                 cueBall.vel.y += hit.dir.y * impulse;
+
+                // 在接触点生成 boom.gif 特效（尺寸随机）
+                const boomCfg = cfg.boom;
+                const boomScale = boomCfg.sizeMin + Math.random() * (boomCfg.sizeMax - boomCfg.sizeMin);
+                effects.boomList = effects.boomList || [];
+                effects.boomList.push({
+                    pos: { x: hit.pos.x, y: hit.pos.y },
+                    birthTime: now,
+                    lifetime: boomCfg.lifetime,
+                    scale: boomScale,
+                });
+
+                // 播放 boom.mp3 音效（受总控影响）
+                if (soundEnabled && boomAudio) {
+                    boomAudio.currentTime = 0;
+                    boomAudio.volume = 0.8 * (typeof globalSfxVolume !== 'undefined' ? globalSfxVolume : 1.0);
+                    boomAudio.play().catch(e => console.log('Boom audio play blocked:', e));
+                }
+
                 effects.hitList.splice(i, 1);
                 continue;
             }
         }
+
         // 超时移除（使用每个 hit 自带的 lifetime）
         if (now - hit.birthTime > hit.lifetime) {
             effects.hitList.splice(i, 1);
@@ -2190,6 +2311,8 @@ function updateMoonBall(dt) {
                     lifetime: lifetime,
                     speed: cfg.hit.speed,
                 });
+                // 每次发射 hit.gif 时播放 mock(laugh.mp3) 音效
+                playLaughSound(moonBall.radius);
             }
         }
     } else {
@@ -2567,8 +2690,9 @@ function simulateGravity() {
                 const decelAmount = config.cueStick.brakeDeceleration * dt;
                 if (decelAmount >= curSpeed) {
                     ball.vel.set(new Vector2(0, 0));
-                    physicsScene.cueStick.braking = false;  // 已停止，自动结束刹车
-                } else {
+                    setBrakeState(false);  // 已停止，自动结束刹车
+                }
+                else {
                     ball.vel.x -= (ball.vel.x / curSpeed) * decelAmount;
                     ball.vel.y -= (ball.vel.y / curSpeed) * decelAmount;
                 }
@@ -3126,6 +3250,56 @@ function drawCueStick() {
         c.arc(ballCx, ballCy, ballR * 1.5, -Math.PI / 2, -Math.PI / 2 + chargeRatio * Math.PI * 2);
         c.stroke();
     }
+
+
+    // 绘制辅助瞄准虚线（沿球杆直线，从 cueball 向远离鼠标的方向）
+    if (stick.active) {
+        const aimDir = new Vector2(-dir.x, -dir.y);  // 击打方向（远离鼠标）
+        const chargeRatio = Math.max(0, stick.chargeAmount) / cfg.maxChargeDistance;
+
+        // 可见总距离：蓄力越大，可见距离越远
+        const baseLen = ball.radius * 2.5;
+        const extraLen = cfg.maxChargeDistance * 2.0;
+        const totalLen = baseLen + chargeRatio * extraLen;
+
+        // 前 40% 保持不透明，后 60% 渐变消失
+        const solidLen = totalLen * 0.4;
+        const fadeLen = totalLen - solidLen;
+
+        // 分段绘制虚线，每段调整透明度
+        const segLen = ball.radius * 0.35;
+        const nSeg = Math.ceil(totalLen / segLen);
+
+        c.lineWidth = 2;
+        c.lineCap = "butt";
+
+        for (let i = 0; i < nSeg; i++) {
+            const d1 = i * segLen;
+            const d2 = Math.min((i + 1) * segLen, totalLen);
+
+            let alpha;
+            if (d1 < solidLen) {
+                alpha = 1.0;
+            } else {
+                alpha = Math.max(0, 1.0 - (d1 - solidLen) / fadeLen);
+            }
+            if (alpha <= 0.02) break;
+
+            const sx = cueCx + aimDir.x * cScale2 * d1;
+            const sy = cueCy - aimDir.y * cScale2 * d1;
+            const ex = cueCx + aimDir.x * cScale2 * d2;
+            const ey = cueCy - aimDir.y * cScale2 * d2;
+
+            c.setLineDash([4, 4]);
+            c.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+            c.beginPath();
+            c.moveTo(sx, sy);
+            c.lineTo(ex, ey);
+            c.stroke();
+        }
+        c.setLineDash([]);
+    }
+
 }
 
 // 绘制月球对决 GIF 特效（Canvas 方式，GIF 自然播放动画）
@@ -3270,6 +3444,39 @@ function drawMoonEffects() {
         el.style.height = size + 'px';
         el.style.transform = 'rotate(' + angle + 'deg)';
         el.style.opacity = alpha.toString();
+    }
+
+    // ===== boom.gif =====
+    if (effects.boomList) {
+        for (let i = 0; i < effects.boomList.length; i++) {
+            const b = effects.boomList[i];
+            const key = 'b_' + i + '_' + b.birthTime.toFixed(3);
+            activeKeys.add(key);
+            let el = _effectDomCache[key];
+            if (!el) {
+                el = document.createElement('img');
+                el.src = boomGif.src;
+                el.style.position = 'absolute';
+                el.style.transformOrigin = 'center center';
+                overlay.appendChild(el);
+                _effectDomCache[key] = el;
+            }
+            const age = now - b.birthTime;
+            const t = Math.min(age / b.lifetime, 1.0);
+            // 淡出
+            const alpha = 1.0 - t;
+            // 尺寸：基础为 cueball 像素直径 * 随机缩放 * （1→1.2 生长）
+            const cueRpx = cScale2 * physicsScene.balls[0].radius;
+            const baseSize = cueRpx * 2 * b.scale;
+            const size = baseSize * (1.0 + t * 0.2);
+            const cx = cX(b.pos);
+            const cy = cY(b.pos);
+            el.style.left = (cx - size / 2) + 'px';
+            el.style.top = (cy - size / 2) + 'px';
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
+            el.style.opacity = alpha.toString();
+        }
     }
 
     // 清理已过期的 DOM 元素
